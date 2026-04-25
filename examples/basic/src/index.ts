@@ -25,7 +25,8 @@ const initialState = {
 };
 
 const storage = localMemoryStorage();
-const agent = createTrustedAgent({
+
+const acceptedAgent = createTrustedAgent({
   identity,
   credential,
   policy,
@@ -37,12 +38,27 @@ const agent = createTrustedAgent({
   }),
   storage,
   now: () => new Date('2026-04-25T12:00:00.000Z'),
-  createEventId: () => 'event-basic-1',
+  createEventId: () => 'event-accepted-1',
 });
 
-const result = await agent.startOnce();
+const rejectedAgent = createTrustedAgent({
+  identity,
+  credential,
+  policy,
+  initialState,
+  reasoning: staticReasoningEngine({
+    type: 'transfer-ownership',
+    metadata: { target: 'unsafe-admin-change' },
+  }),
+  storage,
+  now: () => new Date('2026-04-25T12:01:00.000Z'),
+  createEventId: () => 'event-rejected-1',
+});
 
-console.log(JSON.stringify(toJsonSafe({ result, auditEvents: storage.getAuditEvents() }), null, 2));
+const accepted = await acceptedAgent.startOnce();
+const rejected = await rejectedAgent.startOnce();
+
+console.log(JSON.stringify(toJsonSafe({ accepted, rejected, auditEvents: storage.getAuditEvents() }), null, 2));
 
 function toJsonSafe(value: unknown): unknown {
   if (typeof value === 'bigint') {
