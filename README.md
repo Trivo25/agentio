@@ -1,5 +1,7 @@
 # 0xAgentio: Trust Layer for Autonomous Agents
 
+<img src="./assets/logo.png" alt="0xAgentio Logo" width="200" style="display:block; margin:auto; "/>
+
 ## One-Liner
 
 An open framework that gives AI agents verifiable identity and trusted peer-to-peer collaboration — so they can prove who authorized them, discover credentialed peers and coordinate without a central broker, all without revealing who or what is behind them.
