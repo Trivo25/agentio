@@ -55,5 +55,6 @@ export type VerifierResult = {
 export interface ProofAdapter {
   /** Generates a proof for an action authorization request. */
   proveAction(request: ProofRequest): Promise<ProofResult>;
+  /** Verifies a credential proof produced by this or a compatible adapter. */
   verifyProof(proof: CredentialProof): Promise<VerifierResult>;
 }
