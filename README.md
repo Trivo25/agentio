@@ -43,3 +43,17 @@ Credentials itself are only static pieces of data — they need a communication 
 - **Mutual verification handshakes**: Before two agents transact bilaterally, they exchange credentials over AXL. Both sides verify the other is authorized before proceeding. Neither side needs to know who the others principal is - just that they're credentialed.
 - **Transport-layer filtering**: Unverified signals are dropped at the transport layer before reaching the application. The `axl` adapter is opinionated - if you can't prove who you are, your messages don't get through.
 - **Instant trust, no reputation needed**: Multi-agent systems need reputation scores that take time to build and are gameable. With 0xAgentio, trust is instant: a brand-new agent with a valid credential is immediately trustworthy on its first interaction because the proof _is_ the reputation.
+
+### Where 0xAgentio Applies
+
+The framework is domain agnostic. The same identity + collaboration stack applies anywhere agents need to prove who they are, discover peers and coordinate work:
+
+- **Data marketplace via mesh discovery**: A research agent announces on the AXL mesh: "I'm authorized by a biotech firm with a $10K data procurement budget, scoped to genomics datasets only." Data provider agents discover it, verify the credential and offer their datasets. No marketplace platform is needed: the mesh is the marketplace. The buyer proves budget and scope in ZK; the seller verifies before granting access.
+
+- **Compute delegation**: A principal authorizes an agent to spend up to $X on GPU inference across decentralized compute providers. The agent discovers providers on the mesh, presents its budget credential and providers verify before accepting jobs. Multiple agents from the same principal can coordinate task splitting - each proving their individual budgets roll up to the same delegation.
+
+- **Multi-agent task coordination**: A swarm of specialist agents (planner, researcher, executor, auditor) collaborate on a complex task. Each agent's credential proves its role and scope — the executor can commit up to $Y of resources, the auditor has read-only access to all execution logs. Agents verify each other's credentials over AXL before sharing work artifacts. The planner only accepts results from agents whose credentials prove the right scope.
+
+- **API access gating**: An agent acts as an intermediary consuming third-party APIs on behalf of users. The credential proves the agent is rate-limited (max N calls/hour) and scoped to specific endpoints, without revealing which user delegated it. API providers verify the credential instead of issuing API keys to anonymous bots.
+
+The common pattern: a principal delegates bounded authority -> the agent proves its bounds in ZK -> the agent discovers and collaborates with verified peers over AXL -> counterparties verify the proof before interacting. 0xAgentio is the trust layer that makes all of this work without a central authority.
