@@ -7,3 +7,5 @@ export { isActionAllowedByPolicy, isPolicyExpired, validateActionAgainstPolicy }
 export type { ValidationIssue, ValidationIssueCode, ValidationResult } from './validation.js';
 export type { CredentialProof, ProofAdapter, ProofRequest, ProofResult, VerifierResult } from './proof.js';
 export type { AgentContext, ReasoningEngine } from './reasoning.js';
+export type { AuditEvent, AuditStatus } from './audit.js';
+export type { StorageAdapter } from './storage.js';
