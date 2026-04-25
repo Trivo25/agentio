@@ -57,3 +57,7 @@ The framework is domain agnostic. The same identity + collaboration stack applie
 - **API access gating**: An agent acts as an intermediary consuming third-party APIs on behalf of users. The credential proves the agent is rate-limited (max N calls/hour) and scoped to specific endpoints, without revealing which user delegated it. API providers verify the credential instead of issuing API keys to anonymous bots.
 
 The common pattern: a principal delegates bounded authority -> the agent proves its bounds in ZK -> the agent discovers and collaborates with verified peers over AXL -> counterparties verify the proof before interacting. 0xAgentio is the trust layer that makes all of this work without a central authority.
+
+### The Demo App: 0xAgentio-Trade
+
+A multi-agent DCA trading system built on the framework. Agents autonomously trade on Uniswap within credential-enforced budget envelopes and share Sybil-resistant market signals over AXL. This demonstrates the framework in action and targets the Uniswap prize track.
