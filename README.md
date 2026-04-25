@@ -1,6 +1,9 @@
 # 0xAgentio: Trust Layer for Autonomous Agents
 
-<img src="./assets/logo.png" alt="0xAgentio Logo" width="200" style="display:block; margin:auto; "/>
+<p align="center">
+
+<img src="./assets/logo.png" alt="0xAgentio Logo" width="200" style="display:block; margin:auto;"/>
+</p>
 
 ## One-Liner
 
