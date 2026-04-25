@@ -8,6 +8,6 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@0xagentio/sdk": "workspace:*"
+    "@0xagentio/sdk": "file:../../packages/sdk"
   }
 }

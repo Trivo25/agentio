@@ -16,6 +16,6 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@0xagentio/core": "workspace:*"
+    "@0xagentio/core": "file:../core"
   }
 }
