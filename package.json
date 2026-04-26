@@ -10,7 +10,8 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "test": "npm run build && node --test packages/*/dist/*.test.js",
-    "example:basic": "node examples/basic/dist/index.js"
+    "example:basic": "node examples/basic/dist/index.js",
+    "example:peer": "node examples/basic/dist/peer-message.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
