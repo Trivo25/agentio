@@ -18,7 +18,7 @@ export type AgentContext = {
 };
 
 /**
- * Pluggable decision layer that proposes the agent's next action.
+ * Pluggable decision layer implemented by applications, strategy packages, or LLM adapters.
  */
 export interface ReasoningEngine {
   /** Returns an action intent or `skip` when the agent should not act. */
