@@ -1,5 +1,6 @@
 import {
   createActionIntent,
+  createPolicy,
   issueLocalCredential,
   localPolicyProofs,
   localTransport,
@@ -22,7 +23,7 @@ const identity = {
   publicKey: 'agent-public-key-alice',
 };
 
-const policy = {
+const policy = createPolicy({
   id: 'policy-basic',
   allowedActions: ['swap', 'broadcast-signal'],
   constraints: [
@@ -30,7 +31,7 @@ const policy = {
     { type: 'allowed-metadata-value' as const, key: 'assetPair', values: ['ETH/USDC'], actionTypes: ['swap'] },
   ],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
-};
+});
 
 const credential = issueLocalCredential({
   identity,
