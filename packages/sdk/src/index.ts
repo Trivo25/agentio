@@ -19,3 +19,4 @@ export { createActionIntent } from './action.js';
 export { issueLocalCredential, type IssueLocalCredentialOptions } from './local-credential.js';
 export { createPolicy } from './policy.js';
 export { createAgentIdentity } from './identity.js';
+export { POLICY_HASH_ALGORITHM, hashPolicy, serializePolicy } from '@0xagentio/core';
