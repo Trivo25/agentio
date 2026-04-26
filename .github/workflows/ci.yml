@@ -39,5 +39,8 @@ jobs:
       - name: Run validation example
         run: npm run example:basic
 
+      - name: Run delegation gate example
+        run: npm run example:delegation
+
       - name: Run peer message example
         run: npm run example:peer

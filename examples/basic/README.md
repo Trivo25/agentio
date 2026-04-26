@@ -39,6 +39,21 @@ Run it with:
 npm run example:basic
 ```
 
+## `delegation-gate.ts`
+
+Delegation verification demo.
+
+It runs the same action twice with runtime delegation verification enabled:
+
+- an unsigned credential is rejected before reasoning can lead to proof/execution;
+- a locally signed credential is accepted and can execute.
+
+Run it with:
+
+```sh
+npm run example:delegation
+```
+
 ## `peer-message.ts`
 
 Proof-backed peer messaging demo.

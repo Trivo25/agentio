@@ -6,6 +6,7 @@ import {
   hashPolicy,
   issueLocalCredential,
   localDelegationSigner,
+  verifyLocalDelegation,
   localExecution,
   localMemoryStorage,
   localPolicyProofs,
@@ -59,6 +60,7 @@ const agent = createTrustedAgent({
     updatedAt: new Date('2026-04-25T00:00:00.000Z'),
   },
   reasoning: staticReasoningEngine(action),
+  delegationVerifier: verifyLocalDelegation,
   proof: localPolicyProofs(),
   storage,
   execution: localExecution(async ({ action }) => ({
