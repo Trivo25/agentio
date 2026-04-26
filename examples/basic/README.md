@@ -39,6 +39,18 @@ Run it with:
 npm run example:basic
 ```
 
+## `noir-flow.ts`
+
+Noir-shaped proof adapter demo.
+
+It uses the same trusted-agent runtime shape as `sdk-flow.ts`, but swaps `localPolicyProofs()` for `localNoirProofs()`. This shows that the SDK runtime is proof-adapter-agnostic before real Noir tooling is connected.
+
+Run it with:
+
+```sh
+npm run example:noir
+```
+
 ## `delegation-gate.ts`
 
 Delegation verification demo.
