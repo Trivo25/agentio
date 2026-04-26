@@ -13,7 +13,7 @@ import type {
   StorageAdapter,
   ValidationResult,
 } from '@0xagentio/core';
-import { validateActionAgainstPolicy } from '@0xagentio/core';
+import { validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
 
 /**
  * Dependencies required to create a trusted agent runtime.
@@ -59,7 +59,7 @@ export type AgentStepResult =
     }
   | {
       readonly status: 'rejected';
-      readonly action: ActionIntent;
+      readonly action?: ActionIntent;
       readonly validation: ValidationResult;
       readonly event: AuditEvent;
     };
@@ -83,6 +83,19 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
     async startOnce(): Promise<AgentStepResult> {
       const cycleTime = now();
       const state = await loadStateOrInitial(options.storage, options.identity, options.initialState);
+      const credentialValidation = validateCredentialForPolicy(options.credential, options.policy, cycleTime);
+      if (!credentialValidation.valid) {
+        const event = await appendEvent(options.storage, {
+          id: createEventId(),
+          agentId: options.identity.id,
+          createdAt: cycleTime,
+          status: 'rejected',
+          issues: credentialValidation.issues,
+        });
+
+        return { status: 'rejected', validation: credentialValidation, event };
+      }
+
       const decision = await options.reasoning.decide({
         identity: options.identity,
         policy: options.policy,
