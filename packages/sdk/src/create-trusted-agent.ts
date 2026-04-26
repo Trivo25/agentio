@@ -157,6 +157,9 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
       });
 
       const execution = await options.execution?.execute({
+        identity: options.identity,
+        credential: options.credential,
+        policy: options.policy,
         action: decision,
         proof: proofResult.proof,
       });

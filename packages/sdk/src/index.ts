@@ -17,7 +17,7 @@ export {
   type VerifiedMessageHandlers,
   type VerifiedMessageResult,
 } from './verified-message.js';
-export { localExecution } from './local-execution.js';
+export { localExecution, localVerifyingExecution } from './local-execution.js';
 export { createActionIntent } from './action.js';
 export { issueLocalCredential, type IssueLocalCredentialOptions } from './local-credential.js';
 export { createPolicy } from './policy.js';
