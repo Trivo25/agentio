@@ -1,5 +1,12 @@
 import { createTrustedAgent, localMemoryStorage, localPolicyProofs, staticReasoningEngine } from '@0xagentio/sdk';
 
+import { toJsonSafe } from './json.js';
+
+// This example demonstrates the smallest local trusted-agent flow:
+// reasoning proposes actions, policy validation accepts or rejects them,
+// a local proof adapter creates proof-shaped output for valid actions,
+// and local storage records audit events.
+
 const identity = {
   id: 'agent-alice',
   publicKey: 'agent-public-key-alice',
@@ -80,29 +87,3 @@ const rejected = await rejectedAgent.startOnce();
 const overLimit = await overLimitAgent.startOnce();
 
 console.log(JSON.stringify(toJsonSafe({ accepted, rejected, overLimit, auditEvents: storage.getAuditEvents() }), null, 2));
-
-function toJsonSafe(value: unknown): unknown {
-  if (typeof value === 'bigint') {
-    return value.toString();
-  }
-
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (value instanceof Uint8Array) {
-    return Array.from(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(toJsonSafe);
-  }
-
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nestedValue]) => [key, toJsonSafe(nestedValue)]),
-    );
-  }
-
-  return value;
-}
