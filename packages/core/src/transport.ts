@@ -7,6 +7,12 @@ export type PeerId = string;
  * Generic message exchanged between agents.
  */
 export type AgentMessage = {
+  /** Stable message id used by replies and logs, when the protocol needs one. */
+  readonly id?: string;
+  /** Conversation id shared by related requests and replies. */
+  readonly correlationId?: string;
+  /** Message id this message replies to, when applicable. */
+  readonly replyTo?: string;
   /** Application or protocol-specific message type. */
   readonly type: string;
   /** Sender agent or peer identifier. */

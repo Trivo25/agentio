@@ -19,6 +19,13 @@ export {
 } from './verified-message.js';
 export { localExecution, localVerifyingExecution } from './local-execution.js';
 export {
+  createAgentMessage,
+  createAgentReply,
+  type CorrelatedAgentMessage,
+  type CreateAgentMessageOptions,
+  type CreateAgentReplyOptions,
+} from './message.js';
+export {
   createAgentPeer,
   createPeerAgent,
   type AgentPeer,

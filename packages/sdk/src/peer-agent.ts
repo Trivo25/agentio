@@ -1,4 +1,4 @@
-import type { AgentIdentity, AgentMessage, PeerId, ProofAdapter, TransportAdapter } from '@0xagentio/core';
+import type { AgentIdentity, AgentMessage, MessageHandler, PeerId, ProofAdapter, TransportAdapter } from '@0xagentio/core';
 
 import { onVerifiedMessage, type VerifiedMessageHandlers } from './verified-message.js';
 
@@ -27,6 +27,8 @@ export type AgentPeer = {
   send(peerId: PeerId, message: AgentMessage): Promise<void>;
   /** Broadcasts a message to all peers supported by the transport. */
   broadcast(message: AgentMessage): Promise<void>;
+  /** Registers this peer agent as a listener for raw incoming messages. */
+  onMessage(handler: MessageHandler): Promise<void> | void;
   /** Registers this peer agent as a listener for proof-backed messages. */
   onVerifiedMessage(proofAdapter: ProofAdapter, handlers: VerifiedMessageHandlers): Promise<void> | void;
 };
@@ -49,6 +51,10 @@ export function createAgentPeer(options: CreateAgentPeerOptions): AgentPeer {
 
     broadcast(message) {
       return options.transport.broadcast(message);
+    },
+
+    onMessage(handler) {
+      return options.transport.onMessage(handler);
     },
 
     onVerifiedMessage(proofAdapter, handlers) {

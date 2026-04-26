@@ -19,19 +19,24 @@ const message: AgentMessage = {
 
 test('createAgentPeer scopes sends to a named agent identity', async () => {
   const sent: unknown[] = [];
+  const handlers: unknown[] = [];
   const transport = {
     async send(peerId: string, sentMessage: AgentMessage) {
       sent.push({ peerId, message: sentMessage });
     },
     async broadcast() {},
-    onMessage() {},
+    onMessage(handler: unknown) {
+      handlers.push(handler);
+    },
   };
   const carol = createAgentPeer({ identity, transport });
 
   await carol.send('agent-bob', message);
+  carol.onMessage(() => {});
 
   assert.equal(carol.identity.id, 'agent-carol-auditor');
   assert.deepEqual(sent, [{ peerId: 'agent-bob', message }]);
+  assert.equal(handlers.length, 1);
 });
 
 test('createPeerAgent remains a compatibility alias', () => {
