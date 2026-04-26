@@ -19,8 +19,14 @@ export { createActionIntent } from './action.js';
 export { issueLocalCredential, type IssueLocalCredentialOptions } from './local-credential.js';
 export { createPolicy } from './policy.js';
 export { createAgentIdentity } from './identity.js';
-export { POLICY_HASH_ALGORITHM, hashPolicy, serializePolicy } from '@0xagentio/core';
+export { POLICY_HASH_ALGORITHM, createNoirAuthorizationInput, hashPolicy, serializePolicy } from '@0xagentio/core';
 export type { DelegationSigner, DelegationVerificationResult, DelegationVerifier } from '@0xagentio/core';
+export type {
+  NoirAuthorizationInput,
+  NoirAuthorizationPrivateInputs,
+  NoirAuthorizationPublicInputs,
+  NoirMetadataValue,
+} from '@0xagentio/core';
 export {
   localDelegationSigner,
   verifyLocalDelegation,

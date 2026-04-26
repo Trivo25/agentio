@@ -21,3 +21,10 @@ export type {
   DelegationVerifier,
 } from './delegation.js';
 export { credentialDelegationStatement, serializeDelegationStatement } from './delegation.js';
+export type {
+  NoirAuthorizationInput,
+  NoirAuthorizationPrivateInputs,
+  NoirAuthorizationPublicInputs,
+  NoirMetadataValue,
+} from './noir.js';
+export { createNoirAuthorizationInput } from './noir.js';
