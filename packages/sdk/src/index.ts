@@ -5,6 +5,7 @@ export {
   type TrustedAgent,
 } from './create-trusted-agent.js';
 export { localMemoryStorage, type LocalMemoryStorage } from './local-memory-storage.js';
+export { localOgStorage, type LocalOgStorage, type LocalOgStorageRecord } from './local-og-storage.js';
 export { localNoirProofs } from './local-noir-proof.js';
 export { localPolicyProofs } from './local-policy-proof.js';
 export { staticReasoningEngine } from './static-reasoning-engine.js';
