@@ -1,4 +1,4 @@
-import { localPolicyProofs, localTransport, onVerifiedMessage } from '@0xagentio/sdk';
+import { createActionIntent, localPolicyProofs, localTransport, onVerifiedMessage } from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
@@ -22,7 +22,10 @@ const credential = {
 const policy = {
   id: 'policy-basic',
   allowedActions: ['swap', 'broadcast-signal'],
-  constraints: [{ type: 'max-amount' as const, value: 500n }],
+  constraints: [
+    { type: 'max-amount' as const, value: 500n, actionTypes: ['swap'] },
+    { type: 'allowed-metadata-value' as const, key: 'assetPair', values: ['ETH/USDC'], actionTypes: ['swap'] },
+  ],
   expiresAt: credential.expiresAt,
 };
 
@@ -31,11 +34,11 @@ const state = {
   updatedAt: new Date('2026-04-25T00:00:00.000Z'),
 };
 
-const action = {
+const action = createActionIntent({
   type: 'swap',
   amount: 250n,
-  assetPair: 'ETH/USDC',
-};
+  metadata: { assetPair: 'ETH/USDC' },
+});
 
 const proofResult = await proof.proveAction({
   credential,

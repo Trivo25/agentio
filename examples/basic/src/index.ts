@@ -1,4 +1,5 @@
 import {
+  createActionIntent,
   createTrustedAgent,
   localExecution,
   localMemoryStorage,
@@ -47,7 +48,7 @@ const proof = localPolicyProofs();
 const execution = localExecution(async ({ action }) => ({
   success: true,
   reference: `local-execution:${action.type}`,
-  details: { assetPair: action.assetPair, amount: action.amount },
+  details: { assetPair: action.metadata?.assetPair, amount: action.amount },
 }));
 
 const acceptedAgent = createTrustedAgent({
@@ -55,12 +56,13 @@ const acceptedAgent = createTrustedAgent({
   credential,
   policy,
   initialState,
-  reasoning: staticReasoningEngine({
-    type: 'swap',
-    amount: 250n,
-    assetPair: 'ETH/USDC',
-    metadata: { assetPair: 'ETH/USDC' },
-  }),
+  reasoning: staticReasoningEngine(
+    createActionIntent({
+      type: 'swap',
+      amount: 250n,
+      metadata: { assetPair: 'ETH/USDC' },
+    }),
+  ),
   proof,
   storage,
   execution,
@@ -73,10 +75,12 @@ const rejectedAgent = createTrustedAgent({
   credential,
   policy,
   initialState,
-  reasoning: staticReasoningEngine({
-    type: 'transfer-ownership',
-    metadata: { target: 'unsafe-admin-change' },
-  }),
+  reasoning: staticReasoningEngine(
+    createActionIntent({
+      type: 'transfer-ownership',
+      metadata: { target: 'unsafe-admin-change' },
+    }),
+  ),
   proof,
   storage,
   now: () => new Date('2026-04-25T12:01:00.000Z'),
@@ -88,12 +92,13 @@ const overLimitAgent = createTrustedAgent({
   credential,
   policy,
   initialState,
-  reasoning: staticReasoningEngine({
-    type: 'swap',
-    amount: 750n,
-    assetPair: 'ETH/USDC',
-    metadata: { assetPair: 'ETH/USDC' },
-  }),
+  reasoning: staticReasoningEngine(
+    createActionIntent({
+      type: 'swap',
+      amount: 750n,
+      metadata: { assetPair: 'ETH/USDC' },
+    }),
+  ),
   proof,
   storage,
   now: () => new Date('2026-04-25T12:02:00.000Z'),

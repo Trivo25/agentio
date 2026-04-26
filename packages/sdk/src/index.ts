@@ -15,3 +15,4 @@ export {
   type VerifiedMessageResult,
 } from './verified-message.js';
 export { localExecution } from './local-execution.js';
+export { createActionIntent } from './action.js';
