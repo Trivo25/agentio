@@ -39,6 +39,9 @@ jobs:
       - name: Run Noir-shaped proof example
         run: npm run example:noir
 
+      - name: Run 0G-shaped storage example
+        run: npm run example:og
+
       - name: Run validation example
         run: npm run example:basic
 

@@ -51,6 +51,18 @@ Run it with:
 npm run example:noir
 ```
 
+## `og-storage-flow.ts`
+
+0G-shaped storage adapter demo.
+
+It uses the same trusted-agent runtime shape as `noir-flow.ts`, but swaps `localMemoryStorage()` for `localOgStorage()`. This shows that the SDK runtime is storage-adapter-agnostic before real 0G Storage is connected.
+
+Run it with:
+
+```sh
+npm run example:og
+```
+
 ## `delegation-gate.ts`
 
 Delegation verification demo.
