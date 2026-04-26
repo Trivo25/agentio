@@ -4,7 +4,9 @@ import test from 'node:test';
 import { hashPolicy, type ExecutionRequest } from '@0xagentio/core';
 
 import { createTrustedAgent } from './create-trusted-agent.js';
+import { localDelegationSigner, verifyLocalDelegation } from './local-delegation.js';
 import { localExecution } from './local-execution.js';
+import { issueLocalCredential } from './local-credential.js';
 import { localMemoryStorage } from './local-memory-storage.js';
 import { localPolicyProofs } from './local-policy-proof.js';
 import { staticReasoningEngine } from './static-reasoning-engine.js';
@@ -63,6 +65,7 @@ function createTestAgentWithCredential(
   testCredential: typeof credential,
   reasoning: Parameters<typeof staticReasoningEngine>[0],
   executions: ExecutionRequest[],
+  delegationVerifier?: Parameters<typeof createTrustedAgent>[0]['delegationVerifier'],
 ) {
   const storage = localMemoryStorage();
   const agent = createTrustedAgent({
@@ -77,6 +80,7 @@ function createTestAgentWithCredential(
       executions.push(request);
       return { success: true, reference: `executed:${request.action.type}` };
     }),
+    delegationVerifier,
     now: () => new Date('2026-04-25T12:00:00.000Z'),
     createEventId: () => 'event-test',
   });
@@ -138,4 +142,42 @@ test('createTrustedAgent rejects invalid credentials before reasoning and execut
   assert.deepEqual(storage.getAuditEvents()[0]?.issues?.map((issue) => issue.code), [
     'credential-policy-hash-mismatch',
   ]);
+});
+
+test('createTrustedAgent can require valid credential delegation before reasoning and execution', async () => {
+  const executions: ExecutionRequest[] = [];
+  const { agent } = createTestAgentWithCredential(
+    credential,
+    { type: 'swap', amount: 250n },
+    executions,
+    verifyLocalDelegation,
+  );
+
+  const result = await agent.startOnce();
+
+  assert.equal(result.status, 'rejected');
+  assert.equal(executions.length, 0);
+  assert.deepEqual(result.validation.issues.map((issue) => issue.code), ['credential-delegation-invalid']);
+});
+
+test('createTrustedAgent accepts valid delegated credentials when delegation verification is configured', async () => {
+  const executions: ExecutionRequest[] = [];
+  const delegatedCredential = await issueLocalCredential({
+    identity,
+    policy,
+    id: credential.id,
+    issuedAt: credential.issuedAt,
+    signer: localDelegationSigner('principal-test'),
+  });
+  const { agent } = createTestAgentWithCredential(
+    delegatedCredential,
+    { type: 'swap', amount: 250n },
+    executions,
+    verifyLocalDelegation,
+  );
+
+  const result = await agent.startOnce();
+
+  assert.equal(result.status, 'accepted');
+  assert.equal(executions.length, 1);
 });

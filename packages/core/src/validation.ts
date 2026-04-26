@@ -9,7 +9,8 @@ export type ValidationIssueCode =
   | 'metadata-value-not-allowed'
   | 'credential-policy-id-mismatch'
   | 'credential-policy-hash-mismatch'
-  | 'credential-expired';
+  | 'credential-expired'
+  | 'credential-delegation-invalid';
 
 /**
  * Describes why validation failed.

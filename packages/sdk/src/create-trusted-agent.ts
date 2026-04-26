@@ -11,6 +11,7 @@ import type {
   ProofAdapter,
   ReasoningEngine,
   StorageAdapter,
+  ValidationIssue,
   ValidationResult,
 } from '@0xagentio/core';
 import { validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
@@ -35,11 +36,25 @@ export type CreateTrustedAgentOptions = {
   readonly storage: StorageAdapter;
   /** Optional backend for executing authorized actions after proof generation. */
   readonly execution?: ExecutionAdapter;
+  /** Optional verifier for principal delegation signatures on credentials. */
+  readonly delegationVerifier?: (credential: Credential) => Promise<DelegationVerificationResult> | DelegationVerificationResult;
   /** Optional clock for deterministic examples and tests. */
   readonly now?: () => Date;
   /** Optional event id generator for deterministic examples and tests. */
   readonly createEventId?: () => string;
 };
+
+/**
+ * Result returned by an optional credential delegation verifier.
+ */
+export type DelegationVerificationResult =
+  | {
+      readonly valid: true;
+    }
+  | {
+      readonly valid: false;
+      readonly reason: string;
+    };
 
 /**
  * Result returned after one agent decision cycle.
@@ -94,6 +109,19 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
         });
 
         return { status: 'rejected', validation: credentialValidation, event };
+      }
+
+      const delegationValidation = await validateCredentialDelegation(options.credential, options.delegationVerifier);
+      if (!delegationValidation.valid) {
+        const event = await appendEvent(options.storage, {
+          id: createEventId(),
+          agentId: options.identity.id,
+          createdAt: cycleTime,
+          status: 'rejected',
+          issues: delegationValidation.issues,
+        });
+
+        return { status: 'rejected', validation: delegationValidation, event };
       }
 
       const decision = await options.reasoning.decide({
@@ -172,4 +200,25 @@ async function loadStateOrInitial(
 async function appendEvent(storage: StorageAdapter, event: AuditEvent): Promise<AuditEvent> {
   await storage.appendAuditEvent(event);
   return event;
+}
+
+async function validateCredentialDelegation(
+  credential: Credential,
+  delegationVerifier: CreateTrustedAgentOptions['delegationVerifier'],
+): Promise<ValidationResult> {
+  if (delegationVerifier === undefined) {
+    return { valid: true, issues: [] };
+  }
+
+  const verification = await delegationVerifier(credential);
+  if (verification.valid) {
+    return { valid: true, issues: [] };
+  }
+
+  const issue: ValidationIssue = {
+    code: 'credential-delegation-invalid',
+    message: `Credential ${credential.id} delegation is invalid: ${verification.reason}.`,
+  };
+
+  return { valid: false, issues: [issue] };
 }
