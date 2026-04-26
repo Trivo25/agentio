@@ -5,6 +5,7 @@ import {
   createTrustedAgent,
   hashPolicy,
   issueLocalCredential,
+  localDelegationSigner,
   localExecution,
   localMemoryStorage,
   localPolicyProofs,
@@ -39,6 +40,7 @@ const credential = await issueLocalCredential({
   policy,
   id: 'credential-basic',
   issuedAt: new Date('2026-04-25T00:00:00.000Z'),
+  signer: localDelegationSigner('principal-alice'),
 });
 
 const action = createActionIntent({
