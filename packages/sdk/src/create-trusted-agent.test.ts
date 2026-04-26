@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { ExecutionRequest } from '@0xagentio/core';
+import { hashPolicy, type ExecutionRequest } from '@0xagentio/core';
 
 import { createTrustedAgent } from './create-trusted-agent.js';
 import { localExecution } from './local-execution.js';
@@ -25,6 +25,7 @@ const credential = {
   id: 'credential-test',
   agentId: identity.id,
   policyId: policy.id,
+  policyHash: hashPolicy(policy),
   issuedAt: new Date('2026-04-25T00:00:00.000Z'),
   expiresAt: policy.expiresAt,
 };
