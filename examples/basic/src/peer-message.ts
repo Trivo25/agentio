@@ -1,4 +1,4 @@
-import { localPolicyProofs, localTransport } from '@0xagentio/sdk';
+import { localPolicyProofs, localTransport, verifyCredentialMessage } from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
@@ -46,19 +46,13 @@ const proofResult = await proof.proveAction({
 });
 
 transport.onMessage(async (message) => {
-  const credentialProof = message.payload.proof;
-  if (!isCredentialProofLike(credentialProof)) {
-    rejectedMessages.push({ message, reason: 'missing-proof' });
+  const result = await verifyCredentialMessage(message, proof);
+  if (result.valid) {
+    trustedMessages.push(result);
     return;
   }
 
-  const verification = await proof.verifyProof(credentialProof);
-  if (!verification.valid) {
-    rejectedMessages.push({ message, verification });
-    return;
-  }
-
-  trustedMessages.push({ message, verification });
+  rejectedMessages.push(result);
 });
 
 const message = {
@@ -85,16 +79,3 @@ console.log(
     2,
   ),
 );
-
-function isCredentialProofLike(value: unknown): value is { format: string; proof: Uint8Array; publicInputs: Readonly<Record<string, unknown>> } {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-
-  const candidate = value as { format?: unknown; proof?: unknown; publicInputs?: unknown };
-  return typeof candidate.format === 'string' && candidate.proof instanceof Uint8Array && isRecord(candidate.publicInputs);
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
