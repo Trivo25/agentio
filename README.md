@@ -81,6 +81,35 @@ The common pattern: a principal delegates bounded authority -> the agent proves 
 
 The framework is agnostic about _what_ the credential contains. For example, a trading application defines a circuit for "my budget is $5K, max $200 per trade." A compute marketplace defines a circuit for "I'm authorized to spend up to $X on GPU jobs." A data marketplace application defines a circuit for "I'm authorized to procure genomics data up to $10K." All three use the same SDK, the same AXL transport, the same onchain verifier, the same storage layer. Different credential types, same coordination infrastructure.
 
+### Current Local SDK vs. Final Adapters
+
+The current implementation starts with local adapters so the framework can be developed and tested before external systems are connected. The public API is intentionally shaped so these local pieces can be swapped for real infrastructure later.
+
+| Current local adapter    | Final adapter                                     | Role in the framework                                              |
+| ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------ |
+| `localPolicyProofs()`    | `noirProofs()`                                    | Proves an action satisfies the delegated policy.                   |
+| `localMemoryStorage()`   | `ogStorage()`                                     | Stores agent state, credential state and audit receipts.           |
+| `localTransport()`       | `axlTransport()`                                  | Carries proof-backed peer messages between agents.                 |
+| `localExecution()`       | `uniswapExecution()` or custom execution adapters | Executes authorized actions after validation and proof generation. |
+| `issueLocalCredential()` | signed credential issuance                        | Binds an agent to a delegated policy.                              |
+
+This lets the SDK flow stay stable while the internals become progressively more real:
+
+```ts
+const agent = createTrustedAgent({
+  identity,
+  credential,
+  policy,
+  reasoning,
+  proof: noirProofs(),
+  storage: ogStorage(),
+  transport: axlTransport(),
+  execution: uniswapExecution(),
+});
+```
+
+For now, the local adapters are not pretending to be secure production implementations. They are scaffolding for the final architecture: prove with Noir, coordinate over AXL, persist on 0G and execute through domain-specific adapters.
+
 ### The Demo App: 0xAgentio-Trade
 
 The first application built on 0xAgentio. A multi-agent DCA trading system where agents autonomously trade on Uniswap within credential-enforced budget envelopes and share Sybil-resistant market signals over AXL. It demonstrates the framework in action - provable delegation, bounded execution and peer-to-peer coordination in a real trading scenario.
