@@ -2,6 +2,18 @@
 
 These examples use only local in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected.
 
+## `multi-agent-local-stack.ts`
+
+Milestone 1 local end-to-end demo.
+
+It simulates a principal delegating a constrained treasury rebalance policy to Alice, an autonomous local agent. Alice validates delegation and policy, creates a Noir-shaped proof, and asks Bob, a local Uniswap-executor agent, to execute. Bob independently verifies Alice's proof before returning a mock execution receipt. Alice stores audit records through 0G-shaped storage and sends a proof-backed result over an AXL-shaped local transport, while spoofed messages without proofs are rejected.
+
+Run it with:
+
+```sh
+npm run example:local-stack
+```
+
 ## `sdk-flow.ts`
 
 Happy-path public SDK flow.
