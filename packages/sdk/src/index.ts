@@ -18,3 +18,4 @@ export { localExecution } from './local-execution.js';
 export { createActionIntent } from './action.js';
 export { issueLocalCredential, type IssueLocalCredentialOptions } from './local-credential.js';
 export { createPolicy } from './policy.js';
+export { createAgentIdentity } from './identity.js';
