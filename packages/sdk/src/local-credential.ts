@@ -1,4 +1,4 @@
-import type { AgentIdentity, Credential, Policy } from '@0xagentio/core';
+import { hashPolicy, type AgentIdentity, type Credential, type Policy } from '@0xagentio/core';
 
 /**
  * Options for issuing a local unsigned credential in examples and tests.
@@ -22,6 +22,7 @@ export function issueLocalCredential(options: IssueLocalCredentialOptions): Cred
     id: options.id ?? `credential:${options.identity.id}:${options.policy.id}`,
     agentId: options.identity.id,
     policyId: options.policy.id,
+    policyHash: hashPolicy(options.policy),
     issuedAt: options.issuedAt ?? new Date(),
     expiresAt: options.policy.expiresAt,
   };

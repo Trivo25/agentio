@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { hashPolicy } from '@0xagentio/core';
+
 import { issueLocalCredential } from './local-credential.js';
 
 test('issueLocalCredential binds an identity to a policy', () => {
@@ -22,6 +24,7 @@ test('issueLocalCredential binds an identity to a policy', () => {
       id: 'credential-test',
       agentId: 'agent-test',
       policyId: 'policy-test',
+      policyHash: hashPolicy(policy),
       issuedAt: new Date('2026-04-25T00:00:00.000Z'),
       expiresAt: policy.expiresAt,
     },

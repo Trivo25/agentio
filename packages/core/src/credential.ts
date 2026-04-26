@@ -8,6 +8,8 @@ export type Credential = {
   readonly agentId: string;
   /** Identifier of the policy this credential binds to. */
   readonly policyId: string;
+  /** Deterministic commitment to the full policy contents. */
+  readonly policyHash: string;
   /** Time at which the credential was issued. */
   readonly issuedAt: Date;
   /** Time after which the credential is no longer valid. */
