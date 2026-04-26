@@ -1,4 +1,4 @@
-import type { AgentMessage, CredentialProof, ProofAdapter, VerifierResult } from '@0xagentio/core';
+import type { AgentMessage, CredentialProof, ProofAdapter, TransportAdapter, VerifierResult } from '@0xagentio/core';
 
 /**
  * Result returned after verifying a credential-carrying message.
@@ -18,6 +18,16 @@ export type VerifiedMessageResult =
     };
 
 /**
+ * Handlers invoked after a transport message is verified or rejected.
+ */
+export type VerifiedMessageHandlers = {
+  /** Called when a message carries a valid credential proof. */
+  readonly onTrusted: (result: Extract<VerifiedMessageResult, { valid: true }>) => Promise<void> | void;
+  /** Called when a message is missing a proof or fails verification. */
+  readonly onRejected?: (result: Extract<VerifiedMessageResult, { valid: false }>) => Promise<void> | void;
+};
+
+/**
  * Verifies the credential proof carried in an agent message payload.
  */
 export async function verifyCredentialMessage(
@@ -35,6 +45,25 @@ export async function verifyCredentialMessage(
   }
 
   return { valid: true, message, proof, verification };
+}
+
+/**
+ * Registers a verified-message handler on a transport adapter.
+ */
+export function onVerifiedMessage(
+  transport: TransportAdapter,
+  proofAdapter: ProofAdapter,
+  handlers: VerifiedMessageHandlers,
+): Promise<void> | void {
+  return transport.onMessage(async (message) => {
+    const result = await verifyCredentialMessage(message, proofAdapter);
+    if (result.valid) {
+      await handlers.onTrusted(result);
+      return;
+    }
+
+    await handlers.onRejected?.(result);
+  });
 }
 
 function isCredentialProofLike(value: unknown): value is CredentialProof {

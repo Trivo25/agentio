@@ -1,9 +1,9 @@
-import { localPolicyProofs, localTransport, verifyCredentialMessage } from '@0xagentio/sdk';
+import { localPolicyProofs, localTransport, onVerifiedMessage } from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
 // This example demonstrates the local peer-communication seam with a proof-carrying message.
-// The receiver verifies the proof before treating the message as trusted.
+// The receiver uses onVerifiedMessage so application logic only handles trusted messages.
 // The same TransportAdapter shape will later be implemented by Gensyn AXL.
 
 const transport = localTransport();
@@ -45,14 +45,13 @@ const proofResult = await proof.proveAction({
   now: new Date('2026-04-25T12:00:00.000Z'),
 });
 
-transport.onMessage(async (message) => {
-  const result = await verifyCredentialMessage(message, proof);
-  if (result.valid) {
+onVerifiedMessage(transport, proof, {
+  onTrusted(result) {
     trustedMessages.push(result);
-    return;
-  }
-
-  rejectedMessages.push(result);
+  },
+  onRejected(result) {
+    rejectedMessages.push(result);
+  },
 });
 
 const trustedMessage = {
