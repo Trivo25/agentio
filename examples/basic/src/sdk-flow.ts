@@ -34,7 +34,7 @@ const policy = createPolicy({
 
 const policyHash = hashPolicy(policy);
 
-const credential = issueLocalCredential({
+const credential = await issueLocalCredential({
   identity,
   policy,
   id: 'credential-basic',

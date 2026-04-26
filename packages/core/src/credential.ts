@@ -1,3 +1,4 @@
+import type { DelegationSignature } from './delegation.js';
 /**
  * Connects an agent identity to a delegated policy.
  */
@@ -14,4 +15,6 @@ export type Credential = {
   readonly issuedAt: Date;
   /** Time after which the credential is no longer valid. */
   readonly expiresAt: Date;
+  /** Optional principal signature authorizing this delegation. */
+  readonly delegation?: DelegationSignature;
 };
