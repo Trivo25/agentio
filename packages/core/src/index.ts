@@ -9,3 +9,4 @@ export type { CredentialProof, ProofAdapter, ProofRequest, ProofResult, Verifier
 export type { AgentContext, ReasoningEngine } from './reasoning.js';
 export type { AuditEvent, AuditStatus } from './audit.js';
 export type { StorageAdapter } from './storage.js';
+export type { AgentMessage, MessageHandler, PeerId, TransportAdapter } from './transport.js';
