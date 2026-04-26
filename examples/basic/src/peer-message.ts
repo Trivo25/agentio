@@ -1,5 +1,11 @@
 import { localTransport } from '@0xagentio/sdk';
 
+import { toJsonSafe } from './json.js';
+
+// This example demonstrates the local peer-communication seam.
+// The same TransportAdapter shape will later be implemented by Gensyn AXL,
+// so agent-to-agent examples can move from memory to real P2P transport.
+
 const transport = localTransport();
 const receivedMessages: unknown[] = [];
 
@@ -30,21 +36,3 @@ console.log(
     2,
   ),
 );
-
-function toJsonSafe(value: unknown): unknown {
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(toJsonSafe);
-  }
-
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nestedValue]) => [key, toJsonSafe(nestedValue)]),
-    );
-  }
-
-  return value;
-}
