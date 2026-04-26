@@ -6,13 +6,15 @@ These examples use only local in-memory adapters. They are meant to show the SDK
 
 Milestone 1 local end-to-end demo.
 
-It simulates a principal delegating a constrained treasury rebalance policy to Alice, an autonomous local agent. Alice validates delegation and policy, creates a Noir-shaped proof, and asks Bob, a local Uniswap-executor agent, to execute. Bob independently verifies Alice's proof before returning a mock execution receipt. Alice stores audit records through 0G-shaped storage and sends a proof-backed result over an AXL-shaped local transport, while spoofed messages without proofs are rejected.
+It simulates a principal delegating a constrained treasury rebalance policy to Alice, an autonomous local agent. Alice first proves that she is authorized to request a quote, then asks Bob, a local Uniswap-executor agent, for a correlated quote reply. Bob verifies the quote proof before answering. Alice then reasons over Bob's counter-quote, validates delegation and policy, creates a Noir-shaped proof, and asks Bob to execute. Bob independently verifies Alice's proof before returning a mock execution receipt. Alice stores audit records through 0G-shaped storage and sends a proof-backed result over an AXL-shaped local transport. Carol, a separate auditor/listener agent, uses `carol.onVerifiedMessage(...)` to trust Alice's result and reject spoofed messages without proofs.
 
 Run it with:
 
 ```sh
 npm run example:local-stack
 ```
+
+This example prints a human-readable walkthrough as the scenario executes.
 
 ## `sdk-flow.ts`
 
