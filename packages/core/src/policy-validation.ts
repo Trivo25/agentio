@@ -1,5 +1,5 @@
 import type { ActionIntent } from './action.js';
-import type { Policy } from './policy.js';
+import type { Policy, PolicyConstraint } from './policy.js';
 import type { ValidationIssue, ValidationResult } from './validation.js';
 import { invalidResult, validResult } from './validation.js';
 
@@ -41,5 +41,42 @@ export function validateActionAgainstPolicy(
     });
   }
 
+  for (const constraint of policy.constraints ?? []) {
+    issues.push(...validateConstraint(policy, action, constraint));
+  }
+
   return issues.length === 0 ? validResult() : invalidResult(...issues);
+}
+
+function validateConstraint(
+  policy: Policy,
+  action: ActionIntent,
+  constraint: PolicyConstraint,
+): readonly ValidationIssue[] {
+  switch (constraint.type) {
+    case 'max-amount':
+      return validateMaxAmount(policy, action, constraint.value);
+  }
+}
+
+function validateMaxAmount(policy: Policy, action: ActionIntent, maxAmount: bigint): readonly ValidationIssue[] {
+  if (action.amount === undefined) {
+    return [
+      {
+        code: 'amount-required',
+        message: `Action ${action.type} must include an amount for policy ${policy.id}.`,
+      },
+    ];
+  }
+
+  if (action.amount > maxAmount) {
+    return [
+      {
+        code: 'amount-exceeds-maximum',
+        message: `Action ${action.type} amount exceeds the maximum allowed by policy ${policy.id}.`,
+      },
+    ];
+  }
+
+  return [];
 }

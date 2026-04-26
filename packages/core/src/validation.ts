@@ -1,7 +1,7 @@
 /**
  * Machine-readable validation issue code.
  */
-export type ValidationIssueCode = 'policy-expired' | 'action-not-allowed';
+export type ValidationIssueCode = 'policy-expired' | 'action-not-allowed' | 'amount-required' | 'amount-exceeds-maximum';
 
 /**
  * Describes why validation failed.

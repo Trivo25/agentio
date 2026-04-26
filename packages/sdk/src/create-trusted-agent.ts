@@ -4,7 +4,9 @@ import type {
   AgentState,
   AuditEvent,
   Credential,
+  CredentialProof,
   Policy,
+  ProofAdapter,
   ReasoningEngine,
   StorageAdapter,
   ValidationResult,
@@ -25,6 +27,8 @@ export type CreateTrustedAgentOptions = {
   readonly initialState: AgentState;
   /** Decision layer that proposes the next action. */
   readonly reasoning: ReasoningEngine;
+  /** Proof backend that proves and verifies authorized actions. */
+  readonly proof: ProofAdapter;
   /** Persistence backend for state and audit events. */
   readonly storage: StorageAdapter;
   /** Optional clock for deterministic examples and tests. */
@@ -45,6 +49,7 @@ export type AgentStepResult =
       readonly status: 'accepted';
       readonly action: ActionIntent;
       readonly validation: ValidationResult;
+      readonly proof: CredentialProof;
       readonly event: AuditEvent;
     }
   | {
@@ -58,12 +63,12 @@ export type AgentStepResult =
  * Minimal trusted agent runtime exposed by the SDK.
  */
 export type TrustedAgent = {
-  /** Runs one reasoning, validation, and audit cycle. */
+  /** Runs one reasoning, validation, proof, and audit cycle. */
   startOnce(): Promise<AgentStepResult>;
 };
 
 /**
- * Creates a trusted agent runtime from pluggable reasoning and storage dependencies.
+ * Creates a trusted agent runtime from pluggable reasoning, proof, and storage dependencies.
  */
 export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedAgent {
   const now = options.now ?? (() => new Date());
@@ -92,20 +97,36 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
       }
 
       const validation = validateActionAgainstPolicy(options.policy, decision, cycleTime);
+      if (!validation.valid) {
+        const event = await appendEvent(options.storage, {
+          id: createEventId(),
+          agentId: options.identity.id,
+          createdAt: cycleTime,
+          status: 'rejected',
+          action: decision,
+          issues: validation.issues,
+        });
+
+        return { status: 'rejected', action: decision, validation, event };
+      }
+
+      const proofResult = await options.proof.proveAction({
+        credential: options.credential,
+        policy: options.policy,
+        state,
+        action: decision,
+        now: cycleTime,
+      });
+
       const event = await appendEvent(options.storage, {
         id: createEventId(),
         agentId: options.identity.id,
         createdAt: cycleTime,
-        status: validation.valid ? 'accepted' : 'rejected',
+        status: 'accepted',
         action: decision,
-        issues: validation.valid ? undefined : validation.issues,
       });
 
-      if (validation.valid) {
-        return { status: 'accepted', action: decision, validation, event };
-      }
-
-      return { status: 'rejected', action: decision, validation, event };
+      return { status: 'accepted', action: decision, validation, proof: proofResult.proof, event };
     },
   };
 }

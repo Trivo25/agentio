@@ -1,4 +1,4 @@
-import { createTrustedAgent, localMemoryStorage, staticReasoningEngine } from '@0xagentio/sdk';
+import { createTrustedAgent, localMemoryStorage, localPolicyProofs, staticReasoningEngine } from '@0xagentio/sdk';
 
 const identity = {
   id: 'agent-alice',
@@ -8,6 +8,7 @@ const identity = {
 const policy = {
   id: 'policy-basic',
   allowedActions: ['swap', 'broadcast-signal'],
+  constraints: [{ type: 'max-amount' as const, value: 500n }],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 };
 
@@ -25,6 +26,7 @@ const initialState = {
 };
 
 const storage = localMemoryStorage();
+const proof = localPolicyProofs();
 
 const acceptedAgent = createTrustedAgent({
   identity,
@@ -36,6 +38,7 @@ const acceptedAgent = createTrustedAgent({
     amount: 250n,
     assetPair: 'ETH/USDC',
   }),
+  proof,
   storage,
   now: () => new Date('2026-04-25T12:00:00.000Z'),
   createEventId: () => 'event-accepted-1',
@@ -50,15 +53,33 @@ const rejectedAgent = createTrustedAgent({
     type: 'transfer-ownership',
     metadata: { target: 'unsafe-admin-change' },
   }),
+  proof,
   storage,
   now: () => new Date('2026-04-25T12:01:00.000Z'),
   createEventId: () => 'event-rejected-1',
 });
 
+const overLimitAgent = createTrustedAgent({
+  identity,
+  credential,
+  policy,
+  initialState,
+  reasoning: staticReasoningEngine({
+    type: 'swap',
+    amount: 750n,
+    assetPair: 'ETH/USDC',
+  }),
+  proof,
+  storage,
+  now: () => new Date('2026-04-25T12:02:00.000Z'),
+  createEventId: () => 'event-over-limit-1',
+});
+
 const accepted = await acceptedAgent.startOnce();
 const rejected = await rejectedAgent.startOnce();
+const overLimit = await overLimitAgent.startOnce();
 
-console.log(JSON.stringify(toJsonSafe({ accepted, rejected, auditEvents: storage.getAuditEvents() }), null, 2));
+console.log(JSON.stringify(toJsonSafe({ accepted, rejected, overLimit, auditEvents: storage.getAuditEvents() }), null, 2));
 
 function toJsonSafe(value: unknown): unknown {
   if (typeof value === 'bigint') {
@@ -67,6 +88,10 @@ function toJsonSafe(value: unknown): unknown {
 
   if (value instanceof Date) {
     return value.toISOString();
+  }
+
+  if (value instanceof Uint8Array) {
+    return Array.from(value);
   }
 
   if (Array.isArray(value)) {
