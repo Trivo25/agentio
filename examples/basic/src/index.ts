@@ -22,7 +22,7 @@ const identity = {
 const policy = {
   id: 'policy-basic',
   allowedActions: ['swap', 'broadcast-signal'],
-  constraints: [{ type: 'max-amount' as const, value: 500n }],
+  constraints: [{ type: 'max-amount' as const, value: 500n, actionTypes: ['swap'] }],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 };
 

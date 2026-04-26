@@ -7,6 +7,8 @@ export type PolicyConstraint =
       readonly type: 'max-amount';
       /** Maximum permitted amount in the smallest unit understood by the caller. */
       readonly value: bigint;
+      /** Optional action types this constraint applies to. Omit to apply it to every allowed action. */
+      readonly actionTypes?: readonly string[];
     };
 
 /**

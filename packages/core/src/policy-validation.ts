@@ -41,8 +41,10 @@ export function validateActionAgainstPolicy(
     });
   }
 
-  for (const constraint of policy.constraints ?? []) {
-    issues.push(...validateConstraint(policy, action, constraint));
+  if (isActionAllowedByPolicy(policy, action)) {
+    for (const constraint of policy.constraints ?? []) {
+      issues.push(...validateConstraint(policy, action, constraint));
+    }
   }
 
   return issues.length === 0 ? validResult() : invalidResult(...issues);
@@ -53,6 +55,10 @@ function validateConstraint(
   action: ActionIntent,
   constraint: PolicyConstraint,
 ): readonly ValidationIssue[] {
+  if (!doesConstraintApplyToAction(constraint, action)) {
+    return [];
+  }
+
   switch (constraint.type) {
     case 'max-amount':
       return validateMaxAmount(policy, action, constraint.value);
@@ -79,4 +85,8 @@ function validateMaxAmount(policy: Policy, action: ActionIntent, maxAmount: bigi
   }
 
   return [];
+}
+
+function doesConstraintApplyToAction(constraint: PolicyConstraint, action: ActionIntent): boolean {
+  return constraint.actionTypes === undefined || constraint.actionTypes.includes(action.type);
 }

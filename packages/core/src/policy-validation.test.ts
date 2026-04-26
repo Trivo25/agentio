@@ -40,3 +40,22 @@ test('validateActionAgainstPolicy returns all policy issues for an ineligible ac
     ['policy-expired', 'action-not-allowed'],
   );
 });
+
+test('validateActionAgainstPolicy applies amount constraints only to scoped allowed actions', () => {
+  const policy = {
+    ...basePolicy,
+    constraints: [{ type: 'max-amount' as const, value: 500n, actionTypes: ['swap'] }],
+  };
+
+  assert.deepEqual(
+    validateActionAgainstPolicy(policy, { type: 'broadcast-signal' }, new Date('2026-04-30T00:00:00.000Z')),
+    { valid: true, issues: [] },
+  );
+
+  assert.deepEqual(
+    validateActionAgainstPolicy(policy, { type: 'swap' }, new Date('2026-04-30T00:00:00.000Z')).issues.map(
+      (issue) => issue.code,
+    ),
+    ['amount-required'],
+  );
+});
