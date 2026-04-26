@@ -62,6 +62,8 @@ function validateConstraint(
   switch (constraint.type) {
     case 'max-amount':
       return validateMaxAmount(policy, action, constraint.value);
+    case 'allowed-metadata-value':
+      return validateAllowedMetadataValue(policy, action, constraint.key, constraint.values);
   }
 }
 
@@ -80,6 +82,26 @@ function validateMaxAmount(policy: Policy, action: ActionIntent, maxAmount: bigi
       {
         code: 'amount-exceeds-maximum',
         message: `Action ${action.type} amount exceeds the maximum allowed by policy ${policy.id}.`,
+      },
+    ];
+  }
+
+  return [];
+}
+
+function validateAllowedMetadataValue(
+  policy: Policy,
+  action: ActionIntent,
+  key: string,
+  values: readonly (string | number | boolean)[],
+): readonly ValidationIssue[] {
+  const actual = action.metadata?.[key];
+
+  if (!values.some((value) => value === actual)) {
+    return [
+      {
+        code: 'metadata-value-not-allowed',
+        message: `Action ${action.type} metadata ${key} is not allowed by policy ${policy.id}.`,
       },
     ];
   }

@@ -9,6 +9,16 @@ export type PolicyConstraint =
       readonly value: bigint;
       /** Optional action types this constraint applies to. Omit to apply it to every allowed action. */
       readonly actionTypes?: readonly string[];
+    }
+  | {
+      /** Requires a metadata field to match one of the configured values. */
+      readonly type: 'allowed-metadata-value';
+      /** Metadata key to read from the action. */
+      readonly key: string;
+      /** Allowed primitive metadata values for the configured key. */
+      readonly values: readonly (string | number | boolean)[];
+      /** Optional action types this constraint applies to. Omit to apply it to every allowed action. */
+      readonly actionTypes?: readonly string[];
     };
 
 /**

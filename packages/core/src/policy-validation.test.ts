@@ -59,3 +59,28 @@ test('validateActionAgainstPolicy applies amount constraints only to scoped allo
     ['amount-required'],
   );
 });
+
+test('validateActionAgainstPolicy applies allowed metadata value constraints', () => {
+  const policy = {
+    ...basePolicy,
+    constraints: [{ type: 'allowed-metadata-value' as const, key: 'assetPair', values: ['ETH/USDC'] }],
+  };
+
+  assert.deepEqual(
+    validateActionAgainstPolicy(
+      policy,
+      { type: 'swap', metadata: { assetPair: 'ETH/USDC' } },
+      new Date('2026-04-30T00:00:00.000Z'),
+    ),
+    { valid: true, issues: [] },
+  );
+
+  assert.deepEqual(
+    validateActionAgainstPolicy(
+      policy,
+      { type: 'swap', metadata: { assetPair: 'WBTC/USDC' } },
+      new Date('2026-04-30T00:00:00.000Z'),
+    ).issues.map((issue) => issue.code),
+    ['metadata-value-not-allowed'],
+  );
+});
