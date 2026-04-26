@@ -3,6 +3,7 @@ import {
   createAgentIdentity,
   createPolicy,
   createTrustedAgent,
+  hashPolicy,
   issueLocalCredential,
   localExecution,
   localMemoryStorage,
@@ -30,6 +31,8 @@ const policy = createPolicy({
   ],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 });
+
+const policyHash = hashPolicy(policy);
 
 const credential = issueLocalCredential({
   identity,
@@ -67,4 +70,4 @@ const agent = createTrustedAgent({
 
 const result = await agent.startOnce();
 
-console.log(JSON.stringify(toJsonSafe({ result, auditEvents: storage.getAuditEvents() }), null, 2));
+console.log(JSON.stringify(toJsonSafe({ policyHash, credential, result, auditEvents: storage.getAuditEvents() }), null, 2));
