@@ -134,6 +134,7 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
         createdAt: cycleTime,
         status: 'accepted',
         action: decision,
+        execution,
       });
 
       return { status: 'accepted', action: decision, validation, proof: proofResult.proof, execution, event };

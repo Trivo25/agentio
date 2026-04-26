@@ -1,4 +1,5 @@
 import type { ActionIntent } from './action.js';
+import type { ExecutionResult } from './execution.js';
 import type { ValidationIssue } from './validation.js';
 
 /**
@@ -22,4 +23,6 @@ export type AuditEvent = {
   readonly action?: ActionIntent;
   /** Validation issues explaining a rejection, if any. */
   readonly issues?: readonly ValidationIssue[];
+  /** Execution outcome for accepted actions that were executed by an adapter. */
+  readonly execution?: ExecutionResult;
 };
