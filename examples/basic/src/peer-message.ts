@@ -1,4 +1,10 @@
-import { createActionIntent, localPolicyProofs, localTransport, onVerifiedMessage } from '@0xagentio/sdk';
+import {
+  createActionIntent,
+  issueLocalCredential,
+  localPolicyProofs,
+  localTransport,
+  onVerifiedMessage,
+} from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
@@ -11,12 +17,9 @@ const proof = localPolicyProofs();
 const trustedMessages: unknown[] = [];
 const rejectedMessages: unknown[] = [];
 
-const credential = {
-  id: 'credential-basic',
-  agentId: 'agent-alice',
-  policyId: 'policy-basic',
-  issuedAt: new Date('2026-04-25T00:00:00.000Z'),
-  expiresAt: new Date('2026-05-01T00:00:00.000Z'),
+const identity = {
+  id: 'agent-alice',
+  publicKey: 'agent-public-key-alice',
 };
 
 const policy = {
@@ -26,8 +29,15 @@ const policy = {
     { type: 'max-amount' as const, value: 500n, actionTypes: ['swap'] },
     { type: 'allowed-metadata-value' as const, key: 'assetPair', values: ['ETH/USDC'], actionTypes: ['swap'] },
   ],
-  expiresAt: credential.expiresAt,
+  expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 };
+
+const credential = issueLocalCredential({
+  identity,
+  policy,
+  id: 'credential-basic',
+  issuedAt: new Date('2026-04-25T00:00:00.000Z'),
+});
 
 const state = {
   cumulativeSpend: 0n,

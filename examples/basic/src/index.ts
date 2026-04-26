@@ -1,6 +1,7 @@
 import {
   createActionIntent,
   createTrustedAgent,
+  issueLocalCredential,
   localExecution,
   localMemoryStorage,
   localPolicyProofs,
@@ -30,13 +31,12 @@ const policy = {
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 };
 
-const credential = {
+const credential = issueLocalCredential({
+  identity,
+  policy,
   id: 'credential-basic',
-  agentId: identity.id,
-  policyId: policy.id,
   issuedAt: new Date('2026-04-25T00:00:00.000Z'),
-  expiresAt: policy.expiresAt,
-};
+});
 
 const initialState = {
   cumulativeSpend: 0n,
