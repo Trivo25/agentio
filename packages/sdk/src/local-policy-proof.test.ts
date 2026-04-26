@@ -42,6 +42,6 @@ test('localPolicyProofs rejects credentials that do not match the supplied polic
       action: { type: 'swap', amount: 250n },
       now: new Date('2026-04-25T12:00:00.000Z'),
     }),
-    /credential policy hash does not match supplied policy/,
+    /credential-policy-hash-mismatch/,
   );
 });
