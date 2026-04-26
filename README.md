@@ -2,7 +2,7 @@
 
 <p align="center">
 
-<img src="./assets/logo.png" alt="0xAgentio Logo" width="200" style="display:block; margin:auto;"/>
+<img src="./assets/logo_label.png" alt="0xAgentio Logo" width="200" style="display:block; margin:auto;"/>
 </p>
 
 ## One-Liner
