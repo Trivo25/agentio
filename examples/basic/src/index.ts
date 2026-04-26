@@ -1,5 +1,6 @@
 import {
   createActionIntent,
+  createAgentIdentity,
   createPolicy,
   createTrustedAgent,
   issueLocalCredential,
@@ -17,10 +18,10 @@ import { toJsonSafe } from './json.js';
 // an execution adapter runs only after proof generation succeeds,
 // and local storage records audit events.
 
-const identity = {
+const identity = createAgentIdentity({
   id: 'agent-alice',
   publicKey: 'agent-public-key-alice',
-};
+});
 
 const policy = createPolicy({
   id: 'policy-basic',

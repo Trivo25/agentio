@@ -1,5 +1,6 @@
 import {
   createActionIntent,
+  createAgentIdentity,
   createPolicy,
   issueLocalCredential,
   localPolicyProofs,
@@ -18,10 +19,10 @@ const proof = localPolicyProofs();
 const trustedMessages: unknown[] = [];
 const rejectedMessages: unknown[] = [];
 
-const identity = {
+const identity = createAgentIdentity({
   id: 'agent-alice',
   publicKey: 'agent-public-key-alice',
-};
+});
 
 const policy = createPolicy({
   id: 'policy-basic',
