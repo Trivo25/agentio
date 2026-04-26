@@ -55,7 +55,7 @@ transport.onMessage(async (message) => {
   rejectedMessages.push(result);
 });
 
-const message = {
+const trustedMessage = {
   type: 'credential-present',
   sender: 'agent-alice',
   createdAt: new Date('2026-04-25T12:00:00.000Z'),
@@ -65,8 +65,19 @@ const message = {
   },
 };
 
-await transport.send('agent-bob', message);
-await transport.receive(message);
+const uncredentialedMessage = {
+  type: 'credential-present',
+  sender: 'agent-mallory',
+  createdAt: new Date('2026-04-25T12:01:00.000Z'),
+  payload: {
+    action,
+  },
+};
+
+await transport.send('agent-bob', trustedMessage);
+await transport.receive(trustedMessage);
+await transport.send('agent-bob', uncredentialedMessage);
+await transport.receive(uncredentialedMessage);
 
 console.log(
   JSON.stringify(
