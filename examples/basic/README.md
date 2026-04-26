@@ -78,6 +78,18 @@ Run it with:
 npm run example:delegation
 ```
 
+## `axl-message.ts`
+
+Gensyn AXL-shaped peer messaging demo.
+
+It uses the same verified-message flow as `peer-message.ts`, but swaps `localTransport()` for `localAxlTransport()`. This shows proof-backed messages wrapped in local AXL-shaped envelopes before real Gensyn AXL is connected.
+
+Run it with:
+
+```sh
+npm run example:axl
+```
+
 ## `peer-message.ts`
 
 Proof-backed peer messaging demo.

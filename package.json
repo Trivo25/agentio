@@ -15,7 +15,8 @@
     "example:peer": "node examples/basic/dist/peer-message.js",
     "example:delegation": "node examples/basic/dist/delegation-gate.js",
     "example:noir": "node examples/basic/dist/noir-flow.js",
-    "example:og": "node examples/basic/dist/og-storage-flow.js"
+    "example:og": "node examples/basic/dist/og-storage-flow.js",
+    "example:axl": "node examples/basic/dist/axl-message.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
