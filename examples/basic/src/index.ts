@@ -1,10 +1,17 @@
-import { createTrustedAgent, localMemoryStorage, localPolicyProofs, staticReasoningEngine } from '@0xagentio/sdk';
+import {
+  createTrustedAgent,
+  localExecution,
+  localMemoryStorage,
+  localPolicyProofs,
+  staticReasoningEngine,
+} from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
 // This example demonstrates the smallest local trusted-agent flow:
 // reasoning proposes actions, policy validation accepts or rejects them,
 // a local proof adapter creates proof-shaped output for valid actions,
+// an execution adapter runs only after proof generation succeeds,
 // and local storage records audit events.
 
 const identity = {
@@ -34,6 +41,11 @@ const initialState = {
 
 const storage = localMemoryStorage();
 const proof = localPolicyProofs();
+const execution = localExecution(async ({ action }) => ({
+  success: true,
+  reference: `local-execution:${action.type}`,
+  details: { assetPair: action.assetPair, amount: action.amount },
+}));
 
 const acceptedAgent = createTrustedAgent({
   identity,
@@ -47,6 +59,7 @@ const acceptedAgent = createTrustedAgent({
   }),
   proof,
   storage,
+  execution,
   now: () => new Date('2026-04-25T12:00:00.000Z'),
   createEventId: () => 'event-accepted-1',
 });

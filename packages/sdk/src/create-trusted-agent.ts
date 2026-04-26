@@ -5,6 +5,8 @@ import type {
   AuditEvent,
   Credential,
   CredentialProof,
+  ExecutionAdapter,
+  ExecutionResult,
   Policy,
   ProofAdapter,
   ReasoningEngine,
@@ -31,6 +33,8 @@ export type CreateTrustedAgentOptions = {
   readonly proof: ProofAdapter;
   /** Persistence backend for state and audit events. */
   readonly storage: StorageAdapter;
+  /** Optional backend for executing authorized actions after proof generation. */
+  readonly execution?: ExecutionAdapter;
   /** Optional clock for deterministic examples and tests. */
   readonly now?: () => Date;
   /** Optional event id generator for deterministic examples and tests. */
@@ -50,6 +54,7 @@ export type AgentStepResult =
       readonly action: ActionIntent;
       readonly validation: ValidationResult;
       readonly proof: CredentialProof;
+      readonly execution?: ExecutionResult;
       readonly event: AuditEvent;
     }
   | {
@@ -118,6 +123,11 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
         now: cycleTime,
       });
 
+      const execution = await options.execution?.execute({
+        action: decision,
+        proof: proofResult.proof,
+      });
+
       const event = await appendEvent(options.storage, {
         id: createEventId(),
         agentId: options.identity.id,
@@ -126,7 +136,7 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
         action: decision,
       });
 
-      return { status: 'accepted', action: decision, validation, proof: proofResult.proof, event };
+      return { status: 'accepted', action: decision, validation, proof: proofResult.proof, execution, event };
     },
   };
 }
