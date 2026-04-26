@@ -5,6 +5,8 @@ import type {
   AuditEvent,
   Credential,
   CredentialProof,
+  DelegationVerificationResult,
+  DelegationVerifier,
   ExecutionAdapter,
   ExecutionResult,
   Policy,
@@ -37,24 +39,14 @@ export type CreateTrustedAgentOptions = {
   /** Optional backend for executing authorized actions after proof generation. */
   readonly execution?: ExecutionAdapter;
   /** Optional verifier for principal delegation signatures on credentials. */
-  readonly delegationVerifier?: (credential: Credential) => Promise<DelegationVerificationResult> | DelegationVerificationResult;
+  readonly delegationVerifier?: DelegationVerifier;
   /** Optional clock for deterministic examples and tests. */
   readonly now?: () => Date;
   /** Optional event id generator for deterministic examples and tests. */
   readonly createEventId?: () => string;
 };
 
-/**
- * Result returned by an optional credential delegation verifier.
- */
-export type DelegationVerificationResult =
-  | {
-      readonly valid: true;
-    }
-  | {
-      readonly valid: false;
-      readonly reason: string;
-    };
+export type { DelegationVerificationResult, DelegationVerifier } from '@0xagentio/core';
 
 /**
  * Result returned after one agent decision cycle.

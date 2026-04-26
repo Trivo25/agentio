@@ -13,5 +13,11 @@ export type { AgentMessage, MessageHandler, PeerId, TransportAdapter } from './t
 export type { ExecutionAdapter, ExecutionRequest, ExecutionResult } from './execution.js';
 export { POLICY_HASH_ALGORITHM, hashPolicy, serializePolicy } from './policy-commitment.js';
 export { validateCredentialForPolicy } from './credential-validation.js';
-export type { DelegationSignature, DelegationStatement } from './delegation.js';
+export type {
+  DelegationSignature,
+  DelegationSigner,
+  DelegationStatement,
+  DelegationVerificationResult,
+  DelegationVerifier,
+} from './delegation.js';
 export { credentialDelegationStatement, serializeDelegationStatement } from './delegation.js';

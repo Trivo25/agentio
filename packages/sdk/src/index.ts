@@ -20,6 +20,7 @@ export { issueLocalCredential, type IssueLocalCredentialOptions } from './local-
 export { createPolicy } from './policy.js';
 export { createAgentIdentity } from './identity.js';
 export { POLICY_HASH_ALGORITHM, hashPolicy, serializePolicy } from '@0xagentio/core';
+export type { DelegationSigner, DelegationVerificationResult, DelegationVerifier } from '@0xagentio/core';
 export {
   localDelegationSigner,
   verifyLocalDelegation,

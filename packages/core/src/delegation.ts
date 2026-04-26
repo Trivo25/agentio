@@ -29,6 +29,35 @@ export type DelegationSignature = {
 };
 
 /**
+ * Adapter boundary for producing delegation signatures.
+ */
+export type DelegationSigner = {
+  /** Principal or signer identifier authorizing the delegation. */
+  readonly principalId: string;
+  /** Signature format produced by the signer. */
+  readonly format: string;
+  /** Signs a deterministic delegation statement message. */
+  sign(message: string, statement: DelegationStatement): Promise<string> | string;
+};
+
+/**
+ * Result returned after checking a credential delegation signature.
+ */
+export type DelegationVerificationResult =
+  | {
+      readonly valid: true;
+    }
+  | {
+      readonly valid: false;
+      readonly reason: string;
+    };
+
+/**
+ * Adapter boundary for verifying delegation signatures on credentials.
+ */
+export type DelegationVerifier = (credential: Credential) => Promise<DelegationVerificationResult> | DelegationVerificationResult;
+
+/**
  * Converts a delegation statement into a deterministic string to sign.
  */
 export function serializeDelegationStatement(statement: DelegationStatement): string {

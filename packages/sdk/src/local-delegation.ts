@@ -1,6 +1,9 @@
-import { credentialDelegationStatement, serializeDelegationStatement, type Credential } from '@0xagentio/core';
-
-import type { DelegationSigner } from './local-credential.js';
+import {
+  credentialDelegationStatement,
+  serializeDelegationStatement,
+  type Credential,
+  type DelegationSigner,
+} from '@0xagentio/core';
 
 const LOCAL_DELEGATION_FORMAT = 'local-delegation-signature';
 

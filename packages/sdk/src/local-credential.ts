@@ -4,18 +4,9 @@ import {
   type AgentIdentity,
   type Credential,
   type DelegationSignature,
-  type DelegationStatement,
+  type DelegationSigner,
   type Policy,
 } from '@0xagentio/core';
-
-export type DelegationSigner = {
-  /** Principal or signer identifier authorizing the delegation. */
-  readonly principalId: string;
-  /** Signature format produced by the signer. */
-  readonly format: string;
-  /** Signs a deterministic delegation statement message. */
-  sign(message: string, statement: DelegationStatement): Promise<string> | string;
-};
 
 /**
  * Options for issuing a local credential in examples and tests.
@@ -66,4 +57,3 @@ export async function issueLocalCredential(options: IssueLocalCredentialOptions)
 
   return { ...unsignedCredential, delegation };
 }
-
