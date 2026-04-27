@@ -36,8 +36,23 @@ jobs:
       - name: Run SDK flow example
         run: npm run example:flow
 
+      - name: Run combined local stack example
+        run: npm run example:local-stack
+
+      - name: Run Noir-shaped proof example
+        run: npm run example:noir
+
+      - name: Run 0G-shaped storage example
+        run: npm run example:og
+
       - name: Run validation example
         run: npm run example:basic
+
+      - name: Run delegation gate example
+        run: npm run example:delegation
+
+      - name: Run AXL-shaped message example
+        run: npm run example:axl
 
       - name: Run peer message example
         run: npm run example:peer

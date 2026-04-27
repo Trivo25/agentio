@@ -8,16 +8,16 @@ import {
   localDelegationSigner,
   verifyLocalDelegation,
   localExecution,
-  localMemoryStorage,
-  localPolicyProofs,
+  localOgStorage,
+  localNoirProofs,
   staticReasoningEngine,
 } from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
-// This example is the smallest happy-path SDK flow for a third-party developer.
-// It shows how identity, policy, credential issuance, reasoning, proof generation,
-// execution and audit storage fit together without any real network dependencies.
+// This example shows that the runtime is storage-adapter-agnostic.
+// It uses the same trusted-agent flow as noir-flow.ts, but swaps in the
+// 0G-shaped local storage adapter.
 
 const identity = createAgentIdentity({
   id: 'agent-alice',
@@ -50,7 +50,7 @@ const action = createActionIntent({
   metadata: { assetPair: 'ETH/USDC' },
 });
 
-const storage = localMemoryStorage();
+const storage = localOgStorage();
 const agent = createTrustedAgent({
   identity,
   credential,
@@ -61,7 +61,7 @@ const agent = createTrustedAgent({
   },
   reasoning: staticReasoningEngine(action),
   delegationVerifier: verifyLocalDelegation,
-  proof: localPolicyProofs(),
+  proof: localNoirProofs(),
   storage,
   execution: localExecution(async ({ action }) => ({
     success: true,
@@ -69,9 +69,9 @@ const agent = createTrustedAgent({
     details: { assetPair: action.metadata?.assetPair, amount: action.amount },
   })),
   now: () => new Date('2026-04-25T12:00:00.000Z'),
-  createEventId: () => 'event-sdk-flow-1',
+  createEventId: () => 'event-og-storage-flow-1',
 });
 
 const result = await agent.startOnce();
 
-console.log(JSON.stringify(toJsonSafe({ policyHash, credential, result, auditEvents: storage.getAuditEvents() }), null, 2));
+console.log(JSON.stringify(toJsonSafe({ policyHash, credential, result, auditEvents: storage.getAuditEvents(), storageRecords: storage.getRecords() }), null, 2));

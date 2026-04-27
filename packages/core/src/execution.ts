@@ -1,10 +1,19 @@
 import type { ActionIntent } from './action.js';
+import type { Credential } from './credential.js';
+import type { AgentIdentity } from './identity.js';
+import type { Policy } from './policy.js';
 import type { CredentialProof } from './proof.js';
 
 /**
- * Input passed to an execution adapter after an action has been authorized.
+ * Input passed to an execution adapter after local authorization and proof generation.
  */
 export type ExecutionRequest = {
+  /** Agent requesting execution. */
+  readonly identity: AgentIdentity;
+  /** Credential used to authorize the execution request. */
+  readonly credential: Credential;
+  /** Policy constraining the requested execution. */
+  readonly policy: Policy;
   /** Authorized action to execute. */
   readonly action: ActionIntent;
   /** Credential proof associated with the authorized action. */
@@ -24,9 +33,9 @@ export type ExecutionResult = {
 };
 
 /**
- * Pluggable backend for executing authorized actions.
+ * Pluggable backend for honoring authorized action requests.
  */
 export interface ExecutionAdapter {
-  /** Executes an already-authorized action. */
+  /** Verifies and/or executes an already locally-authorized action request. */
   execute(request: ExecutionRequest): Promise<ExecutionResult>;
 }

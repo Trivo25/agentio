@@ -9,15 +9,15 @@ import {
   verifyLocalDelegation,
   localExecution,
   localMemoryStorage,
-  localPolicyProofs,
+  localNoirProofs,
   staticReasoningEngine,
 } from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
-// This example is the smallest happy-path SDK flow for a third-party developer.
-// It shows how identity, policy, credential issuance, reasoning, proof generation,
-// execution and audit storage fit together without any real network dependencies.
+// This example shows that the runtime is proof-adapter-agnostic.
+// It uses the same identity, policy, credential, reasoning and execution flow as
+// sdk-flow.ts, but swaps in the Noir-shaped local proof adapter.
 
 const identity = createAgentIdentity({
   id: 'agent-alice',
@@ -61,7 +61,7 @@ const agent = createTrustedAgent({
   },
   reasoning: staticReasoningEngine(action),
   delegationVerifier: verifyLocalDelegation,
-  proof: localPolicyProofs(),
+  proof: localNoirProofs(),
   storage,
   execution: localExecution(async ({ action }) => ({
     success: true,
@@ -69,7 +69,7 @@ const agent = createTrustedAgent({
     details: { assetPair: action.metadata?.assetPair, amount: action.amount },
   })),
   now: () => new Date('2026-04-25T12:00:00.000Z'),
-  createEventId: () => 'event-sdk-flow-1',
+  createEventId: () => 'event-noir-flow-1',
 });
 
 const result = await agent.startOnce();

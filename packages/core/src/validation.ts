@@ -6,7 +6,11 @@ export type ValidationIssueCode =
   | 'action-not-allowed'
   | 'amount-required'
   | 'amount-exceeds-maximum'
-  | 'metadata-value-not-allowed';
+  | 'metadata-value-not-allowed'
+  | 'credential-policy-id-mismatch'
+  | 'credential-policy-hash-mismatch'
+  | 'credential-expired'
+  | 'credential-delegation-invalid';
 
 /**
  * Describes why validation failed.

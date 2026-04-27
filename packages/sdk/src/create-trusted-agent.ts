@@ -5,15 +5,18 @@ import type {
   AuditEvent,
   Credential,
   CredentialProof,
+  DelegationVerificationResult,
+  DelegationVerifier,
   ExecutionAdapter,
   ExecutionResult,
   Policy,
   ProofAdapter,
   ReasoningEngine,
   StorageAdapter,
+  ValidationIssue,
   ValidationResult,
 } from '@0xagentio/core';
-import { validateActionAgainstPolicy } from '@0xagentio/core';
+import { validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
 
 /**
  * Dependencies required to create a trusted agent runtime.
@@ -35,11 +38,15 @@ export type CreateTrustedAgentOptions = {
   readonly storage: StorageAdapter;
   /** Optional backend for executing authorized actions after proof generation. */
   readonly execution?: ExecutionAdapter;
+  /** Optional verifier for principal delegation signatures on credentials. */
+  readonly delegationVerifier?: DelegationVerifier;
   /** Optional clock for deterministic examples and tests. */
   readonly now?: () => Date;
   /** Optional event id generator for deterministic examples and tests. */
   readonly createEventId?: () => string;
 };
+
+export type { DelegationVerificationResult, DelegationVerifier } from '@0xagentio/core';
 
 /**
  * Result returned after one agent decision cycle.
@@ -59,7 +66,7 @@ export type AgentStepResult =
     }
   | {
       readonly status: 'rejected';
-      readonly action: ActionIntent;
+      readonly action?: ActionIntent;
       readonly validation: ValidationResult;
       readonly event: AuditEvent;
     };
@@ -83,6 +90,32 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
     async startOnce(): Promise<AgentStepResult> {
       const cycleTime = now();
       const state = await loadStateOrInitial(options.storage, options.identity, options.initialState);
+      const credentialValidation = validateCredentialForPolicy(options.credential, options.policy, cycleTime);
+      if (!credentialValidation.valid) {
+        const event = await appendEvent(options.storage, {
+          id: createEventId(),
+          agentId: options.identity.id,
+          createdAt: cycleTime,
+          status: 'rejected',
+          issues: credentialValidation.issues,
+        });
+
+        return { status: 'rejected', validation: credentialValidation, event };
+      }
+
+      const delegationValidation = await validateCredentialDelegation(options.credential, options.delegationVerifier);
+      if (!delegationValidation.valid) {
+        const event = await appendEvent(options.storage, {
+          id: createEventId(),
+          agentId: options.identity.id,
+          createdAt: cycleTime,
+          status: 'rejected',
+          issues: delegationValidation.issues,
+        });
+
+        return { status: 'rejected', validation: delegationValidation, event };
+      }
+
       const decision = await options.reasoning.decide({
         identity: options.identity,
         policy: options.policy,
@@ -124,6 +157,9 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
       });
 
       const execution = await options.execution?.execute({
+        identity: options.identity,
+        credential: options.credential,
+        policy: options.policy,
         action: decision,
         proof: proofResult.proof,
       });
@@ -159,4 +195,25 @@ async function loadStateOrInitial(
 async function appendEvent(storage: StorageAdapter, event: AuditEvent): Promise<AuditEvent> {
   await storage.appendAuditEvent(event);
   return event;
+}
+
+async function validateCredentialDelegation(
+  credential: Credential,
+  delegationVerifier: CreateTrustedAgentOptions['delegationVerifier'],
+): Promise<ValidationResult> {
+  if (delegationVerifier === undefined) {
+    return { valid: true, issues: [] };
+  }
+
+  const verification = await delegationVerifier(credential);
+  if (verification.valid) {
+    return { valid: true, issues: [] };
+  }
+
+  const issue: ValidationIssue = {
+    code: 'credential-delegation-invalid',
+    message: `Credential ${credential.id} delegation is invalid: ${verification.reason}.`,
+  };
+
+  return { valid: false, issues: [issue] };
 }

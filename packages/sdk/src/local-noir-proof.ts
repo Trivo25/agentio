@@ -1,45 +1,45 @@
 import type { CredentialProof, ProofAdapter, ProofRequest, ProofResult, VerifierResult } from '@0xagentio/core';
-import { validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
+import { createNoirAuthorizationInput, validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
 
 const textEncoder = new TextEncoder();
 
 /**
- * Proof adapter that returns proof-shaped local policy validation output.
+ * Local proof adapter that exercises the Noir authorization input boundary.
  */
-export function localPolicyProofs(): ProofAdapter {
+export function localNoirProofs(): ProofAdapter {
   return {
     async proveAction(request: ProofRequest): Promise<ProofResult> {
       const credentialValidation = validateCredentialForPolicy(request.credential, request.policy, request.now);
       if (!credentialValidation.valid) {
         throw new Error(
-          `Cannot create local proof for invalid credential: ${credentialValidation.issues.map((issue) => issue.code).join(', ')}`,
+          `Cannot create local Noir proof for invalid credential: ${credentialValidation.issues.map((issue) => issue.code).join(', ')}`,
         );
       }
 
       const validation = validateActionAgainstPolicy(request.policy, request.action, request.now);
       if (!validation.valid) {
-        throw new Error(`Cannot create local proof for invalid action: ${validation.issues.map((issue) => issue.code).join(', ')}`);
+        throw new Error(
+          `Cannot create local Noir proof for invalid action: ${validation.issues.map((issue) => issue.code).join(', ')}`,
+        );
       }
+
+      const authorizationInput = createNoirAuthorizationInput(request);
 
       return {
         proof: {
-          format: 'local-policy-proof',
+          format: 'local-noir-policy-proof',
           proof: textEncoder.encode(
-            `${request.credential.id}:${request.policy.id}:${request.credential.policyHash}:${request.action.type}`,
+            `${authorizationInput.privateInputs.credentialId}:${authorizationInput.privateInputs.policyId}:${authorizationInput.publicInputs.policyHash}:${authorizationInput.publicInputs.actionType}`,
           ),
           publicInputs: {
-            credentialId: request.credential.id,
-            policyId: request.policy.id,
-            policyHash: request.credential.policyHash,
-            actionType: request.action.type,
-            agentId: request.credential.agentId,
+            ...authorizationInput.publicInputs,
           },
         },
       };
     },
 
     async verifyProof(proof: CredentialProof): Promise<VerifierResult> {
-      if (proof.format !== 'local-policy-proof') {
+      if (proof.format !== 'local-noir-policy-proof') {
         return { valid: false, reason: `Unsupported proof format ${proof.format}.` };
       }
 

@@ -33,7 +33,7 @@ const policy = createPolicy({
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 });
 
-const credential = issueLocalCredential({
+const credential = await issueLocalCredential({
   identity,
   policy,
   id: 'credential-basic',

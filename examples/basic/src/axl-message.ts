@@ -3,18 +3,18 @@ import {
   createAgentIdentity,
   createPolicy,
   issueLocalCredential,
+  localAxlTransport,
   localPolicyProofs,
-  localTransport,
   onVerifiedMessage,
 } from '@0xagentio/sdk';
 
 import { toJsonSafe } from './json.js';
 
-// This example demonstrates the local peer-communication seam with a proof-carrying message.
-// The receiver uses onVerifiedMessage so application logic only handles trusted messages.
-// The same TransportAdapter shape will later be implemented by Gensyn AXL.
+// This example demonstrates the Gensyn AXL-shaped transport seam with a proof-carrying message.
+// The receiver still uses onVerifiedMessage, but outbound messages are recorded as
+// local AXL-shaped envelopes before a real AXL network adapter exists.
 
-const transport = localTransport();
+const transport = localAxlTransport();
 const proof = localPolicyProofs();
 const trustedMessages: unknown[] = [];
 const rejectedMessages: unknown[] = [];
@@ -96,7 +96,7 @@ await transport.receive(uncredentialedMessage);
 console.log(
   JSON.stringify(
     toJsonSafe({
-      sentMessages: transport.getSentMessages(),
+      axlEnvelopes: transport.getEnvelopes(),
       trustedMessages,
       rejectedMessages,
     }),
