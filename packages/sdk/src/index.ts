@@ -24,9 +24,11 @@ export { localExecution, localVerifyingExecution } from './local-execution.js';
 export {
   createAgentMessage,
   createAgentReply,
+  createProofBackedMessage,
   type CorrelatedAgentMessage,
   type CreateAgentMessageOptions,
   type CreateAgentReplyOptions,
+  type CreateProofBackedMessageOptions,
 } from './message.js';
 export {
   createAgentPeer,
