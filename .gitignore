@@ -3,3 +3,5 @@ dist/
 *.tsbuildinfo
 packages/noir/circuits/**/target/
 packages/noir/circuits/**/Prover.toml
+.env
+*.env
