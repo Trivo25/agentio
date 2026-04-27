@@ -16,6 +16,8 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@0xagentio/core": "file:../core"
+    "@0glabs/0g-ts-sdk": "^0.3.3",
+    "@0xagentio/core": "file:../core",
+    "ethers": "^6.13.1"
   }
 }
