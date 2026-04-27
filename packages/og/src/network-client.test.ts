@@ -42,12 +42,13 @@ function readLiveOptions() {
     AGENTIO_0G_PRIVATE_KEY: privateKey,
     AGENTIO_0G_STREAM_ID: streamId,
     AGENTIO_0G_NAMESPACE: namespace = `agentio-live-${Date.now()}`,
+    AGENTIO_0G_LOG_SYNC_TIMEOUT_MS: logSyncTimeoutMs = '30000',
+    AGENTIO_0G_KV_RPC_DISCOVERY_TIMEOUT_MS: kvRpcDiscoveryTimeoutMs = '3000',
   } = process.env;
 
   const missing = [
     ['AGENTIO_0G_EVM_RPC', evmRpc],
     ['AGENTIO_0G_INDEXER_RPC', indexerRpc],
-    ['AGENTIO_0G_KV_RPC', kvRpc],
     ['AGENTIO_0G_PRIVATE_KEY', privateKey],
     ['AGENTIO_0G_STREAM_ID', streamId],
   ]
@@ -61,7 +62,6 @@ function readLiveOptions() {
   if (
     evmRpc === undefined ||
     indexerRpc === undefined ||
-    kvRpc === undefined ||
     privateKey === undefined ||
     streamId === undefined
   ) {
@@ -84,6 +84,11 @@ function readLiveOptions() {
     privateKey,
     streamId,
     namespace,
+    logSyncTimeoutMs: parsePositiveInteger(logSyncTimeoutMs, 30_000),
+    kvRpcDiscoveryTimeoutMs: parsePositiveInteger(kvRpcDiscoveryTimeoutMs, 3_000),
+    onProgress(message: string) {
+      console.log(`[0G] ${message}`);
+    },
   };
 }
 
@@ -93,4 +98,9 @@ function isPrivateKey(value: string | undefined): value is string {
 
 function isBytes32(value: string | undefined): value is string {
   return /^0x[0-9a-fA-F]{64}$/.test(value ?? '');
+}
+
+function parsePositiveInteger(value: string, fallback: number): number {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
