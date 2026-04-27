@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@0xagentio/sdk": "file:../../packages/sdk",
-    "@0xagentio/noir": "file:../../packages/noir"
+    "@0xagentio/noir": "file:../../packages/noir",
+    "@0xagentio/og": "file:../../packages/og"
   }
 }
