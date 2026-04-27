@@ -134,7 +134,7 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
         return { status: 'skipped', event };
       }
 
-      const validation = validateActionAgainstPolicy(options.policy, decision, cycleTime);
+      const validation = validateActionAgainstPolicy(options.policy, decision, cycleTime, state.cumulativeSpend);
       if (!validation.valid) {
         const event = await appendEvent(options.storage, {
           id: createEventId(),

@@ -24,6 +24,7 @@ export function validateActionAgainstPolicy(
   policy: Policy,
   action: ActionIntent,
   now: Date,
+  cumulativeSpend = 0n,
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
 
@@ -43,7 +44,7 @@ export function validateActionAgainstPolicy(
 
   if (isActionAllowedByPolicy(policy, action)) {
     for (const constraint of policy.constraints ?? []) {
-      issues.push(...validateConstraint(policy, action, constraint));
+      issues.push(...validateConstraint(policy, action, constraint, cumulativeSpend));
     }
   }
 
@@ -54,6 +55,7 @@ function validateConstraint(
   policy: Policy,
   action: ActionIntent,
   constraint: PolicyConstraint,
+  cumulativeSpend: bigint,
 ): readonly ValidationIssue[] {
   if (!doesConstraintApplyToAction(constraint, action)) {
     return [];
@@ -62,6 +64,8 @@ function validateConstraint(
   switch (constraint.type) {
     case 'max-amount':
       return validateMaxAmount(policy, action, constraint.value);
+    case 'max-cumulative-amount':
+      return validateMaxCumulativeAmount(policy, action, constraint.value, cumulativeSpend);
     case 'allowed-metadata-value':
       return validateAllowedMetadataValue(policy, action, constraint.key, constraint.values);
   }
@@ -82,6 +86,33 @@ function validateMaxAmount(policy: Policy, action: ActionIntent, maxAmount: bigi
       {
         code: 'amount-exceeds-maximum',
         message: `Action ${action.type} amount exceeds the maximum allowed by policy ${policy.id}.`,
+      },
+    ];
+  }
+
+  return [];
+}
+
+function validateMaxCumulativeAmount(
+  policy: Policy,
+  action: ActionIntent,
+  maxCumulativeAmount: bigint,
+  cumulativeSpend: bigint,
+): readonly ValidationIssue[] {
+  if (action.amount === undefined) {
+    return [
+      {
+        code: 'amount-required',
+        message: `Action ${action.type} must include an amount for policy ${policy.id}.`,
+      },
+    ];
+  }
+
+  if (cumulativeSpend + action.amount > maxCumulativeAmount) {
+    return [
+      {
+        code: 'cumulative-amount-exceeds-maximum',
+        message: `Action ${action.type} would exceed the maximum cumulative amount allowed by policy ${policy.id}.`,
       },
     ];
   }

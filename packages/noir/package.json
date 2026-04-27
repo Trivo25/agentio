@@ -1,0 +1,23 @@
+{
+  "name": "@0xagentio/noir",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@0xagentio/core": "file:../core",
+    "@aztec/bb.js": "^3.0.0-nightly.20251104",
+    "@noir-lang/noir_js": "^1.0.0-beta.18"
+  }
+}

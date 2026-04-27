@@ -1,8 +1,17 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/sdk" },
-    { "path": "./examples/basic" }
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/sdk"
+    },
+    {
+      "path": "./packages/noir"
+    },
+    {
+      "path": "./examples/basic"
+    }
   ]
 }

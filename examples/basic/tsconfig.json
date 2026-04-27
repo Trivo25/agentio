@@ -6,7 +6,14 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "references": [
-    { "path": "../../packages/sdk" }
+    {
+      "path": "../../packages/sdk"
+    },
+    {
+      "path": "../../packages/noir"
+    }
   ],
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }
