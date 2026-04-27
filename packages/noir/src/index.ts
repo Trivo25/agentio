@@ -43,3 +43,6 @@ class UnimplementedNoirProofAdapter implements ProofAdapter {
     return { valid: false, reason: NOT_IMPLEMENTED_REASON };
   }
 }
+
+export type { AuthorizationCircuitInput } from './witness.js';
+export { buildAuthorizationCircuitInput, hashToField } from './witness.js';
