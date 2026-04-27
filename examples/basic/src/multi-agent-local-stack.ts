@@ -15,7 +15,7 @@ import {
   localOgStorage,
   staticReasoningEngine,
   type CorrelatedAgentMessage,
-  verifyCredentialMessage,
+  verifyMessageAction,
   verifyLocalDelegation,
 } from '@0xagentio/sdk';
 
@@ -256,30 +256,24 @@ function installBobQuoteListener(stats: ScenarioStats): void {
 
     logDetail('Bob received quote request', message.id ?? message.type);
 
-    const verification = await verifyCredentialMessage(message, proof);
-    const quoteActionType = verification.valid ? verification.proof.publicInputs.actionType : undefined;
-    const quoteAgentId = verification.valid ? verification.proof.publicInputs.agentId : undefined;
-    const quotePolicyHash = verification.valid ? verification.proof.publicInputs.policyHash : undefined;
-    const quoteAuthorized =
-      verification.valid &&
-      quoteActionType === 'request-quote' &&
-      quoteAgentId === alice.id &&
-      quotePolicyHash === policyHash;
+    const verification = await verifyMessageAction(message, proof, {
+      agentId: alice.id,
+      actionType: 'request-quote',
+      policyHash,
+    });
 
     stats.bobQuoteProofChecks.push({
       requester: message.sender,
-      valid: quoteAuthorized,
-      actionType: quoteActionType,
-      agentId: quoteAgentId,
-      policyHash: quotePolicyHash,
+      valid: verification.valid,
+      expected: verification.expected,
     });
 
-    logDetail('Bob verified quote proof', quoteAuthorized ? 'accepted request-quote proof' : 'rejected quote request');
+    logDetail('Bob verified quote proof', verification.valid ? 'accepted request-quote proof' : 'rejected quote request');
 
-    if (!quoteAuthorized) {
+    if (!verification.valid) {
       stats.bobRejectedQuoteRequests.push({
         requester: message.sender,
-        reason: verification.valid ? 'proof-public-input-mismatch' : verification.reason,
+        reason: verification.reason,
       });
       return;
     }
