@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.tsbuildinfo
 packages/noir/circuits/**/target/
+packages/noir/circuits/**/Prover.toml
