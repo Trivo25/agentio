@@ -11,3 +11,4 @@ export { decodeNoirAuthorizationProof, encodeNoirAuthorizationProof, NOIR_AUTHOR
 export type { AuthorizationCircuitInput } from './witness.js';
 export { buildAuthorizationCircuitInput, hashToField } from './witness.js';
 export { runNoirProofSmoke } from './proof-smoke.js';
+export { runNoirProofAdapterSmoke } from './proof-adapter-smoke.js';
