@@ -21,6 +21,8 @@ export type AuthorizationCircuitInput = {
   readonly policy_expires_at: string;
   readonly action_amount: string;
   readonly max_action_amount: string;
+  readonly cumulative_amount: string;
+  readonly max_cumulative_amount: string;
 };
 
 /**
@@ -34,7 +36,8 @@ export type AuthorizationCircuitInput = {
  */
 export function buildAuthorizationCircuitInput(request: ProofRequest): AuthorizationCircuitInput {
   const authorizationInput = createNoirAuthorizationInput(request);
-  const maxActionAmount = findMaxActionAmount(request);
+  const maxActionAmount = findPolicyAmountBound(request, 'max-amount');
+  const maxCumulativeAmount = findPolicyAmountBound(request, 'max-cumulative-amount');
 
   return {
     public_agent_id_hash: hashToField(authorizationInput.publicInputs.agentId),
@@ -48,6 +51,8 @@ export function buildAuthorizationCircuitInput(request: ProofRequest): Authoriza
     policy_expires_at: toCircuitU64(authorizationInput.privateInputs.policyExpiresAt, 'policyExpiresAt'),
     action_amount: toCircuitU64(authorizationInput.privateInputs.actionAmount ?? 0n, 'actionAmount'),
     max_action_amount: toCircuitU64(maxActionAmount, 'maxActionAmount'),
+    cumulative_amount: toCircuitU64(authorizationInput.privateInputs.cumulativeSpend, 'cumulativeSpend'),
+    max_cumulative_amount: toCircuitU64(maxCumulativeAmount, 'maxCumulativeAmount'),
   };
 }
 
@@ -65,18 +70,18 @@ export function hashToField(value: string): string {
   return BigInt(`0x${fieldBytes.toString('hex')}`).toString();
 }
 
-function findMaxActionAmount(request: ProofRequest): bigint {
-  const matchingMaxAmountConstraints = (request.policy.constraints ?? [])
-    .filter((constraint): constraint is Extract<PolicyConstraint, { type: 'max-amount' }> => constraint.type === 'max-amount')
+function findPolicyAmountBound(request: ProofRequest, type: 'max-amount' | 'max-cumulative-amount'): bigint {
+  const matchingConstraints = (request.policy.constraints ?? [])
+    .filter((constraint): constraint is Extract<PolicyConstraint, { type: typeof type }> => constraint.type === type)
     .filter((constraint) => constraint.actionTypes === undefined || constraint.actionTypes.includes(request.action.type));
 
-  if (matchingMaxAmountConstraints.length === 0) {
-    throw new Error(`Cannot build authorization circuit input for action ${request.action.type}: missing max-amount constraint.`);
+  if (matchingConstraints.length === 0) {
+    throw new Error(`Cannot build authorization circuit input for action ${request.action.type}: missing ${type} constraint.`);
   }
 
-  return matchingMaxAmountConstraints.reduce((smallest, constraint) =>
+  return matchingConstraints.reduce((smallest, constraint) =>
     constraint.value < smallest ? constraint.value : smallest,
-  matchingMaxAmountConstraints[0]!.value);
+  matchingConstraints[0]!.value);
 }
 
 function toCircuitU64(value: number | bigint, label: string): string {

@@ -19,6 +19,8 @@ test('writeAuthorizationProverFixture serializes witness builder output as Prove
     assert.match(toml, /^now = "1777118400"/m);
     assert.match(toml, /^action_amount = "250"/m);
     assert.match(toml, /^max_action_amount = "500"/m);
+    assert.match(toml, /^cumulative_amount = "0"/m);
+    assert.match(toml, /^max_cumulative_amount = "1000"/m);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

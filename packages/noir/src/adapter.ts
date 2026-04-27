@@ -68,7 +68,7 @@ class NoirProofAdapter implements ProofAdapter {
       );
     }
 
-    const actionValidation = validateActionAgainstPolicy(request.policy, request.action, request.now);
+    const actionValidation = validateActionAgainstPolicy(request.policy, request.action, request.now, request.state.cumulativeSpend);
     if (!actionValidation.valid) {
       throw new Error(`Cannot create Noir proof for invalid action: ${actionValidation.issues.map((issue) => issue.code).join(', ')}`);
     }

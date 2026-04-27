@@ -11,6 +11,14 @@ export type PolicyConstraint =
       readonly actionTypes?: readonly string[];
     }
   | {
+      /** Requires current cumulative spend plus the action amount to stay below or equal to a total budget. */
+      readonly type: 'max-cumulative-amount';
+      /** Maximum cumulative amount permitted across the agent state and current action. */
+      readonly value: bigint;
+      /** Optional action types this constraint applies to. Omit to apply it to every allowed action. */
+      readonly actionTypes?: readonly string[];
+    }
+  | {
       /** Requires a metadata field to match one of the configured values. */
       readonly type: 'allowed-metadata-value';
       /** Metadata key to read from the action. */

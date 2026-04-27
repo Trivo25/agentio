@@ -84,3 +84,25 @@ test('validateActionAgainstPolicy applies allowed metadata value constraints', (
     ['metadata-value-not-allowed'],
   );
 });
+
+test('validateActionAgainstPolicy applies cumulative amount constraints against agent state', () => {
+  const policy = {
+    ...basePolicy,
+    constraints: [{ type: 'max-cumulative-amount' as const, value: 1_000n, actionTypes: ['swap'] }],
+  };
+
+  assert.deepEqual(
+    validateActionAgainstPolicy(policy, { type: 'swap', amount: 250n }, new Date('2026-04-30T00:00:00.000Z'), 700n),
+    { valid: true, issues: [] },
+  );
+
+  assert.deepEqual(
+    validateActionAgainstPolicy(
+      policy,
+      { type: 'swap', amount: 350n },
+      new Date('2026-04-30T00:00:00.000Z'),
+      700n,
+    ).issues.map((issue) => issue.code),
+    ['cumulative-amount-exceeds-maximum'],
+  );
+});

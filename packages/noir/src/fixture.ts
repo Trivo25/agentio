@@ -16,7 +16,10 @@ export function createAuthorizationFixtureRequest(): ProofRequest {
   const policy = {
     id: 'policy-noir-fixture',
     allowedActions: ['swap'],
-    constraints: [{ type: 'max-amount' as const, value: 500n, actionTypes: ['swap'] }],
+    constraints: [
+      { type: 'max-amount' as const, value: 500n, actionTypes: ['swap'] },
+      { type: 'max-cumulative-amount' as const, value: 1_000n, actionTypes: ['swap'] },
+    ],
     expiresAt: new Date('2026-05-01T00:00:00.000Z'),
   };
 

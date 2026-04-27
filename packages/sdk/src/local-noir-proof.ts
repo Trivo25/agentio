@@ -16,7 +16,7 @@ export function localNoirProofs(): ProofAdapter {
         );
       }
 
-      const validation = validateActionAgainstPolicy(request.policy, request.action, request.now);
+      const validation = validateActionAgainstPolicy(request.policy, request.action, request.now, request.state.cumulativeSpend);
       if (!validation.valid) {
         throw new Error(
           `Cannot create local Noir proof for invalid action: ${validation.issues.map((issue) => issue.code).join(', ')}`,

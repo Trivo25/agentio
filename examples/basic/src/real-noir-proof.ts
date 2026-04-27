@@ -34,7 +34,10 @@ const identity = createAgentIdentity({
 const policy = createPolicy({
   id: 'policy-real-noir',
   allowedActions: ['swap'],
-  constraints: [{ type: 'max-amount', value: 500n, actionTypes: ['swap'] }],
+  constraints: [
+    { type: 'max-amount', value: 500n, actionTypes: ['swap'] },
+    { type: 'max-cumulative-amount', value: 1_000n, actionTypes: ['swap'] },
+  ],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 });
 const policyHash = hashPolicy(policy);

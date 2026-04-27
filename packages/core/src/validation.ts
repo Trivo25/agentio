@@ -6,6 +6,7 @@ export type ValidationIssueCode =
   | 'action-not-allowed'
   | 'amount-required'
   | 'amount-exceeds-maximum'
+  | 'cumulative-amount-exceeds-maximum'
   | 'metadata-value-not-allowed'
   | 'credential-policy-id-mismatch'
   | 'credential-policy-hash-mismatch'
