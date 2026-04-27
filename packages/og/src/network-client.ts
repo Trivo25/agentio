@@ -1,4 +1,4 @@
-import { Batcher, Indexer, KvClient, getFlowContract } from '@0glabs/0g-ts-sdk';
+import { Batcher, Indexer, KvClient, MemData, getFlowContract } from '@0glabs/0g-ts-sdk';
 import { ethers } from 'ethers';
 
 import type { OgObjectClient, OgPutObjectResult } from './index.js';
@@ -27,6 +27,53 @@ export type OgKvObjectClientOptions = {
   /** 0G KV stream version. Defaults to 1, matching the official examples. */
   readonly version?: number;
 };
+
+
+/** Configuration for live 0G file/object uploads. */
+export type OgFileObjectClientOptions = {
+  /** 0G EVM RPC used by the official SDK for upload transactions. */
+  readonly evmRpc: string;
+  /** 0G Storage indexer RPC used for upload and download routing. */
+  readonly indexerRpc: string;
+  /** Private key for the funded writer account that submits uploads. */
+  readonly privateKey: string;
+};
+
+/**
+ * Creates an object client backed by 0G file uploads.
+ *
+ * This client is useful for immutable blobs because each write returns a root
+ * hash reference. It keeps an in-memory key-to-root index for the current
+ * process, so use 0G KV when you need durable lookups by logical key.
+ */
+export function ogFileObjectClient(options: OgFileObjectClientOptions): OgObjectClient {
+  const provider = new ethers.JsonRpcProvider(options.evmRpc);
+  const signer = new ethers.Wallet(options.privateKey, provider);
+  const indexer = new Indexer(options.indexerRpc);
+  const roots = new Map<string, string>();
+
+  return {
+    async getObject(key: string): Promise<string | undefined> {
+      const rootHash = roots.get(key);
+      if (rootHash === undefined) {
+        return undefined;
+      }
+
+      throw new Error(`0G file object ${rootHash} is stored remotely, but in-memory download decoding is not implemented yet.`);
+    },
+
+    async putObject(key: string, value: string): Promise<OgPutObjectResult> {
+      const data = new MemData(Buffer.from(value, 'utf8'));
+      const [result, uploadError] = await indexer.upload(data, options.evmRpc, signer as unknown as Parameters<Indexer['upload']>[2]);
+      if (uploadError !== null) {
+        throw new Error(`0G file upload failed: ${uploadError.message}`);
+      }
+
+      roots.set(key, result.rootHash);
+      return { reference: `0g-file:${result.txHash}:${result.rootHash}` };
+    },
+  };
+}
 
 /**
  * Creates an object client backed by live 0G KV operations.

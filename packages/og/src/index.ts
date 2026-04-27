@@ -96,4 +96,9 @@ export type { OgStorageDocument } from './codec.js';
 export { decodeAgentStateDocument, encodeAgentStateDocument, encodeAuditEventDocument } from './codec.js';
 export { agentStateKey, auditEventKey, namespacedKey } from './keys.js';
 export { memoryOgObjectClient, type MemoryOgObjectClient, type MemoryOgObjectEntry } from './memory-client.js';
-export { ogKvObjectClient, type OgKvObjectClientOptions } from './network-client.js';
+export {
+  ogFileObjectClient,
+  ogKvObjectClient,
+  type OgFileObjectClientOptions,
+  type OgKvObjectClientOptions,
+} from './network-client.js';

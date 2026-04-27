@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
-    "test": "npm run build && node --test packages/*/dist/*.test.js",
+    "test": "npm run build && AGENTIO_0G_SKIP_LIVE=1 node --test packages/*/dist/*.test.js",
     "example:basic": "node examples/basic/dist/index.js",
     "example:flow": "node examples/basic/dist/sdk-flow.js",
     "example:peer": "node examples/basic/dist/peer-message.js",
@@ -27,7 +27,9 @@
     "noir:proof-contract": "npm run noir:compile && npm run build && node packages/noir/dist/proof-adapter-smoke.js",
     "example:real-noir": "npm run noir:compile && npm run build && node examples/basic/dist/real-noir-proof.js",
     "example:real-noir-peer": "npm run noir:compile && npm run build && node examples/basic/dist/real-noir-peer-verification.js",
-    "keys:evm": "node scripts/generate-test-evm-wallets.mjs"
+    "keys:evm": "node scripts/generate-test-evm-wallets.mjs",
+    "keys:stream": "node scripts/generate-test-og-stream-id.mjs",
+    "test:og:live": "npm run build && AGENTIO_0G_RUN_LIVE=1 node --test packages/og/dist/file-client.test.js packages/og/dist/network-client.test.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

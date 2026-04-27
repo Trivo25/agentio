@@ -5,7 +5,9 @@ import { loadEnvFile } from './env.js';
 import { memoryOgObjectClient, ogKvObjectClient, ogStorage } from './index.js';
 
 loadEnvFile();
-const liveOptions = readLiveOptions();
+const liveOptions = process.env.AGENTIO_0G_RUN_LIVE === '1' && process.env.AGENTIO_0G_SKIP_LIVE !== '1'
+  ? readLiveOptions()
+  : { ready: false as const, reason: 'Set AGENTIO_0G_RUN_LIVE=1 to run the live 0G KV smoke test.' };
 
 test('ogKvObjectClient can round-trip state on the real 0G network when credentials are provided', {
   skip: liveOptions.ready ? false : liveOptions.reason,
