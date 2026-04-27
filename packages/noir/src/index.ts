@@ -47,3 +47,5 @@ class UnimplementedNoirProofAdapter implements ProofAdapter {
 export type { AuthorizationCircuitInput } from './witness.js';
 export { buildAuthorizationCircuitInput, hashToField } from './witness.js';
 export { createAuthorizationFixtureRequest, writeAuthorizationProverFixture } from './fixture.js';
+export type { AuthorizationCircuitArtifact } from './artifact.js';
+export { defaultAuthorizationCircuitArtifactPath, loadAuthorizationCircuitArtifact, parseAuthorizationCircuitArtifact } from './artifact.js';
