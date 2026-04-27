@@ -38,8 +38,8 @@ const NOT_IMPLEMENTED_REASON =
  *
  * The SDK runtime consumes only the generic StorageAdapter interface, so this is
  * the drop-in replacement for localOgStorage(). For now the actual 0G network
- * calls are supplied through `OgObjectClient`; the next increment will wrap the
- * official `@0glabs/0g-ts-sdk` APIs behind that client.
+ * calls are supplied through `OgObjectClient`, which can be backed by memory,
+ * 0G KV, or another 0G-compatible object store.
  */
 export function ogStorage(options: OgStorageOptions = {}): StorageAdapter {
   if (options.client === undefined) {
@@ -96,3 +96,4 @@ export type { OgStorageDocument } from './codec.js';
 export { decodeAgentStateDocument, encodeAgentStateDocument, encodeAuditEventDocument } from './codec.js';
 export { agentStateKey, auditEventKey, namespacedKey } from './keys.js';
 export { memoryOgObjectClient, type MemoryOgObjectClient, type MemoryOgObjectEntry } from './memory-client.js';
+export { ogKvObjectClient, type OgKvObjectClientOptions } from './network-client.js';
