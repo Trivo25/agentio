@@ -43,12 +43,42 @@ export { issueLocalCredential, type IssueLocalCredentialOptions } from './local-
 export { createPolicy } from './policy.js';
 export { createAgentIdentity } from './identity.js';
 export { POLICY_HASH_ALGORITHM, createNoirAuthorizationInput, hashPolicy, serializePolicy } from '@0xagentio/core';
-export type { DelegationSigner, DelegationVerificationResult, DelegationVerifier } from '@0xagentio/core';
 export type {
+  ActionIntent,
+  AgentContext,
+  AgentIdentity,
+  AgentMessage,
+  AgentState,
+  AuditEvent,
+  AuditStatus,
+  Credential,
+  CredentialProof,
+  DelegationSignature,
+  DelegationSigner,
+  DelegationStatement,
+  DelegationVerificationResult,
+  DelegationVerifier,
+  ExecutionAdapter,
+  ExecutionRequest,
+  ExecutionResult,
+  MessageHandler,
   NoirAuthorizationInput,
   NoirAuthorizationPrivateInputs,
   NoirAuthorizationPublicInputs,
   NoirMetadataValue,
+  PeerId,
+  Policy,
+  PolicyConstraint,
+  ProofAdapter,
+  ProofRequest,
+  ProofResult,
+  ReasoningEngine,
+  StorageAdapter,
+  TransportAdapter,
+  ValidationIssue,
+  ValidationIssueCode,
+  ValidationResult,
+  VerifierResult,
 } from '@0xagentio/core';
 export {
   localDelegationSigner,
