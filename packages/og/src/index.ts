@@ -95,3 +95,4 @@ class MissingOgClientStorageAdapter implements StorageAdapter {
 export type { OgStorageDocument } from './codec.js';
 export { decodeAgentStateDocument, encodeAgentStateDocument, encodeAuditEventDocument } from './codec.js';
 export { agentStateKey, auditEventKey, namespacedKey } from './keys.js';
+export { memoryOgObjectClient, type MemoryOgObjectClient, type MemoryOgObjectEntry } from './memory-client.js';

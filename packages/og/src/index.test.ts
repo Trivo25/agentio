@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AuditEvent } from '@0xagentio/core';
-import { agentStateKey, decodeAgentStateDocument, namespacedKey, ogStorage, type OgObjectClient } from './index.js';
+import { agentStateKey, decodeAgentStateDocument, memoryOgObjectClient, namespacedKey, ogStorage } from './index.js';
 
 test('ogStorage explains that a real 0G client is required', async () => {
   const storage = ogStorage({ namespace: 'agentio-test' });
@@ -13,21 +13,21 @@ test('ogStorage explains that a real 0G client is required', async () => {
 });
 
 test('ogStorage persists state through an injected object client', async () => {
-  const objects = new Map<string, string>();
-  const storage = ogStorage({ namespace: 'agentio-test', client: mapObjectClient(objects) });
+  const client = memoryOgObjectClient();
+  const storage = ogStorage({ namespace: 'agentio-test', client });
   const identity = { id: 'agent-alice', publicKey: 'agent-public-key-alice' };
   const state = { cumulativeSpend: 250n, updatedAt: new Date('2026-04-25T12:00:00.000Z') };
 
   await storage.saveState(identity, state);
 
-  assert.equal(objects.size, 1);
-  assert.equal([...objects.keys()][0], 'agentio-test/agents/agent-alice/state/latest');
+  assert.equal(client.entries().length, 1);
+  assert.equal(client.entries()[0]?.key, 'agentio-test/agents/agent-alice/state/latest');
   assert.deepEqual(await storage.loadState(identity), state);
 });
 
 test('ogStorage appends audit events under stable namespaced keys', async () => {
-  const objects = new Map<string, string>();
-  const storage = ogStorage({ namespace: 'agentio-test', client: mapObjectClient(objects) });
+  const client = memoryOgObjectClient();
+  const storage = ogStorage({ namespace: 'agentio-test', client });
   const event: AuditEvent = {
     id: 'event-1',
     agentId: 'agent-alice',
@@ -38,8 +38,8 @@ test('ogStorage appends audit events under stable namespaced keys', async () => 
 
   await storage.appendAuditEvent(event);
 
-  assert.equal([...objects.keys()][0], 'agentio-test/agents/agent-alice/audit/event-1');
-  assert.match([...objects.values()][0] ?? '', /"kind":"audit-event"/);
+  assert.equal(client.entries()[0]?.key, 'agentio-test/agents/agent-alice/audit/event-1');
+  assert.match(client.entries()[0]?.value ?? '', /"kind":"audit-event"/);
 });
 
 test('0G storage helpers keep keys and document decoding deterministic', () => {
@@ -53,14 +53,16 @@ test('0G storage helpers keep keys and document decoding deterministic', () => {
   assert.deepEqual(decoded, { cumulativeSpend: 5n, updatedAt: new Date('2026-04-25T12:00:00.000Z') });
 });
 
-function mapObjectClient(objects: Map<string, string>): OgObjectClient {
-  return {
-    async getObject(key) {
-      return objects.get(key);
-    },
-    async putObject(key, value) {
-      objects.set(key, value);
-      return { reference: key };
-    },
-  };
-}
+test('memoryOgObjectClient exposes local objects and can be cleared', async () => {
+  const client = memoryOgObjectClient([['existing-key', 'existing-value']]);
+
+  assert.equal(await client.getObject('existing-key'), 'existing-value');
+  assert.deepEqual(client.entries(), [{ key: 'existing-key', value: 'existing-value' }]);
+
+  await client.putObject('new-key', 'new-value');
+  assert.equal(await client.getObject('new-key'), 'new-value');
+  assert.equal(client.entries().length, 2);
+
+  client.clear();
+  assert.deepEqual(client.entries(), []);
+});
