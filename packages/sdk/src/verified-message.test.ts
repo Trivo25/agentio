@@ -20,7 +20,7 @@ const message: AgentMessage = {
   type: 'swap-quote-request',
   sender: 'agent-alice',
   createdAt: new Date('2026-04-25T12:00:00.000Z'),
-  payload: { proof },
+  payload: { action: { type: 'request-quote', amount: 250n }, proof },
 };
 
 const proofAdapter: ProofAdapter = {
@@ -40,6 +40,7 @@ test('verifyMessageAction accepts proofs with matching public inputs', async () 
   });
 
   assert.equal(result.valid, true);
+  assert.equal(result.action.type, 'request-quote');
 });
 
 test('verifyMessageAction rejects mismatched action public inputs', async () => {
@@ -51,4 +52,16 @@ test('verifyMessageAction rejects mismatched action public inputs', async () => 
 
   assert.equal(result.valid, false);
   assert.equal(result.reason, 'public-input-mismatch:actionType');
+});
+
+
+test('verifyMessageAction rejects valid proofs without an action payload', async () => {
+  const result = await verifyMessageAction({ ...message, payload: { proof } }, proofAdapter, {
+    agentId: 'agent-alice',
+    actionType: 'request-quote',
+    policyHash: 'policy-hash-1',
+  });
+
+  assert.equal(result.valid, false);
+  assert.equal(result.reason, 'missing-action');
 });

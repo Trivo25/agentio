@@ -1,4 +1,4 @@
-import type { AgentMessage, CredentialProof, ProofAdapter, TransportAdapter, VerifierResult } from '@0xagentio/core';
+import type { ActionIntent, AgentMessage, CredentialProof, ProofAdapter, TransportAdapter, VerifierResult } from '@0xagentio/core';
 
 /**
  * Result returned after verifying a credential-carrying message.
@@ -19,6 +19,11 @@ export type VerifiedMessageResult =
 
 /**
  * Expected public inputs for an action proof carried by a message.
+ *
+ * Executor agents and adapters use these expectations to make sure a valid
+ * proof is valid for the exact agent, action, and policy they are about to
+ * honor. This prevents accidentally accepting a proof for a different action or
+ * delegated policy.
  */
 export type VerifyMessageActionExpectations = {
   /** Expected delegated agent id in proof public inputs. */
@@ -34,9 +39,13 @@ export type VerifyMessageActionExpectations = {
  */
 export type VerifiedMessageActionResult =
   | (Extract<VerifiedMessageResult, { valid: true }> & {
+      /** Action extracted from the verified message payload. */
+      readonly action: ActionIntent;
+      /** Public-input expectations that were checked against the proof. */
       readonly expected: VerifyMessageActionExpectations;
     })
   | (Extract<VerifiedMessageResult, { valid: false }> & {
+      /** Public-input expectations that were checked when possible. */
       readonly expected: VerifyMessageActionExpectations;
     });
 
@@ -71,7 +80,12 @@ export async function verifyCredentialMessage(
 }
 
 /**
- * Verifies a message proof and checks expected action public inputs.
+ * Verifies a message proof, checks expected action public inputs, and extracts the action.
+ *
+ * Use this in executor agents and backend adapters before honoring a request. A
+ * successful result gives the receiver the typed action to inspect or execute,
+ * so callers do not need to manually parse `message.payload.action` after proof
+ * verification.
  */
 export async function verifyMessageAction(
   message: AgentMessage,
@@ -81,6 +95,17 @@ export async function verifyMessageAction(
   const result = await verifyCredentialMessage(message, proofAdapter);
   if (!result.valid) {
     return { ...result, expected };
+  }
+
+  const action = message.payload.action;
+  if (!isActionIntentLike(action)) {
+    return {
+      valid: false,
+      message,
+      reason: 'missing-action',
+      verification: result.verification,
+      expected,
+    };
   }
 
   const mismatch = findPublicInputMismatch(result.proof.publicInputs, expected);
@@ -94,7 +119,7 @@ export async function verifyMessageAction(
     };
   }
 
-  return { ...result, expected };
+  return { ...result, action, expected };
 }
 
 /**
@@ -114,6 +139,15 @@ export function onVerifiedMessage(
 
     await handlers.onRejected?.(result);
   });
+}
+
+function isActionIntentLike(value: unknown): value is ActionIntent {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const candidate = value as { type?: unknown; metadata?: unknown };
+  return typeof candidate.type === 'string' && (candidate.metadata === undefined || isRecord(candidate.metadata));
 }
 
 function findPublicInputMismatch(

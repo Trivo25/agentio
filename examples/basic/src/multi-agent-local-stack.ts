@@ -248,6 +248,7 @@ function installBobQuoteListener(stats: ScenarioStats): void {
       requester: message.sender,
       valid: verification.valid,
       expected: verification.expected,
+      action: verification.valid ? verification.action.type : undefined,
     });
 
     logDetail('Bob verified quote proof', verification.valid ? 'accepted request-quote proof' : 'rejected quote request');
@@ -259,6 +260,8 @@ function installBobQuoteListener(stats: ScenarioStats): void {
       });
       return;
     }
+
+    logDetail('Bob reads verified action', `${verification.action.type} ${String(verification.action.amount)}`);
 
     const offeredOutputPerInput = 3;
     const reply = createAgentReply({
