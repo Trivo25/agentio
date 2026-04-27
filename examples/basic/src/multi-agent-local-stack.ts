@@ -36,9 +36,6 @@ type RebalanceGoal = {
   readonly minimumAcceptableOutputPerInput: number;
 };
 
-type QuoteInbox = {
-  getReply(): CorrelatedAgentMessage | undefined;
-};
 
 type ScenarioStats = {
   readonly bobQuoteResponses: unknown[];
@@ -110,9 +107,8 @@ const alicePeer = createAgentPeer({ identity: alice, transport });
 const bobPeer = createAgentPeer({ identity: bob, transport });
 const carol = createAgentPeer({ identity: carolIdentity, transport });
 const stats = createScenarioStats();
-const quoteInbox = installAliceQuoteReplyListener();
 installBobQuoteListener(stats);
-logDetail('Alice listens for', 'Bob quote replies');
+logDetail('Alice waits for', 'Bob quote replies via request(...)');
 logDetail('Bob listens for', 'proof-backed quote requests');
 logDetail('Carol listens for', 'proof-backed execution announcements');
 
@@ -121,11 +117,14 @@ const quoteRequest = await createProofBackedQuoteRequest(goal);
 logDetail('Sending quote request', `${quoteRequest.id} (${quoteRequest.correlationId})`);
 
 logStep('Alice asks Bob for market/execution context');
-await alicePeer.send(bob.id, quoteRequest);
-logDetail('Waiting for Bob response', 'local transport delivery');
+const pendingQuoteReply = alicePeer.request(bob.id, quoteRequest, {
+  expectedType: 'swap-quote-reply',
+  timeoutMs: 1_000,
+});
+logDetail('Waiting for Bob response', 'request(...) is listening for the correlated reply');
 await transport.receive(quoteRequest);
-
-const quoteReply = requireQuoteReply(quoteInbox);
+const quoteReply = (await pendingQuoteReply) as CorrelatedAgentMessage;
+logDetail('Alice received quote reply', `${quoteReply.id} replying to ${quoteReply.replyTo}`);
 
 logStep('Alice reasons over Bob quote');
 const offeredOutputPerInput = readNumberPayload(quoteReply, 'offeredOutputPerInput');
@@ -230,24 +229,6 @@ function createScenarioStats(): ScenarioStats {
   };
 }
 
-/** Installs Alice's inbox for quote replies from Bob. */
-function installAliceQuoteReplyListener(): QuoteInbox {
-  let quoteReply: CorrelatedAgentMessage | undefined;
-
-  alicePeer.onMessage((message) => {
-    if (message.type === 'swap-quote-reply' && message.sender === bob.id) {
-      quoteReply = message as CorrelatedAgentMessage;
-      logDetail('Alice received quote reply', `${quoteReply.id} replying to ${quoteReply.replyTo}`);
-    }
-  });
-
-  return {
-    getReply() {
-      return quoteReply;
-    },
-  };
-}
-
 /** Installs Bob's quote endpoint with proof verification before replying. */
 function installBobQuoteListener(stats: ScenarioStats): void {
   bobPeer.onMessage(async (message) => {
@@ -339,15 +320,6 @@ async function createProofBackedQuoteRequest(goal: RebalanceGoal): Promise<Corre
   const messageProof = message.payload.proof as { format?: unknown };
   logDetail('Generated quote proof', typeof messageProof.format === 'string' ? messageProof.format : 'unknown');
   return message;
-}
-
-function requireQuoteReply(inbox: QuoteInbox): CorrelatedAgentMessage {
-  const quoteReply = inbox.getReply();
-  if (quoteReply === undefined) {
-    throw new Error('Bob did not answer Alice quote request.');
-  }
-
-  return quoteReply;
 }
 
 /** Builds the final swap action after Alice accepts Bob's quote. */

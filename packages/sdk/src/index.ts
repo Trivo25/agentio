@@ -34,6 +34,7 @@ export {
   createAgentPeer,
   createPeerAgent,
   type AgentPeer,
+  type AgentPeerRequestOptions,
   type CreateAgentPeerOptions,
   type CreatePeerAgentOptions,
   type PeerAgent,
