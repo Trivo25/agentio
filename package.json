@@ -26,7 +26,8 @@
     "noir:proof-smoke": "npm run noir:compile && npm run build && node packages/noir/dist/proof-smoke.js",
     "noir:proof-contract": "npm run noir:compile && npm run build && node packages/noir/dist/proof-adapter-smoke.js",
     "example:real-noir": "npm run noir:compile && npm run build && node examples/basic/dist/real-noir-proof.js",
-    "example:real-noir-peer": "npm run noir:compile && npm run build && node examples/basic/dist/real-noir-peer-verification.js"
+    "example:real-noir-peer": "npm run noir:compile && npm run build && node examples/basic/dist/real-noir-peer-verification.js",
+    "keys:evm": "node scripts/generate-test-evm-wallets.mjs"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
