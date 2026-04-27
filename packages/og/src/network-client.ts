@@ -20,8 +20,6 @@ export type OgKvObjectClientOptions = {
   readonly kvRpc: string;
   /** Private key for the funded writer account that submits KV writes. */
   readonly privateKey: string;
-  /** Flow contract address for the target 0G network. */
-  readonly flowContractAddress: string;
   /** Existing 0G KV stream id that owns this app's key/value records. */
   readonly streamId: string;
   /** Number of storage replicas requested for writes. Defaults to 1 for tests. */
@@ -44,7 +42,6 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
   const signer = new ethers.Wallet(options.privateKey, provider);
   const indexer = new Indexer(options.indexerRpc);
   const kv = new KvClient(options.kvRpc);
-  const flow = getFlowContract(options.flowContractAddress, signer as unknown as Parameters<typeof getFlowContract>[1]);
 
   return {
     async getObject(key: string): Promise<string | undefined> {
@@ -62,6 +59,13 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
         throw new Error(`0G node selection failed: ${selectError.message}`);
       }
 
+      const status = await nodes[0]?.getStatus();
+      const flowAddress = status?.networkIdentity.flowAddress;
+      if (flowAddress === undefined) {
+        throw new Error('0G node status did not include a flow contract address.');
+      }
+
+      const flow = getFlowContract(flowAddress, signer as unknown as Parameters<typeof getFlowContract>[1]);
       const batcher = new Batcher(version, nodes, flow, options.evmRpc);
       batcher.streamDataBuilder.set(options.streamId, encodeKey(key), Buffer.from(value, 'utf8'));
 
