@@ -14,8 +14,11 @@ export { localTransport, type LocalTransport } from './local-transport.js';
 export {
   onVerifiedMessage,
   verifyCredentialMessage,
+  verifyMessageAction,
+  type VerifiedMessageActionResult,
   type VerifiedMessageHandlers,
   type VerifiedMessageResult,
+  type VerifyMessageActionExpectations,
 } from './verified-message.js';
 export { localExecution, localVerifyingExecution } from './local-execution.js';
 export {

@@ -18,6 +18,29 @@ export type VerifiedMessageResult =
     };
 
 /**
+ * Expected public inputs for an action proof carried by a message.
+ */
+export type VerifyMessageActionExpectations = {
+  /** Expected delegated agent id in proof public inputs. */
+  readonly agentId?: string;
+  /** Expected action type in proof public inputs. */
+  readonly actionType?: string;
+  /** Expected policy commitment in proof public inputs. */
+  readonly policyHash?: string;
+};
+
+/**
+ * Result returned after verifying a message proof and expected action public inputs.
+ */
+export type VerifiedMessageActionResult =
+  | (Extract<VerifiedMessageResult, { valid: true }> & {
+      readonly expected: VerifyMessageActionExpectations;
+    })
+  | (Extract<VerifiedMessageResult, { valid: false }> & {
+      readonly expected: VerifyMessageActionExpectations;
+    });
+
+/**
  * Handlers invoked after a transport message is verified or rejected.
  */
 export type VerifiedMessageHandlers = {
@@ -48,6 +71,33 @@ export async function verifyCredentialMessage(
 }
 
 /**
+ * Verifies a message proof and checks expected action public inputs.
+ */
+export async function verifyMessageAction(
+  message: AgentMessage,
+  proofAdapter: ProofAdapter,
+  expected: VerifyMessageActionExpectations,
+): Promise<VerifiedMessageActionResult> {
+  const result = await verifyCredentialMessage(message, proofAdapter);
+  if (!result.valid) {
+    return { ...result, expected };
+  }
+
+  const mismatch = findPublicInputMismatch(result.proof.publicInputs, expected);
+  if (mismatch !== undefined) {
+    return {
+      valid: false,
+      message,
+      reason: `public-input-mismatch:${mismatch}`,
+      verification: result.verification,
+      expected,
+    };
+  }
+
+  return { ...result, expected };
+}
+
+/**
  * Registers a verified-message handler on a transport adapter.
  */
 export function onVerifiedMessage(
@@ -64,6 +114,25 @@ export function onVerifiedMessage(
 
     await handlers.onRejected?.(result);
   });
+}
+
+function findPublicInputMismatch(
+  publicInputs: Readonly<Record<string, unknown>>,
+  expected: VerifyMessageActionExpectations,
+): string | undefined {
+  if (expected.agentId !== undefined && publicInputs.agentId !== expected.agentId) {
+    return 'agentId';
+  }
+
+  if (expected.actionType !== undefined && publicInputs.actionType !== expected.actionType) {
+    return 'actionType';
+  }
+
+  if (expected.policyHash !== undefined && publicInputs.policyHash !== expected.policyHash) {
+    return 'policyHash';
+  }
+
+  return undefined;
 }
 
 function isCredentialProofLike(value: unknown): value is CredentialProof {
