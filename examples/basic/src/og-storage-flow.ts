@@ -16,12 +16,12 @@ import { memoryOgObjectClient, ogStorage } from '@0xagentio/og';
 import { toJsonSafe } from './json.js';
 
 /**
- * Demonstrates the future 0G storage path without live network credentials.
+ * Demonstrates the 0G-shaped storage path without live network credentials.
  *
  * The trusted-agent runtime still talks to the generic StorageAdapter interface,
  * but this example routes state and audit writes through `ogStorage()` plus an
  * in-memory object client. That makes the object keys, serialization format,
- * and eventual swap from local test double to real 0G SDK wrapper visible to a
+ * and swap from local test double to real 0G SDK wrapper visible to a
  * developer before we add live testnet writes.
  */
 const identity = createAgentIdentity({

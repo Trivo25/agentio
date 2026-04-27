@@ -11,7 +11,7 @@ export type LocalTransport = TransportAdapter & {
 };
 
 /**
- * Creates a local transport with the same shape as future AXL-backed transport.
+ * Creates a local transport with the same shape as AXL-backed transport.
  */
 export function localTransport(): LocalTransport {
   const handlers: MessageHandler[] = [];

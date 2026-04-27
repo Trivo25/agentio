@@ -4,7 +4,7 @@ import type { OgObjectClient, OgPutObjectResult } from './index.js';
  * In-memory implementation of the 0G object-client contract.
  *
  * This is not a production 0G backend. It gives examples and tests the same
- * get/put semantics as the future 0G SDK wrapper, so developers can exercise
+ * get/put semantics as a 0G-backed client, so developers can exercise
  * `ogStorage({ client })` without credentials, network writes, or testnet
  * setup while we keep the real storage adapter boundary stable.
  */
@@ -26,7 +26,7 @@ export type MemoryOgObjectEntry = {
  *
  * Use this when you want to demonstrate or test the real `ogStorage()` adapter
  * shape before wiring live 0G credentials. Production apps should replace this
- * with a client backed by the official 0G SDK while leaving the agent runtime
+ * with a client backed by 0G while leaving the agent runtime
  * unchanged.
  */
 export function memoryOgObjectClient(initialObjects?: Iterable<readonly [string, string]>): MemoryOgObjectClient {

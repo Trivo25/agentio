@@ -1,12 +1,12 @@
 import type { AgentIdentity, AgentState, AuditEvent, StorageAdapter } from '@0xagentio/core';
 
 /**
- * Local record shaped like an object that could later be persisted to 0G Storage.
+ * Local record shaped like an object persisted through 0G-style storage keys.
  */
 export type LocalOgStorageRecord = {
   /** Deterministic object key for the stored record. */
   readonly key: string;
-  /** Record kind used by future 0G adapters to route serialization. */
+  /** Record kind used by 0G adapters to route serialization. */
   readonly kind: 'agent-state' | 'audit-event';
   /** Agent that owns the record. */
   readonly agentId: string;

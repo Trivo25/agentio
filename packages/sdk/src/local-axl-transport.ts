@@ -1,7 +1,7 @@
 import type { AgentMessage, MessageHandler, PeerId, TransportAdapter } from '@0xagentio/core';
 
 /**
- * Local envelope shaped like a future Gensyn AXL message delivery.
+ * Local envelope shaped like a Gensyn AXL-style message delivery.
  */
 export type LocalAxlEnvelope = {
   /** Peer receiving the message, or `broadcast` for local broadcast records. */
