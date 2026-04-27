@@ -22,7 +22,8 @@
     "noir:test": "cd packages/noir/circuits/authorization && nargo test",
     "noir:compile": "cd packages/noir/circuits/authorization && nargo compile",
     "noir:fixture": "npm run build && node packages/noir/dist/fixture.js",
-    "noir:execute": "npm run noir:fixture && cd packages/noir/circuits/authorization && nargo execute"
+    "noir:execute": "npm run noir:fixture && cd packages/noir/circuits/authorization && nargo execute",
+    "noir:proof-smoke": "npm run noir:compile && npm run build && node packages/noir/dist/proof-smoke.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
