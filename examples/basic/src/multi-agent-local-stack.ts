@@ -4,6 +4,7 @@ import {
   createAgentMessage,
   createAgentPeer,
   createAgentReply,
+  createProofBackedMessage,
   createPolicy,
   createTrustedAgent,
   hashPolicy,
@@ -299,7 +300,12 @@ function installBobQuoteListener(stats: ScenarioStats): void {
   });
 }
 
-/** Creates a proof-backed quote request from Alice to Bob. */
+/**
+ * Creates Alice's proof-backed quote request before Bob spends work on a quote.
+ *
+ * This mirrors the production flow where read-only quote requests may still
+ * need authorization because they can consume resources or reveal market data.
+ */
 async function createProofBackedQuoteRequest(goal: RebalanceGoal): Promise<CorrelatedAgentMessage> {
   const quoteAction = createActionIntent({
     type: 'request-quote',
@@ -312,7 +318,12 @@ async function createProofBackedQuoteRequest(goal: RebalanceGoal): Promise<Corre
   });
 
   logDetail('Creating quote action', quoteAction.type);
-  const quoteProof = await proof.proveAction({
+  const message = await createProofBackedMessage({
+    id: 'quote-request-1',
+    correlationId: 'rebalance-session-1',
+    type: 'swap-quote-request',
+    sender: alice.id,
+    createdAt: now,
     credential,
     policy,
     state: {
@@ -320,22 +331,14 @@ async function createProofBackedQuoteRequest(goal: RebalanceGoal): Promise<Corre
       updatedAt: new Date('2026-04-25T00:00:00.000Z'),
     },
     action: quoteAction,
+    proof,
     now,
+    payload: { policyHash },
   });
-  logDetail('Generated quote proof', quoteProof.proof.format);
 
-  return createAgentMessage({
-    id: 'quote-request-1',
-    correlationId: 'rebalance-session-1',
-    type: 'swap-quote-request',
-    sender: alice.id,
-    createdAt: now,
-    payload: {
-      action: quoteAction,
-      proof: quoteProof.proof,
-      policyHash,
-    },
-  });
+  const messageProof = message.payload.proof as { format?: unknown };
+  logDetail('Generated quote proof', typeof messageProof.format === 'string' ? messageProof.format : 'unknown');
+  return message;
 }
 
 function requireQuoteReply(inbox: QuoteInbox): CorrelatedAgentMessage {
