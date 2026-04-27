@@ -24,7 +24,8 @@
     "noir:fixture": "npm run build && node packages/noir/dist/fixture.js",
     "noir:execute": "npm run noir:fixture && cd packages/noir/circuits/authorization && nargo execute",
     "noir:proof-smoke": "npm run noir:compile && npm run build && node packages/noir/dist/proof-smoke.js",
-    "noir:proof-contract": "npm run noir:compile && npm run build && node packages/noir/dist/proof-adapter-smoke.js"
+    "noir:proof-contract": "npm run noir:compile && npm run build && node packages/noir/dist/proof-adapter-smoke.js",
+    "example:real-noir": "npm run noir:compile && npm run build && node examples/basic/dist/real-noir-proof.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
