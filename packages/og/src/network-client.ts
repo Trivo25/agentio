@@ -64,6 +64,21 @@ export type OgKvObjectClientOptions = {
    * missing or firewalled KV service does not make reads appear to hang.
    */
   readonly kvRpcDiscoveryTimeoutMs?: number;
+  /**
+   * Maximum time to wait for a recently written KV value to become readable.
+   *
+   * 0G upload finalization and KV read visibility can lag each other. This
+   * retry window lets callers read through short indexing delays without
+   * exposing empty intermediate values to the SDK's JSON decoders.
+   */
+  readonly readRetryTimeoutMs?: number;
+  /**
+   * Delay between KV read retries while waiting for a value to become visible.
+   *
+   * Keep this short for tests and CLIs, and increase it for background workers
+   * that prefer fewer requests to faster read-after-write confirmation.
+   */
+  readonly readRetryIntervalMs?: number;
   /** 0G KV stream version. Defaults to 1, matching the official examples. */
   readonly version?: number;
 };
@@ -178,12 +193,13 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
   return {
     async getObject(key: string): Promise<string | undefined> {
       const kv = await getKvClient();
-      const value = await readKvValue(kv, options.streamId, encodeKey(key), version);
+      const value = await readKvValue(kv, options.streamId, encodeReadKey(key), version, options);
       if (value === null) {
         return undefined;
       }
 
-      return Buffer.from(value.data, 'base64').toString('utf8');
+      const decoded = Buffer.from(value.data, 'base64').toString('utf8');
+      return decoded === '' ? undefined : decoded;
     },
 
     async putObject(key: string, value: string): Promise<OgPutObjectResult> {
@@ -223,18 +239,40 @@ async function createKvClient(options: OgKvObjectClientOptions, expectedReplica:
   return new KvClient(await discoverKvRpc(options, expectedReplica));
 }
 
-async function readKvValue(kv: KvClient, streamId: string, key: Uint8Array, version: number) {
-  try {
-    return await kv.getValue(streamId, key, version);
-  } catch (error) {
-    if (isJsonRpcMethodNotFound(error)) {
-      throw new Error(
-        '0G KV read failed because the configured endpoint does not expose KV RPC methods. ' +
-        'Set kvRpc/AGENTIO_0G_KV_RPC to a real 0G KV node; storage-node URLs selected by the indexer may not support kv_getValue.',
-      );
-    }
+async function readKvValue(
+  kv: KvClient,
+  streamId: string,
+  key: string,
+  version: number,
+  options: Pick<OgKvObjectClientOptions, 'readRetryTimeoutMs' | 'readRetryIntervalMs' | 'onProgress'>,
+) {
+  const timeoutMs = options.readRetryTimeoutMs ?? 10_000;
+  const intervalMs = options.readRetryIntervalMs ?? 500;
+  const startedAt = Date.now();
 
-    throw error;
+  while (true) {
+    try {
+      const value = await kv.getValue(streamId, key as unknown as Parameters<KvClient['getValue']>[1], version);
+      if (value === null || value.data !== '') {
+        return value;
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        return value;
+      }
+
+      options.onProgress?.('0G KV returned an empty value; waiting for read visibility...');
+      await delay(intervalMs);
+    } catch (error) {
+      if (isJsonRpcMethodNotFound(error)) {
+        throw new Error(
+          '0G KV read failed because the configured endpoint does not expose KV RPC methods. ' +
+          'Set kvRpc/AGENTIO_0G_KV_RPC to a real 0G KV node; storage-node URLs selected by the indexer may not support kv_getValue.',
+        );
+      }
+
+      throw error;
+    }
   }
 }
 
@@ -343,4 +381,12 @@ function uploadOptions(options: {
 
 function encodeKey(key: string): Uint8Array {
   return Buffer.from(key, 'utf8');
+}
+
+function encodeReadKey(key: string): string {
+  return ethers.encodeBase64(encodeKey(key));
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -44,6 +44,7 @@ function readLiveOptions() {
     AGENTIO_0G_NAMESPACE: namespace = `agentio-live-${Date.now()}`,
     AGENTIO_0G_LOG_SYNC_TIMEOUT_MS: logSyncTimeoutMs = '30000',
     AGENTIO_0G_KV_RPC_DISCOVERY_TIMEOUT_MS: kvRpcDiscoveryTimeoutMs = '3000',
+    AGENTIO_0G_KV_READ_RETRY_TIMEOUT_MS: readRetryTimeoutMs = '15000',
   } = process.env;
 
   const missing = [
@@ -88,6 +89,7 @@ function readLiveOptions() {
     namespace,
     logSyncTimeoutMs: parsePositiveInteger(logSyncTimeoutMs, 30_000),
     kvRpcDiscoveryTimeoutMs: parsePositiveInteger(kvRpcDiscoveryTimeoutMs, 3_000),
+    readRetryTimeoutMs: parsePositiveInteger(readRetryTimeoutMs, 15_000),
     onProgress(message: string) {
       console.log(`[0G] ${message}`);
     },
