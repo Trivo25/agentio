@@ -33,15 +33,16 @@ export function axlTransport(options: AxlTransportOptions): AxlTransport {
   const pollIntervalMs = options.pollIntervalMs ?? 250;
   let timer: ReturnType<typeof setInterval> | undefined;
   let polling = false;
+  let stopped = false;
 
   async function pollOnce(): Promise<void> {
-    if (polling) {
+    if (polling || stopped) {
       return;
     }
 
     polling = true;
     try {
-      while (true) {
+      while (!stopped) {
         const received = await options.client.recv();
         if (received === undefined) {
           break;
@@ -52,7 +53,9 @@ export function axlTransport(options: AxlTransportOptions): AxlTransport {
         }
       }
     } catch (error) {
-      options.onError?.(error);
+      if (!stopped) {
+        options.onError?.(error);
+      }
     } finally {
       polling = false;
     }
@@ -62,6 +65,7 @@ export function axlTransport(options: AxlTransportOptions): AxlTransport {
     if (timer !== undefined) {
       return;
     }
+    stopped = false;
     timer = setInterval(() => {
       void pollOnce();
     }, pollIntervalMs);
@@ -92,6 +96,7 @@ export function axlTransport(options: AxlTransportOptions): AxlTransport {
       if (timer === undefined) {
         return;
       }
+      stopped = true;
       clearInterval(timer);
       timer = undefined;
     },

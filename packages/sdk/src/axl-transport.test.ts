@@ -67,6 +67,31 @@ test('axlTransport reports decode errors without stopping future polls', async (
   transport.stop();
 });
 
+
+test('axlTransport suppresses receive errors after stop', async () => {
+  const errors: unknown[] = [];
+  let rejectRecv: ((error: unknown) => void) | undefined;
+  let recvStarted = false;
+  const client: FakeAxlClient = {
+    ...fakeAxlClient(),
+    async recv(): Promise<AxlReceivedMessage | undefined> {
+      recvStarted = true;
+      return new Promise((_, reject) => {
+        rejectRecv = reject;
+      });
+    },
+  };
+  const transport = axlTransport({ client, pollIntervalMs: 5, onError: (error) => errors.push(error) });
+
+  transport.onMessage(() => undefined);
+  await waitFor(() => recvStarted && rejectRecv !== undefined);
+  transport.stop();
+  rejectRecv?.(new Error('node stopped'));
+  await delay(10);
+
+  assert.deepEqual(errors, []);
+});
+
 test('axlTransport broadcast sends to configured peers', async () => {
   const client = fakeAxlClient();
   const transport = axlTransport({ client, broadcastPeers: ['bob', 'carol'] });
@@ -136,7 +161,11 @@ async function waitFor(predicate: () => boolean, timeoutMs = 1_000): Promise<voi
     if (predicate()) {
       return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
   throw new Error('Timed out waiting for predicate.');
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
