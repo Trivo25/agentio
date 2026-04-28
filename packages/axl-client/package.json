@@ -1,9 +1,8 @@
 {
   "name": "@0xagentio/axl-client",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Small TypeScript client for the Gensyn AXL node HTTP bridge.",
   "type": "module",
-  "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -17,8 +16,17 @@
     "typescript",
     "client"
   ],
+  "sideEffects": false,
   "files": [
-    "dist",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts.map",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts",
+    "!dist/**/*.test.js.map",
+    "!dist/**/*.test.d.ts.map",
+    "!dist/.tsbuildinfo",
     "README.md"
   ],
   "publishConfig": {
@@ -34,6 +42,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "prepack": "npm run build"
   }
 }
