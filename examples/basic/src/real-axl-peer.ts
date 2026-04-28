@@ -224,6 +224,29 @@ try {
     `Bob echoed verified policy hash: ${String(reply.payload.verifiedPolicyHash)}`,
   );
 
+
+  console.log('Alice tries to reuse the valid proof with a modified action amount.');
+  const tamperedActionRequest = {
+    ...request,
+    id: 'quote-request-tampered-action-1',
+    correlationId: 'real-axl-tampered-action-quote-1',
+    payload: {
+      ...request.payload,
+      action: {
+        ...(request.payload.action as Record<string, unknown>),
+        amount: 2n,
+      },
+    },
+  };
+
+  console.log('Alice asks Bob for a quote with the modified action payload...');
+  const tamperedRejection = await alice.request(bob.identity.id, tamperedActionRequest, {
+    expectedType: 'quote.rejected',
+    timeoutMs: 10_000,
+  });
+
+  console.log(`Bob rejected the modified action: ${String(tamperedRejection.payload.reason)}`);
+
   console.log('Alice sends the same request shape with a fake proof.');
   const validProof = request.payload.proof as {
     readonly format: string;

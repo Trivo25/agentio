@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { hashAction } from './action-commitment.js';
 import { createNoirAuthorizationInput } from './noir.js';
 
 const request = {
@@ -35,6 +36,8 @@ test('createNoirAuthorizationInput maps proof requests into public and private a
       agentId: 'agent-test',
       policyHash: 'sha256:test',
       actionType: 'swap',
+      actionHash: hashAction(request.action),
+      actionAmount: '250',
     },
     privateInputs: {
       credentialId: 'credential-test',

@@ -1,4 +1,4 @@
-import type { ActionIntent, AgentMessage, CredentialProof, ProofAdapter, TransportAdapter, VerifierResult } from '@0xagentio/core';
+import { hashAction, type ActionIntent, type AgentMessage, type CredentialProof, type ProofAdapter, type TransportAdapter, type VerifierResult } from '@0xagentio/core';
 
 /**
  * Result returned after verifying a credential-carrying message.
@@ -32,6 +32,10 @@ export type VerifyMessageActionExpectations = {
   readonly actionType?: string;
   /** Expected policy commitment in proof public inputs. */
   readonly policyHash?: string;
+  /** Expected commitment to the full message action payload. Defaults to the message action hash. */
+  readonly actionHash?: string;
+  /** Expected action amount in proof public inputs. Defaults to the message action amount or zero. */
+  readonly actionAmount?: string;
 };
 
 /**
@@ -108,7 +112,12 @@ export async function verifyMessageAction(
     };
   }
 
-  const mismatch = findPublicInputMismatch(result.proof.publicInputs, expected);
+  const actionHash = hashAction(action);
+  const mismatch = findPublicInputMismatch(result.proof.publicInputs, {
+    ...expected,
+    actionHash: expected.actionHash ?? actionHash,
+    actionAmount: expected.actionAmount ?? (action.amount ?? 0n).toString(),
+  });
   if (mismatch !== undefined) {
     return {
       valid: false,
@@ -164,6 +173,14 @@ function findPublicInputMismatch(
 
   if (expected.policyHash !== undefined && publicInputs.policyHash !== expected.policyHash) {
     return 'policyHash';
+  }
+
+  if (expected.actionHash !== undefined && publicInputs.actionHash !== expected.actionHash) {
+    return 'actionHash';
+  }
+
+  if (expected.actionAmount !== undefined && publicInputs.actionAmount !== expected.actionAmount) {
+    return 'actionAmount';
   }
 
   return undefined;

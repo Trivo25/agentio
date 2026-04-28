@@ -1,4 +1,4 @@
-import type { ExecutionAdapter, ExecutionRequest, ExecutionResult, ProofAdapter } from '@0xagentio/core';
+import { hashAction, type ExecutionAdapter, type ExecutionRequest, type ExecutionResult, type ProofAdapter } from '@0xagentio/core';
 
 /**
  * Creates a local execution adapter for examples and tests.
@@ -40,6 +40,8 @@ function validateExecutionPublicInputs(request: ExecutionRequest): { readonly va
     ['agentId', request.identity.id, request.proof.publicInputs.agentId],
     ['policyHash', request.credential.policyHash, request.proof.publicInputs.policyHash],
     ['actionType', request.action.type, request.proof.publicInputs.actionType],
+    ['actionHash', hashAction(request.action), request.proof.publicInputs.actionHash],
+    ['actionAmount', (request.action.amount ?? 0n).toString(), request.proof.publicInputs.actionAmount],
   ];
 
   for (const [key, expected, actual] of checks) {

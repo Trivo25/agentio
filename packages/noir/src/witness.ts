@@ -13,6 +13,9 @@ export type AuthorizationCircuitInput = {
   readonly public_agent_id_hash: string;
   readonly public_policy_hash: string;
   readonly public_action_type_hash: string;
+  readonly public_action_hash: string;
+  readonly public_action_amount: string;
+  readonly action_hash: string;
   readonly credential_agent_id_hash: string;
   readonly credential_policy_hash: string;
   readonly allowed_action_type_hash: string;
@@ -43,6 +46,9 @@ export function buildAuthorizationCircuitInput(request: ProofRequest): Authoriza
     public_agent_id_hash: hashToField(authorizationInput.publicInputs.agentId),
     public_policy_hash: hashToField(authorizationInput.publicInputs.policyHash),
     public_action_type_hash: hashToField(authorizationInput.publicInputs.actionType),
+    public_action_hash: hashToField(authorizationInput.publicInputs.actionHash),
+    public_action_amount: toCircuitU64(BigInt(authorizationInput.publicInputs.actionAmount), 'publicActionAmount'),
+    action_hash: hashToField(authorizationInput.publicInputs.actionHash),
     credential_agent_id_hash: hashToField(request.credential.agentId),
     credential_policy_hash: hashToField(request.credential.policyHash),
     allowed_action_type_hash: hashToField(request.action.type),

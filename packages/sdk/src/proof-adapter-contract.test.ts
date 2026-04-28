@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { ProofAdapter } from '@0xagentio/core';
-import { hashPolicy } from '@0xagentio/core';
+import { hashAction, hashPolicy } from '@0xagentio/core';
 
 import { localNoirProofs } from './local-noir-proof.js';
 
@@ -41,15 +41,16 @@ testProofAdapterContract('localNoirProofs', localNoirProofs());
 
 function testProofAdapterContract(name: string, proofAdapter: ProofAdapter): void {
   test(`${name} satisfies the proof adapter authorization contract`, async () => {
+    const action = {
+      type: 'request-quote',
+      amount: 250n,
+      metadata: { venue: 'uniswap-demo' },
+    };
     const result = await proofAdapter.proveAction({
       credential,
       policy,
       state,
-      action: {
-        type: 'request-quote',
-        amount: 250n,
-        metadata: { venue: 'uniswap-demo' },
-      },
+      action,
       now,
     });
 
@@ -59,6 +60,8 @@ function testProofAdapterContract(name: string, proofAdapter: ProofAdapter): voi
       agentId: credential.agentId,
       policyHash: credential.policyHash,
       actionType: 'request-quote',
+      actionHash: hashAction(action),
+      actionAmount: '250',
     });
     assert.deepEqual(await proofAdapter.verifyProof(result.proof), { valid: true, reason: undefined });
   });
