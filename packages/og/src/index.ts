@@ -11,11 +11,34 @@ import { agentStateKey, auditEventKey, namespacedKey } from './keys.js';
  * credentials or testnet writes.
  */
 export type OgObjectClient = {
+  /**
+   * Describes which storage guarantees the client can provide.
+   *
+   * Agent runtimes can use these flags to distinguish a durable KV backend
+   * from a same-process demo backend before they rely on persisted state after
+   * a restart.
+   */
+  readonly capabilities?: readonly OgObjectCapability[];
   /** Reads a UTF-8 object by key, or returns undefined when the object is absent. */
   readonly getObject: (key: string) => Promise<string | undefined>;
   /** Writes a UTF-8 object and returns an optional backend-specific reference. */
   readonly putObject: (key: string, value: string) => Promise<OgPutObjectResult>;
 };
+
+/**
+ * Storage guarantees exposed by an object client.
+ *
+ * These are intentionally about behavior the SDK can rely on, not the backend
+ * brand. For example, file storage and KV can both write objects, but only KV
+ * gives durable lookup by logical key after the process restarts.
+ */
+export type OgObjectCapability =
+  | 'object-write'
+  | 'object-read'
+  | 'same-process-key-read'
+  | 'durable-key-read'
+  | 'immutable-object-reference'
+  | 'audit-append';
 
 /** Backend-specific write reference returned after persisting an object. */
 export type OgPutObjectResult = {

@@ -15,6 +15,9 @@ test('ogKvObjectClient can round-trip state on the real 0G network when credenti
   assert.ok(liveOptions.ready);
 
   const client = ogKvObjectClient(liveOptions);
+
+  assert.deepEqual(client.capabilities, ['object-write', 'object-read', 'durable-key-read', 'audit-append']);
+
   const storage = ogStorage({ namespace: liveOptions.namespace, client });
   const identity = { id: `agent-live-${Date.now()}`, publicKey: 'agent-live-public-key' };
   const state = { cumulativeSpend: 7n, updatedAt: new Date('2026-04-25T12:00:00.000Z') };

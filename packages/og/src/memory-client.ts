@@ -33,6 +33,8 @@ export function memoryOgObjectClient(initialObjects?: Iterable<readonly [string,
   const objects = new Map(initialObjects);
 
   return {
+    capabilities: ['object-write', 'object-read', 'same-process-key-read', 'audit-append'],
+
     async getObject(key: string): Promise<string | undefined> {
       return objects.get(key);
     },

@@ -56,6 +56,7 @@ test('0G storage helpers keep keys and document decoding deterministic', () => {
 test('memoryOgObjectClient exposes local objects and can be cleared', async () => {
   const client = memoryOgObjectClient([['existing-key', 'existing-value']]);
 
+  assert.deepEqual(client.capabilities, ['object-write', 'object-read', 'same-process-key-read', 'audit-append']);
   assert.equal(await client.getObject('existing-key'), 'existing-value');
   assert.deepEqual(client.entries(), [{ key: 'existing-key', value: 'existing-value' }]);
 

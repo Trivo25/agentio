@@ -137,6 +137,8 @@ export function ogFileObjectClient(options: OgFileObjectClientOptions): OgObject
   const roots = new Map<string, string>();
 
   return {
+    capabilities: ['object-write', 'object-read', 'same-process-key-read', 'immutable-object-reference', 'audit-append'],
+
     async getObject(key: string): Promise<string | undefined> {
       const rootHash = roots.get(key);
       if (rootHash === undefined) {
@@ -191,6 +193,8 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
   };
 
   return {
+    capabilities: ['object-write', 'object-read', 'durable-key-read', 'audit-append'],
+
     async getObject(key: string): Promise<string | undefined> {
       const kv = await getKvClient();
       const value = await readKvValue(kv, options.streamId, encodeReadKey(key), version, options);

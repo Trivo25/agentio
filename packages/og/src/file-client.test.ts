@@ -15,9 +15,21 @@ test('ogFileObjectClient can upload an immutable object on the real 0G network w
   assert.ok(liveOptions.ready);
 
   const client = ogFileObjectClient(liveOptions);
-  const result = await client.putObject(`agentio-file-smoke-${Date.now()}`, 'hello 0G from agentio');
+  const key = `agentio-file-smoke-${Date.now()}`;
+  const value = 'hello 0G from agentio';
+
+  assert.deepEqual(client.capabilities, [
+    'object-write',
+    'object-read',
+    'same-process-key-read',
+    'immutable-object-reference',
+    'audit-append',
+  ]);
+
+  const result = await client.putObject(key, value);
 
   assert.match(result.reference ?? '', /^0g-file:0x[0-9a-fA-F]+:0x[0-9a-fA-F]{64}$/);
+  assert.equal(await client.getObject(key), value);
 });
 
 function readLiveOptions() {
