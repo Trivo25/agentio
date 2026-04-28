@@ -1,0 +1,51 @@
+{
+  "name": "@0xagentio/axl-local",
+  "version": "0.1.0",
+  "description": "Local process harness for Gensyn AXL nodes in tests and examples.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xagentio/agentio.git",
+    "directory": "packages/axl-local"
+  },
+  "keywords": [
+    "gensyn",
+    "axl",
+    "p2p",
+    "local-network",
+    "typescript"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts.map",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts",
+    "!dist/**/*.test.js.map",
+    "!dist/**/*.test.d.ts.map",
+    "!dist/.tsbuildinfo",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@0xagentio/axl-client": "^0.1.0"
+  }
+}

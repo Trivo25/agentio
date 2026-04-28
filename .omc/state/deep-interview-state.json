@@ -1,0 +1,22 @@
+{
+  "active": true,
+  "current_phase": "deep-interview",
+  "state": {
+    "interview_id": "di-0xagentio-landing-2026-04-28",
+    "type": "brownfield",
+    "initial_idea": "Build a landing page for 0xAgentio using the brand guidelines in Brand.md and the logo in /assets. The existing landing/index.html is a temporary 0G KV node status page — fate unclear.",
+    "rounds": [],
+    "current_ambiguity": 0.7,
+    "threshold": 0.2,
+    "codebase_context": {
+      "project": "0xAgentio — verifiable agent coordination framework (ZK + AXL + 0G)",
+      "stack": "TypeScript monorepo, no frontend framework yet",
+      "existing_landing": "landing/index.html — static HTML, brand-correct, currently a 0G KV node RPC status page",
+      "logo": "assets/logo.png (full-res), assets/logo_label.png (with wordmark)",
+      "brand_doc": "Brand.md — extremely prescriptive (palette, type, hero, 5 sections, motion, components)",
+      "context": "hackathon project, targeting AXL / Uniswap / 0G prizes"
+    },
+    "challenge_modes_used": [],
+    "ontology_snapshots": []
+  }
+}

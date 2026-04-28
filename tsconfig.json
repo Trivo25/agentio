@@ -14,7 +14,16 @@
       "path": "./packages/og"
     },
     {
+      "path": "./packages/axl-client"
+    },
+    {
+      "path": "./packages/axl-local"
+    },
+    {
       "path": "./examples/basic"
+    },
+    {
+      "path": "./examples/axl-local-network"
     }
   ]
 }
