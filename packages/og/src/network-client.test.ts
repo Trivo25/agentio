@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { loadEnvFile } from './env.js';
+import { encodeAgentStateDocument } from './codec.js';
 import { agentStateKey, namespacedKey } from './index.js';
 import { memoryOgObjectClient, ogKvObjectClient, ogStorage, supportsDurableOgState } from './index.js';
 
@@ -23,6 +24,7 @@ test('ogKvObjectClient can round-trip state on the real 0G network when credenti
   const storage = ogStorage({ namespace: liveOptions.namespace, client });
   const identity = { id: `agent-live-${Date.now()}`, publicKey: 'agent-live-public-key' };
   const state = { cumulativeSpend: 7n, updatedAt: new Date('2026-04-25T12:00:00.000Z') };
+  const expectedDocument = encodeAgentStateDocument(identity.id, state);
   const probeKey = namespacedKey(liveOptions.namespace, agentStateKey(identity.id));
 
   console.log(`[0G] Agent state key: ${probeKey}`);
@@ -30,6 +32,7 @@ test('ogKvObjectClient can round-trip state on the real 0G network when credenti
 
   await storage.saveState(identity, state);
 
+  assert.equal(await client.getObject(probeKey), expectedDocument);
   assert.deepEqual(await storage.loadState(identity), state);
 });
 
