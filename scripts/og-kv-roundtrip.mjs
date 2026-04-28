@@ -64,6 +64,7 @@ async function roundTrip(options) {
   console.log('Writing KV entry...');
   const [result, uploadError] = await batcher.exec({
     finalityRequired: options.finalityRequired,
+    expectedReplica: options.expectedReplica,
     onProgress(message) {
       console.log(`[0G] ${message}`);
     },
@@ -78,6 +79,10 @@ async function roundTrip(options) {
   const txSeq = readTxSeq(result);
   console.log(`txSeq: ${txSeq ?? '<unknown>'}`);
   console.log('');
+
+  if (txSeq !== undefined) {
+    await printStorageFileInfo(nodes, txSeq);
+  }
 
   await printKvNodeDiagnostics(kv, options.kvRpc, txSeq);
   if (txSeq !== undefined) {
@@ -130,11 +135,31 @@ async function printKvNodeDiagnostics(kv, kvRpc, txSeq) {
 
   try {
     const transactionResult = await getKvTransactionResult(kvRpc, txSeq);
-    console.log(`KV transaction result for txSeq ${txSeq}: ${JSON.stringify(transactionResult)}`);
+    console.log(
+      `KV transaction result for txSeq ${txSeq}: ${JSON.stringify(transactionResult)}`,
+    );
   } catch (error) {
-    console.log(`KV transaction result for txSeq ${txSeq}: failed: ${formatError(error)}`);
+    console.log(
+      `KV transaction result for txSeq ${txSeq}: failed: ${formatError(error)}`,
+    );
   }
 
+  console.log('');
+}
+
+async function printStorageFileInfo(nodes, txSeq) {
+  for (const [index, node] of nodes.entries()) {
+    try {
+      const info = await node.getFileInfoByTxSeq(txSeq);
+      console.log(
+        `Storage node[${index}] file info for txSeq ${txSeq}: ${JSON.stringify(info)}`,
+      );
+    } catch (error) {
+      console.log(
+        `Storage node[${index}] file info for txSeq ${txSeq}: failed: ${formatError(error)}`,
+      );
+    }
+  }
   console.log('');
 }
 
@@ -157,12 +182,7 @@ async function getKvTransactionResult(kvRpc, txSeq) {
   return payload.result;
 }
 
-async function waitForKvTransactionResult(
-  kvRpc,
-  txSeq,
-  timeoutMs,
-  intervalMs,
-) {
+async function waitForKvTransactionResult(kvRpc, txSeq, timeoutMs, intervalMs) {
   const startedAt = Date.now();
 
   while (true) {
@@ -224,7 +244,7 @@ function readOptions() {
   );
   const finalityRequired = readBoolean(
     readArgValue('--finality') ?? process.env.AGENTIO_0G_FINALITY_REQUIRED,
-    false,
+    true,
   );
 
   const missing = [

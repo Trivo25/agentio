@@ -27,10 +27,10 @@ export type OgKvObjectClientOptions = {
   /**
    * Controls whether writes wait for storage finality before returning.
    *
-   * The default is `false` so smoke tests and local development verify that a
-   * write was accepted without blocking on slower testnet finality. Set this to
-   * `true` when an application must know the data is fully finalized before it
-   * continues.
+   * KV writes default to `true` because KV replay depends on the encoded stream
+   * data being available on storage nodes. Returning after only the Flow
+   * transaction is accepted can leave callers with a txSeq that the KV node
+   * cannot replay yet.
    */
   readonly finalityRequired?: boolean;
   /**
@@ -210,6 +210,7 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
       await getKvClient();
 
       reportProgress(options, `0G KV write preparing stream=${options.streamId} key=${key} encodedKey=${encodeReadKey(key)} bytes=${Buffer.byteLength(value, 'utf8')}`);
+      reportProgress(options, `0G KV write key bytes=${formatBytes(encodeKey(key))} value bytes=${formatBytes(Buffer.from(value, 'utf8'))}`);
 
       const [nodes, selectError] = await indexer.selectNodes(expectedReplica);
       if (selectError !== null) {
@@ -229,11 +230,17 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
       batcher.streamDataBuilder.set(options.streamId, encodeKey(key), Buffer.from(value, 'utf8'));
 
       const uploadState: UploadProgressState = {};
-      const [result, uploadError] = await batcher.exec(uploadOptions(options, uploadState));
+      const uploadConfig = { ...options, expectedReplica, finalityRequired: options.finalityRequired ?? true };
+      reportProgress(options, `0G KV upload options finalityRequired=${uploadConfig.finalityRequired} expectedReplica=${expectedReplica} taskSize=<sdk-default> skipTx=<sdk-default>`);
+      const [result, uploadError] = await batcher.exec(uploadOptions(uploadConfig, uploadState));
+      reportProgress(options, `0G KV batcher result=${formatUnknown(result)} uploadError=${formatUnknown(uploadError)}`);
       if (uploadError !== null) {
         throw new Error(`0G KV write failed: ${uploadError.message}`);
       }
       const txSeq = readUploadTxSeq(result);
+      if (txSeq !== undefined) {
+        await verifyUploadedFileInfo(nodes, txSeq, options);
+      }
       reportProgress(options, `0G KV write completed txHash=${result.txHash} rootHash=${result.rootHash} txSeq=${txSeq ?? '<unknown>'}`);
 
       return { reference: `0g-kv:${result.txHash}:${result.rootHash}${txSeq === undefined ? '' : `:${txSeq}`}` };
@@ -372,6 +379,7 @@ async function supportsKvRpc(url: string, timeoutMs: number): Promise<boolean> {
 function uploadOptions(options: {
   readonly finalityRequired?: boolean;
   readonly fee?: bigint;
+  readonly expectedReplica?: number;
   readonly logSyncTimeoutMs?: number;
   readonly onProgress?: (message: string) => void;
 }, state: UploadProgressState = {}) {
@@ -379,6 +387,7 @@ function uploadOptions(options: {
 
   return {
     finalityRequired: options.finalityRequired ?? false,
+    expectedReplica: options.expectedReplica,
     fee: options.fee,
     onProgress(message: string) {
       captureUploadProgress(message, state);
@@ -388,6 +397,40 @@ function uploadOptions(options: {
       }
     },
   };
+}
+
+type StorageFileInfo = {
+  readonly finalized?: boolean;
+  readonly uploadedSegNum?: number;
+};
+
+async function verifyUploadedFileInfo(
+  nodes: readonly { readonly getFileInfoByTxSeq: (txSeq: number) => Promise<StorageFileInfo | null> }[],
+  txSeq: number,
+  options: Pick<OgKvObjectClientOptions, 'onProgress'>,
+): Promise<void> {
+  const infos = await Promise.all(nodes.map(async (node, index) => {
+    try {
+      return { index, info: await node.getFileInfoByTxSeq(txSeq) };
+    } catch (error) {
+      return { index, error };
+    }
+  }));
+
+  for (const entry of infos) {
+    if ('error' in entry) {
+      options.onProgress?.(`0G KV storage node[${entry.index}] file info failed for txSeq=${txSeq}: ${formatUnknown(entry.error)}`);
+      continue;
+    }
+
+    options.onProgress?.(`0G KV storage node[${entry.index}] file info txSeq=${txSeq}: ${formatUnknown(entry.info)}`);
+    if (entry.info !== null && entry.info.finalized === false) {
+      throw new Error(`0G KV upload did not finalize on storage node[${entry.index}] for txSeq=${txSeq}; uploadedSegNum=${entry.info.uploadedSegNum ?? '<unknown>'}.`);
+    }
+    if (entry.info !== null && entry.info.uploadedSegNum === 0) {
+      throw new Error(`0G KV upload reported zero uploaded segments on storage node[${entry.index}] for txSeq=${txSeq}.`);
+    }
+  }
 }
 
 type UploadProgressState = {
@@ -435,6 +478,22 @@ function formatUploadState(state: UploadProgressState, lastMessage: string): str
 
 function reportProgress(options: { readonly onProgress?: (message: string) => void }, message: string): void {
   options.onProgress?.(message);
+}
+
+function formatBytes(bytes: Uint8Array): string {
+  return `len=${bytes.length} hex=${Buffer.from(bytes).toString('hex')}`;
+}
+
+function formatUnknown(value: unknown): string {
+  if (value instanceof Error) {
+    return `${value.name}: ${value.message}`;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function formatStorageNode(node: unknown): string {
