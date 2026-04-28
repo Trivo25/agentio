@@ -48,6 +48,12 @@ export type AxlSendResult = {
 
 /** One inbound binary payload received from a remote AXL peer. */
 export type AxlReceivedMessage = {
+  /**
+   * Source id reported by AXL's raw receive endpoint.
+   *
+   * AXL derives this from the remote network address for raw `/recv` messages;
+   * use it as transport metadata, not as a guaranteed application identity.
+   */
   readonly fromPeerId: string;
   readonly body: Uint8Array;
 };

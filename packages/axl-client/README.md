@@ -76,3 +76,11 @@ This client intentionally only moves bytes through AXL. It does not interpret
 agent messages, proofs, policies, reasoning results, or application-specific
 payloads. Higher-level frameworks should encode those concepts before calling
 `send` and decode them after `recv`.
+
+## AXL receive identity note
+
+For raw `/recv` messages, AXL returns `X-From-Peer-Id` as transport metadata
+derived from the remote network address. Treat it as the source id reported by
+the transport, not as a guaranteed application-level identity. If your protocol
+needs stable agent identity, include and verify that identity inside the message
+payload.

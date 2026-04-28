@@ -1,0 +1,14 @@
+{
+  "name": "@0xagentio/example-axl-local-network",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@0xagentio/axl-local": "file:../../packages/axl-local",
+    "@0xagentio/axl-client": "file:../../packages/axl-client"
+  }
+}
