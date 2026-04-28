@@ -49,6 +49,7 @@ function readLiveOptions() {
   const missing = [
     ['AGENTIO_0G_EVM_RPC', evmRpc],
     ['AGENTIO_0G_INDEXER_RPC', indexerRpc],
+    ['AGENTIO_0G_KV_RPC', kvRpc],
     ['AGENTIO_0G_PRIVATE_KEY', privateKey],
     ['AGENTIO_0G_STREAM_ID', streamId],
   ]
@@ -62,6 +63,7 @@ function readLiveOptions() {
   if (
     evmRpc === undefined ||
     indexerRpc === undefined ||
+    kvRpc === undefined ||
     privateKey === undefined ||
     streamId === undefined
   ) {
