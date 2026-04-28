@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { startLocalAxlNetwork } from '@0xagentio/axl-local';
-import { noirProofs } from '@0xagentio/noir';
+import {
+  decodeNoirAuthorizationProof,
+  encodeNoirAuthorizationProof,
+  noirProofs,
+} from '@0xagentio/noir';
 import {
   axlTransport,
   encodeAgentMessage,
@@ -141,6 +145,20 @@ try {
 
     if (!verification.valid) {
       console.log(`Bob rejected request: ${verification.reason}`);
+      await bob.send(
+        message.sender,
+        createAgentReply({
+          id: `${message.id ?? 'quote-request'}-rejected`,
+          type: 'quote.rejected',
+          sender: bob.identity.id,
+          createdAt: new Date('2026-04-28T12:00:02.000Z'),
+          request: { ...message, id: message.id ?? 'quote-request' },
+          payload: {
+            accepted: false,
+            reason: verification.reason ?? 'proof-verification-failed',
+          },
+        }),
+      );
       return;
     }
 
@@ -205,6 +223,34 @@ try {
   console.log(
     `Bob echoed verified policy hash: ${String(reply.payload.verifiedPolicyHash)}`,
   );
+
+  console.log('Alice sends the same request shape with a fake proof.');
+  const validProof = request.payload.proof as {
+    readonly format: string;
+    readonly proof: Uint8Array;
+    readonly publicInputs: Readonly<Record<string, unknown>>;
+  };
+  const fakeProofRequest = {
+    ...request,
+    id: 'quote-request-fake-proof-1',
+    correlationId: 'real-axl-fake-proof-backed-quote-1',
+    payload: {
+      ...request.payload,
+      proof: {
+        ...validProof,
+        proof: corruptNoirProofBytes(validProof.proof),
+      },
+    },
+  };
+
+  console.log('Alice asks Bob for a quote with the fake proof...');
+  const rejection = await alice.request(bob.identity.id, fakeProofRequest, {
+    expectedType: 'quote.rejected',
+    timeoutMs: 10_000,
+  });
+
+  console.log(`Bob rejected the fake proof: ${String(rejection.payload.reason)}`);
+
 } finally {
   aliceTransport.stop();
   bobTransport.stop();
@@ -212,3 +258,16 @@ try {
   await rm(directory, { recursive: true, force: true });
   console.log('Stopped local AXL AgentIO example.');
 }
+
+// corrupt only the proof bytes so the payload stays Noir-shaped but fails verification.
+function corruptNoirProofBytes(proof: Uint8Array): Uint8Array {
+  const decoded = decodeNoirAuthorizationProof(proof);
+  const corruptedProofBytes = new Uint8Array(decoded.proofData.proof);
+  corruptedProofBytes[corruptedProofBytes.length - 1] ^= 1;
+
+  return encodeNoirAuthorizationProof(decoded.circuitId, {
+    proof: corruptedProofBytes,
+    publicInputs: decoded.proofData.publicInputs,
+  });
+}
+

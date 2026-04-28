@@ -121,6 +121,14 @@ class NoirProofAdapter implements ProofAdapter {
     try {
       const valid = await backend.verifyProof(decoded.proofData as ProofData);
       return { valid, reason: valid ? undefined : 'Barretenberg proof verification failed.' };
+    } catch (error) {
+      return {
+        valid: false,
+        reason:
+          error instanceof Error
+            ? `Barretenberg proof verification failed: ${error.message}`
+            : 'Barretenberg proof verification failed.',
+      };
     } finally {
       await backend.destroy();
     }
