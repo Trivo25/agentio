@@ -194,6 +194,26 @@
         color: var(--teal-deep);
       }
 
+      .badge-verified.is-offline {
+        background: rgba(239, 68, 68, 0.1);
+        color: #b91c1c;
+      }
+
+      .badge-verified.is-offline .pulse::before,
+      .badge-verified.is-offline .pulse::after {
+        background: #ef4444;
+      }
+
+      .badge-verified.is-loading {
+        background: var(--gray-50);
+        color: var(--navy-400);
+      }
+
+      .badge-verified.is-loading .pulse::before,
+      .badge-verified.is-loading .pulse::after {
+        background: var(--navy-400);
+      }
+
       .pulse {
         position: relative;
         width: 8px;
@@ -353,6 +373,70 @@
         line-height: 1.6;
       }
 
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 32px;
+        transform: translate(-50%, 24px);
+        opacity: 0;
+        pointer-events: none;
+        background: var(--navy-950);
+        color: #ffffff;
+        padding: 12px 16px;
+        border-radius: 12px;
+        box-shadow: 0 16px 48px rgba(15, 23, 42, 0.24);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: calc(100vw - 32px);
+        transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1),
+          opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 10;
+      }
+
+      .toast.is-visible {
+        opacity: 1;
+        transform: translate(-50%, 0);
+        pointer-events: auto;
+      }
+
+      .toast-icon {
+        width: 18px;
+        height: 18px;
+        color: #fbbf24;
+        flex-shrink: 0;
+      }
+
+      .toast-text {
+        line-height: 1.5;
+      }
+
+      .toast a {
+        color: #ffffff;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .toast a:hover {
+        color: var(--teal);
+      }
+
+      .toast-close {
+        background: transparent;
+        border: 0;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        padding: 4px;
+        font-size: 16px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+
+      .toast-close:hover {
+        color: #ffffff;
+      }
+
       .note code {
         font-family: 'JetBrains Mono', ui-monospace, monospace;
         font-size: 12px;
@@ -437,15 +521,15 @@
               </svg>
               RPC endpoint
             </span>
-            <span class="badge-verified">
+            <span class="badge-verified is-loading" id="statusBadge">
               <span class="pulse"></span>
-              Active
+              <span id="statusLabel">Checking</span>
             </span>
           </div>
 
           <div class="endpoint-row">
             <code class="endpoint" data-copy-source>http://178.238.236.119:6789</code>
-            <button class="copy-btn" data-copy type="button">
+            <button class="copy-btn" data-copy data-toast="star" type="button">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -490,9 +574,9 @@
               </svg>
               Supported stream IDs
             </span>
-            <span class="badge-verified">
+            <span class="badge-verified" id="streamsBadge">
               <span class="pulse"></span>
-              Indexed
+              <span id="streamsCountLabel">Indexed</span>
             </span>
           </div>
 
@@ -504,6 +588,10 @@
           <code>AGENTIO_0G_STREAM_ID</code> to one of the indexed streams above.
           No auth, no rate limits today — please be kind.
         </p>
+
+        <p class="note" id="checkedNote" hidden>
+          <span id="checkedText"></span>
+        </p>
       </main>
 
       <footer>
@@ -512,9 +600,29 @@
       </footer>
     </div>
 
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <svg
+        class="toast-icon"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 2.5l2.9 5.88 6.5.94-4.7 4.58 1.11 6.46L12 17.27l-5.81 3.05 1.11-6.45-4.7-4.58 6.5-.94L12 2.5z"
+        ></path>
+      </svg>
+      <span class="toast-text">
+        Copied. If this saves you time,
+        <a href="https://github.com/trivo25/agentio" target="_blank" rel="noopener"
+          >drop a star on GitHub</a
+        >.
+      </span>
+      <button class="toast-close" type="button" aria-label="Dismiss" id="toastClose">×</button>
+    </div>
+
     <script>
       (function () {
-        let streamIds = [
+        let fallbackStreamIds = [
           '0x000000000000000000000000000000000000000000000000000000000000f2bd',
           '0x000000000000000000000000000000000000000000000000000000000000f009',
           '0x0000000000000000000000000000000000000000000000000000000000016879',
@@ -524,38 +632,104 @@
         let copyIcon =
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
 
-        let list = document.getElementById('streamList');
-        for (let i = 0; i < streamIds.length; i++) {
-          let row = document.createElement('div');
-          row.className = 'stream-row';
-          row.innerHTML =
-            '<code class="stream-id" data-copy-source>' +
-            streamIds[i] +
-            '</code>' +
-            '<button class="copy-btn" data-copy type="button" aria-label="Copy stream id">' +
-            copyIcon +
-            '<span class="copy-label">Copy</span></button>';
-          list.appendChild(row);
+        function renderStreams(ids) {
+          let list = document.getElementById('streamList');
+          list.innerHTML = '';
+          for (let i = 0; i < ids.length; i++) {
+            let row = document.createElement('div');
+            row.className = 'stream-row';
+            row.innerHTML =
+              '<code class="stream-id" data-copy-source>' +
+              ids[i] +
+              '</code>' +
+              '<button class="copy-btn" data-copy type="button" aria-label="Copy stream id">' +
+              copyIcon +
+              '<span class="copy-label">Copy</span></button>';
+            list.appendChild(row);
+          }
+          bindCopy();
         }
 
-        let buttons = document.querySelectorAll('[data-copy]');
-        for (let i = 0; i < buttons.length; i++) {
-          let btn = buttons[i];
-          let row = btn.parentElement;
-          let source = row.querySelector('[data-copy-source]');
-          let label = btn.querySelector('.copy-label');
-          if (!source || !label) continue;
-          btn.addEventListener('click', function () {
-            navigator.clipboard.writeText(source.textContent.trim()).then(function () {
-              btn.classList.add('copied');
-              label.textContent = 'Copied';
-              setTimeout(function () {
-                btn.classList.remove('copied');
-                label.textContent = 'Copy';
-              }, 1600);
-            });
-          });
+        let toast = document.getElementById('toast');
+        let toastTimer = null;
+        function showToast() {
+          if (!toast) return;
+          toast.classList.add('is-visible');
+          if (toastTimer) clearTimeout(toastTimer);
+          toastTimer = setTimeout(hideToast, 6000);
         }
+        function hideToast() {
+          if (toast) toast.classList.remove('is-visible');
+        }
+        let toastClose = document.getElementById('toastClose');
+        if (toastClose) toastClose.addEventListener('click', hideToast);
+
+        function bindCopy() {
+          let buttons = document.querySelectorAll('[data-copy]');
+          for (let i = 0; i < buttons.length; i++) {
+            let btn = buttons[i];
+            if (btn.dataset.bound) continue;
+            btn.dataset.bound = '1';
+            let row = btn.parentElement;
+            let source = row.querySelector('[data-copy-source]');
+            let label = btn.querySelector('.copy-label');
+            if (!source || !label) continue;
+            btn.addEventListener('click', function () {
+              navigator.clipboard.writeText(source.textContent.trim()).then(function () {
+                btn.classList.add('copied');
+                label.textContent = 'Copied';
+                if (btn.dataset.toast === 'star') showToast();
+                setTimeout(function () {
+                  btn.classList.remove('copied');
+                  label.textContent = 'Copy';
+                }, 1600);
+              });
+            });
+          }
+        }
+
+        function relativeTime(iso) {
+          let then = new Date(iso).getTime();
+          if (!Number.isFinite(then)) return '';
+          let secs = Math.max(0, Math.round((Date.now() - then) / 1000));
+          if (secs < 60) return secs + 's ago';
+          let mins = Math.round(secs / 60);
+          if (mins < 60) return mins + 'm ago';
+          let hours = Math.round(mins / 60);
+          if (hours < 48) return hours + 'h ago';
+          return Math.round(hours / 24) + 'd ago';
+        }
+
+        function setStatus(state, label, checkedAt) {
+          let badge = document.getElementById('statusBadge');
+          let labelEl = document.getElementById('statusLabel');
+          badge.classList.remove('is-loading', 'is-offline');
+          if (state === 'offline') badge.classList.add('is-offline');
+          labelEl.textContent = label;
+
+          if (checkedAt) {
+            let note = document.getElementById('checkedNote');
+            document.getElementById('checkedText').textContent =
+              'Last checked ' + relativeTime(checkedAt) + '.';
+            note.hidden = false;
+          }
+        }
+
+        renderStreams(fallbackStreamIds);
+        document.getElementById('streamsCountLabel').textContent =
+          fallbackStreamIds.length + ' indexed';
+
+        fetch('status.json', { cache: 'no-store' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('no status');
+            return r.json();
+          })
+          .then(function (s) {
+            setStatus(s.online ? 'online' : 'offline', s.online ? 'Online' : 'Offline', s.checkedAt);
+          })
+          .catch(function () {
+            setStatus('online', 'Active', null);
+          });
       })();
     </script>
   </body>
