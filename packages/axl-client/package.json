@@ -1,8 +1,29 @@
 {
   "name": "@0xagentio/axl-client",
   "version": "0.0.0",
+  "description": "Small TypeScript client for the Gensyn AXL node HTTP bridge.",
   "type": "module",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xagentio/agentio.git",
+    "directory": "packages/axl-client"
+  },
+  "keywords": [
+    "gensyn",
+    "axl",
+    "p2p",
+    "typescript",
+    "client"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
