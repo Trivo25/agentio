@@ -107,10 +107,13 @@ export function axlTransport(options: AxlTransportOptions): AxlTransport {
  */
 export function encodeAgentMessage(message: AgentMessage): Uint8Array {
   return new TextEncoder().encode(
-    JSON.stringify({
-      ...message,
-      createdAt: message.createdAt.toISOString(),
-    }),
+    JSON.stringify(
+      {
+        ...message,
+        createdAt: message.createdAt.toISOString(),
+      },
+      axlJsonReplacer,
+    ),
   );
 }
 
@@ -121,7 +124,7 @@ export function encodeAgentMessage(message: AgentMessage): Uint8Array {
  * still wanting the same message validation and `Date` restoration behavior.
  */
 export function decodeAgentMessage(body: Uint8Array): AgentMessage {
-  const parsed = JSON.parse(new TextDecoder().decode(body)) as unknown;
+  const parsed = JSON.parse(new TextDecoder().decode(body), axlJsonReviver) as unknown;
   if (!isRecord(parsed)) {
     throw new TypeError('AXL AgentIO message must be a JSON object.');
   }
@@ -167,4 +170,27 @@ export function decodeAgentMessage(body: Uint8Array): AgentMessage {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function axlJsonReplacer(_key: string, value: unknown): unknown {
+  if (typeof value === 'bigint') {
+    return { $agentioType: 'bigint', value: value.toString() };
+  }
+  if (value instanceof Uint8Array) {
+    return { $agentioType: 'uint8array', value: Array.from(value) };
+  }
+  return value;
+}
+
+function axlJsonReviver(_key: string, value: unknown): unknown {
+  if (!isRecord(value) || typeof value.$agentioType !== 'string') {
+    return value;
+  }
+  if (value.$agentioType === 'bigint' && typeof value.value === 'string') {
+    return BigInt(value.value);
+  }
+  if (value.$agentioType === 'uint8array' && Array.isArray(value.value)) {
+    return new Uint8Array(value.value.map((entry) => Number(entry)));
+  }
+  return value;
 }

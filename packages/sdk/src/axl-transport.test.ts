@@ -95,7 +95,12 @@ function createMessage(overrides: Partial<AgentMessage> = {}): AgentMessage {
     type: 'quote.request',
     sender: 'alice-agent',
     createdAt: new Date('2026-04-28T00:00:00.000Z'),
-    payload: { tokenIn: 'ETH', tokenOut: 'USDC' },
+    payload: {
+      tokenIn: 'ETH',
+      tokenOut: 'USDC',
+      amount: 1n,
+      proof: new Uint8Array([1, 2, 3]),
+    },
     ...overrides,
   };
 }
