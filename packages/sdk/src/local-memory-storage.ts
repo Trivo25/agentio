@@ -9,7 +9,7 @@ export type LocalMemoryStorage = StorageAdapter & {
 };
 
 /**
- * Creates a local storage adapter with the same shape as future 0G-backed storage.
+ * Creates a local storage adapter with the same shape as network-backed storage.
  */
 export function localMemoryStorage(initialStates: ReadonlyMap<string, AgentState> = new Map()): LocalMemoryStorage {
   const states = new Map(initialStates);

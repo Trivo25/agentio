@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 /**
- * Minimal compiled Noir circuit shape needed by the future NoirJS adapter.
+ * Minimal compiled Noir circuit shape needed by the NoirJS adapter.
  *
  * The full Nargo artifact includes debug metadata and file maps, but proving
  * only needs a compiled circuit object with bytecode and ABI data. Keeping this

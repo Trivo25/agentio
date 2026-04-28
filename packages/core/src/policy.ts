@@ -33,7 +33,7 @@ export type PolicyConstraint =
  * Describes the authority delegated to an agent.
  */
 export type Policy = {
-  /** Unique policy identifier used by credentials and future proof requests. */
+  /** Unique policy identifier used by credentials and proof requests. */
   readonly id: string;
   /** Action names the agent is allowed to propose or execute. */
   readonly allowedActions: readonly string[];

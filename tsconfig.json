@@ -11,6 +11,9 @@
       "path": "./packages/noir"
     },
     {
+      "path": "./packages/og"
+    },
+    {
       "path": "./examples/basic"
     }
   ]

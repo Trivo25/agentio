@@ -99,6 +99,10 @@ test('createTrustedAgent executes valid actions after proof generation', async (
   assert.equal(executions[0]?.action.type, 'swap');
   assert.equal(result.execution?.reference, 'executed:swap');
   assert.equal(storage.getAuditEvents()[0]?.execution?.reference, 'executed:swap');
+  assert.deepEqual(await storage.loadState(identity), {
+    cumulativeSpend: 250n,
+    updatedAt: new Date('2026-04-25T12:00:00.000Z'),
+  });
 });
 
 test('createTrustedAgent does not execute rejected actions', async () => {
@@ -180,4 +184,25 @@ test('createTrustedAgent accepts valid delegated credentials when delegation ver
 
   assert.equal(result.status, 'accepted');
   assert.equal(executions.length, 1);
+});
+
+test('createTrustedAgent does not advance cumulative state when execution fails', async () => {
+  const storage = localMemoryStorage();
+  const agent = createTrustedAgent({
+    identity,
+    credential,
+    policy,
+    initialState,
+    reasoning: staticReasoningEngine({ type: 'swap', amount: 250n }),
+    proof: localPolicyProofs(),
+    storage,
+    execution: localExecution(async () => ({ success: false, reference: 'execution-declined' })),
+    now: () => new Date('2026-04-25T12:00:00.000Z'),
+    createEventId: () => 'event-test',
+  });
+
+  const result = await agent.startOnce();
+
+  assert.equal(result.status, 'accepted');
+  assert.deepEqual(await storage.loadState(identity), initialState);
 });

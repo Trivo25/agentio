@@ -18,7 +18,7 @@ export type NoirAuthorizationPublicInputs = {
 };
 
 /**
- * Private authorization inputs used by a future Noir circuit witness builder.
+ * Private authorization inputs used by a Noir circuit witness builder.
  */
 export type NoirAuthorizationPrivateInputs = {
   /** Credential identifier used by the proving adapter. */
@@ -40,7 +40,7 @@ export type NoirAuthorizationPrivateInputs = {
 };
 
 /**
- * Pre-field authorization input for a future Noir proof adapter.
+ * Pre-field authorization input for a Noir proof adapter.
  */
 export type NoirAuthorizationInput = {
   /** Values that should become verifier-visible public inputs. */

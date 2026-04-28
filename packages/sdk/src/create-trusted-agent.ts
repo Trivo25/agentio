@@ -164,6 +164,10 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
         proof: proofResult.proof,
       });
 
+      if (shouldAdvanceState(execution)) {
+        await options.storage.saveState(options.identity, advanceState(state, decision.amount ?? 0n, cycleTime));
+      }
+
       const event = await appendEvent(options.storage, {
         id: createEventId(),
         agentId: options.identity.id,
@@ -176,6 +180,23 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
       return { status: 'accepted', action: decision, validation, proof: proofResult.proof, execution, event };
     },
   };
+}
+
+
+// advance mutable state after an authorized action is actually consumed.
+// the cumulative amount is part of the policy envelope and noir input, so the
+// runtime must persist the new total before the next decision cycle. otherwise
+// an agent could repeatedly authorize individually-valid actions while never
+// consuming its cumulative budget.
+function advanceState(state: AgentState, amount: bigint, updatedAt: Date): AgentState {
+  return {
+    cumulativeSpend: state.cumulativeSpend + amount,
+    updatedAt,
+  };
+}
+
+function shouldAdvanceState(execution: ExecutionResult | undefined): boolean {
+  return execution === undefined || execution.success;
 }
 
 async function loadStateOrInitial(
