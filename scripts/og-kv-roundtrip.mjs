@@ -20,14 +20,11 @@ if (!options.ready) {
 await roundTrip(options);
 
 async function roundTrip(options) {
-  const key = Buffer.from('Apple', 'utf8');
-  const value = Buffer.from('A fruit that keeps the doctor away.', 'utf8');
-
   console.log('0G KV SDK-only round trip');
   console.log(`Stream id: ${options.streamId}`);
-  console.log(`Key: ${key}`);
-  console.log(`Encoded key: ${encodeKeyForRead(key)}`);
-  console.log(`Value: ${value}`);
+  console.log(`Key: ${options.key}`);
+  console.log(`Encoded key: ${encodeKeyForRead(options.key)}`);
+  console.log(`Value: ${options.value}`);
   console.log('');
 
   const provider = new ethers.JsonRpcProvider(options.evmRpc);
@@ -60,7 +57,11 @@ async function roundTrip(options) {
     flow,
     options.evmRpc,
   );
-  batcher.streamDataBuilder.set(options.streamId, key, value);
+  batcher.streamDataBuilder.set(
+    options.streamId,
+    Buffer.from(options.key, 'utf8'),
+    Buffer.from(options.value, 'utf8'),
+  );
 
   console.log('Writing KV entry...');
   const [result, uploadError] = await batcher.exec({
@@ -80,26 +81,26 @@ async function roundTrip(options) {
   console.log('');
 
   console.log('Reading latest KV value...');
-  const encodedKey = encodeKeyForRead(key);
-  const valueRead = await readWithRetry(
+  const encodedKey = encodeKeyForRead(options.key);
+  const value = await readWithRetry(
     kv,
     options.streamId,
     encodedKey,
     options.readTimeoutMs,
     options.readIntervalMs,
   );
-  if (valueRead === null) {
+  if (value === null) {
     throw new Error('KV read returned null for the written key.');
   }
 
-  const decoded = Buffer.from(valueRead.data, 'base64').toString('utf8');
-  console.log(`Read version: ${valueRead.version}`);
-  console.log(`Read size: ${valueRead.size}`);
+  const decoded = Buffer.from(value.data, 'base64').toString('utf8');
+  console.log(`Read version: ${value.version}`);
+  console.log(`Read size: ${value.size}`);
   console.log(`Decoded value: ${decoded}`);
 
-  if (decoded !== Buffer.from(value, 'base64').toString('utf8')) {
+  if (decoded !== options.value) {
     throw new Error(
-      `Round trip mismatch. Expected ${JSON.stringify(value)}, got ${JSON.stringify(decoded)}.`,
+      `Round trip mismatch. Expected ${JSON.stringify(options.value)}, got ${JSON.stringify(decoded)}.`,
     );
   }
 
