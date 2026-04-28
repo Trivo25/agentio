@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AuditEvent } from '@0xagentio/core';
-import { agentStateKey, decodeAgentStateDocument, memoryOgObjectClient, namespacedKey, ogStorage } from './index.js';
+import {
+  agentStateKey,
+  decodeAgentStateDocument,
+  hasOgObjectCapability,
+  memoryOgObjectClient,
+  namespacedKey,
+  ogStorage,
+  supportsDurableOgState,
+} from './index.js';
 
 test('ogStorage explains that a real 0G client is required', async () => {
   const storage = ogStorage({ namespace: 'agentio-test' });
@@ -56,6 +64,9 @@ test('0G storage helpers keep keys and document decoding deterministic', () => {
 test('memoryOgObjectClient exposes local objects and can be cleared', async () => {
   const client = memoryOgObjectClient([['existing-key', 'existing-value']]);
 
+  assert.deepEqual(client.capabilities, ['object-write', 'object-read', 'same-process-key-read', 'audit-append']);
+  assert.equal(hasOgObjectCapability(client, 'same-process-key-read'), true);
+  assert.equal(supportsDurableOgState(client), false);
   assert.equal(await client.getObject('existing-key'), 'existing-value');
   assert.deepEqual(client.entries(), [{ key: 'existing-key', value: 'existing-value' }]);
 
