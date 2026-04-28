@@ -30,6 +30,7 @@
     "example:real-noir-peer": "npm run noir:compile && npm run build && node examples/basic/dist/real-noir-peer-verification.js",
     "keys:evm": "node scripts/generate-test-evm-wallets.mjs",
     "keys:stream": "node scripts/generate-test-og-stream-id.mjs",
+    "og:kv:status": "node scripts/diagnose-og-kv.mjs",
     "test:og:live": "npm run build && AGENTIO_0G_RUN_LIVE=1 node --test --test-concurrency=1 packages/og/dist/file-client.test.js packages/og/dist/network-client.test.js",
     "test:og:live:file": "npm run build && AGENTIO_0G_RUN_LIVE=1 node --test packages/og/dist/file-client.test.js",
     "test:og:live:kv": "npm run build && AGENTIO_0G_RUN_LIVE=1 node --test packages/og/dist/network-client.test.js"
