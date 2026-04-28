@@ -1,0 +1,83 @@
+.section {
+  background: linear-gradient(180deg, #ffffff 0%, var(--gray-100) 100%);
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.head {
+  max-width: 720px;
+  margin-bottom: 56px;
+}
+
+.heading {
+  margin-top: 16px;
+}
+
+.em {
+  font-style: normal;
+  background: var(--gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+  border-color: rgba(79, 125, 255, 0.35);
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(79, 125, 255, 0.12) 0%,
+    rgba(39, 194, 179, 0.12) 50%,
+    rgba(181, 141, 255, 0.12) 100%
+  );
+  color: var(--blue);
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+}
+
+.icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.title {
+  font-size: 20px;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.body {
+  color: var(--navy-600);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+@media (max-width: 880px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
