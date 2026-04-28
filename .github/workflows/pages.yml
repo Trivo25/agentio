@@ -6,6 +6,8 @@ on:
     paths:
       - 'landing/**'
       - '.github/workflows/pages.yml'
+  schedule:
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,10 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+env:
+  KV_RPC: http://178.238.236.119:6789
 
 jobs:
   deploy:
@@ -28,6 +33,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Probe KV node
+        run: |
+          set -euo pipefail
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          if curl -fsS -m 8 -X POST "$KV_RPC" \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"kv_getStatus","params":[]}' \
+              | grep -q '"result":true'; then
+            ONLINE=true
+          else
+            ONLINE=false
+          fi
+          printf '{\n  "online": %s,\n  "checkedAt": "%s"\n}\n' "$ONLINE" "$NOW" \
+            > landing/status.json
+          cat landing/status.json
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
