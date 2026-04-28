@@ -79,7 +79,7 @@ export type OgKvObjectClientOptions = {
    * that prefer fewer requests to faster read-after-write confirmation.
    */
   readonly readRetryIntervalMs?: number;
-  /** 0G KV stream version. Defaults to 1, matching the official examples. */
+  /** 0G KV batch encoding version used when submitting writes. */
   readonly version?: number;
 };
 
@@ -197,7 +197,7 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
 
     async getObject(key: string): Promise<string | undefined> {
       const kv = await getKvClient();
-      const value = await readKvValue(kv, options.streamId, encodeReadKey(key), version, options);
+      const value = await readKvValue(kv, options.streamId, encodeReadKey(key), options);
       if (value === null) {
         return undefined;
       }
@@ -209,27 +209,34 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
     async putObject(key: string, value: string): Promise<OgPutObjectResult> {
       await getKvClient();
 
+      reportProgress(options, `0G KV write preparing stream=${options.streamId} key=${key} encodedKey=${encodeReadKey(key)} bytes=${Buffer.byteLength(value, 'utf8')}`);
+
       const [nodes, selectError] = await indexer.selectNodes(expectedReplica);
       if (selectError !== null) {
         throw new Error(`0G node selection failed: ${selectError.message}`);
       }
+      reportProgress(options, `0G KV selected storage nodes: ${nodes.map(formatStorageNode).join(', ')}`);
 
       const status = await nodes[0]?.getStatus();
       const flowAddress = status?.networkIdentity.flowAddress;
       if (flowAddress === undefined) {
         throw new Error('0G node status did not include a flow contract address.');
       }
+      reportProgress(options, `0G KV using flow contract ${flowAddress}`);
 
       const flow = getFlowContract(flowAddress, signer as unknown as Parameters<typeof getFlowContract>[1]);
       const batcher = new Batcher(version, nodes, flow, options.evmRpc);
       batcher.streamDataBuilder.set(options.streamId, encodeKey(key), Buffer.from(value, 'utf8'));
 
-      const [result, uploadError] = await batcher.exec(uploadOptions(options));
+      const uploadState: UploadProgressState = {};
+      const [result, uploadError] = await batcher.exec(uploadOptions(options, uploadState));
       if (uploadError !== null) {
         throw new Error(`0G KV write failed: ${uploadError.message}`);
       }
+      const txSeq = readUploadTxSeq(result);
+      reportProgress(options, `0G KV write completed txHash=${result.txHash} rootHash=${result.rootHash} txSeq=${txSeq ?? '<unknown>'}`);
 
-      return { reference: `0g-kv:${result.txHash}:${result.rootHash}` };
+      return { reference: `0g-kv:${result.txHash}:${result.rootHash}${txSeq === undefined ? '' : `:${txSeq}`}` };
     },
   };
 }
@@ -247,7 +254,6 @@ async function readKvValue(
   kv: KvClient,
   streamId: string,
   key: string,
-  version: number,
   options: Pick<OgKvObjectClientOptions, 'readRetryTimeoutMs' | 'readRetryIntervalMs' | 'onProgress'>,
 ) {
   const timeoutMs = options.readRetryTimeoutMs ?? 10_000;
@@ -256,7 +262,7 @@ async function readKvValue(
 
   while (true) {
     try {
-      const value = await kv.getValue(streamId, key as unknown as Parameters<KvClient['getValue']>[1], version);
+      const value = await kv.getValue(streamId, key as unknown as Parameters<KvClient['getValue']>[1]);
       if (value === null || value.data !== '') {
         return value;
       }
@@ -368,19 +374,83 @@ function uploadOptions(options: {
   readonly fee?: bigint;
   readonly logSyncTimeoutMs?: number;
   readonly onProgress?: (message: string) => void;
-}) {
+}, state: UploadProgressState = {}) {
   const startedAt = Date.now();
 
   return {
     finalityRequired: options.finalityRequired ?? false,
     fee: options.fee,
     onProgress(message: string) {
+      captureUploadProgress(message, state);
       options.onProgress?.(message);
       if (options.logSyncTimeoutMs !== undefined && Date.now() - startedAt > options.logSyncTimeoutMs) {
-        throw new Error(`0G upload did not sync within ${options.logSyncTimeoutMs}ms. Last progress: ${message}`);
+        throw new Error(`0G upload did not sync within ${options.logSyncTimeoutMs}ms. ${formatUploadState(state, message)}`);
       }
     },
   };
+}
+
+type UploadProgressState = {
+  txHash?: string;
+  txSeq?: number;
+  lastStorageSyncHeight?: number;
+  reachedSegmentUpload?: boolean;
+  uploadedSegments?: boolean;
+};
+
+function captureUploadProgress(message: string, state: UploadProgressState): void {
+  const txHash = /Transaction submitted: (0x[0-9a-fA-F]+)/.exec(message)?.[1];
+  if (txHash !== undefined) {
+    state.txHash = txHash;
+  }
+
+  const txSeq = /txSeq=(\d+)/.exec(message)?.[1];
+  if (txSeq !== undefined) {
+    state.txSeq = Number(txSeq);
+    state.reachedSegmentUpload = true;
+  }
+
+  const height = /height=(\d+)/.exec(message)?.[1];
+  if (height !== undefined) {
+    state.lastStorageSyncHeight = Number(height);
+  }
+
+  if (message === 'Segments uploaded. Waiting for finality...') {
+    state.uploadedSegments = true;
+  }
+}
+
+function formatUploadState(state: UploadProgressState, lastMessage: string): string {
+  const details = [
+    `Last progress: ${lastMessage}`,
+    state.txHash === undefined ? undefined : `txHash=${state.txHash}`,
+    state.txSeq === undefined ? undefined : `txSeq=${state.txSeq}`,
+    state.lastStorageSyncHeight === undefined ? undefined : `storageSyncHeight=${state.lastStorageSyncHeight}`,
+    `reachedSegmentUpload=${state.reachedSegmentUpload === true}`,
+    `uploadedSegments=${state.uploadedSegments === true}`,
+  ].filter((detail): detail is string => detail !== undefined);
+
+  return details.join(' ');
+}
+
+function reportProgress(options: { readonly onProgress?: (message: string) => void }, message: string): void {
+  options.onProgress?.(message);
+}
+
+function formatStorageNode(node: unknown): string {
+  if (typeof node === 'object' && node !== null && 'url' in node) {
+    const url = (node as { readonly url?: unknown }).url;
+    if (typeof url === 'string' && url !== '') {
+      return url;
+    }
+  }
+
+  return '<unknown-node-url>';
+}
+
+function readUploadTxSeq(result: { readonly txHash: string; readonly rootHash: string }): number | undefined {
+  const txSeq = (result as { readonly txSeq?: unknown }).txSeq;
+  return typeof txSeq === 'number' ? txSeq : undefined;
 }
 
 function encodeKey(key: string): Uint8Array {
