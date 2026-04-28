@@ -103,11 +103,7 @@ async function probeTransactionResult(client, txSeq) {
   console.log(`Probe txSeq: ${txSeq}`);
 
   try {
-    const result = await withTimeout(
-      client.getTransactionResult(txSeq),
-      10_000,
-      'KV transaction-result read did not respond within 10000ms.',
-    );
+    const result = await withTimeout(getKvTransactionResult(kvRpc, txSeq), 10_000, 'KV transaction-result read did not respond within 10000ms.');
     console.log('Transaction result: found');
     console.log(formatJson(result));
   } catch (error) {
@@ -115,6 +111,25 @@ async function probeTransactionResult(client, txSeq) {
     console.log(`Error: ${formatError(error)}`);
     process.exitCode = 1;
   }
+}
+
+async function getKvTransactionResult(kvRpc, txSeq) {
+  const response = await fetch(kvRpc, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'kv_getTransactionResult',
+      params: [txSeq],
+    }),
+  });
+  const payload = await response.json();
+  if (payload.error !== undefined) {
+    throw new Error(JSON.stringify(payload.error));
+  }
+
+  return payload.result;
 }
 
 function printConfig() {

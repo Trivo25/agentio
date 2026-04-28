@@ -4,9 +4,15 @@ import {
   Batcher,
   Indexer,
   KvClient,
+  StorageNode,
   getFlowContract,
 } from '@0gfoundation/0g-ts-sdk';
 import { ethers } from 'ethers';
+
+const DEFAULT_STORAGE_NODE_URLS = [
+  'http://34.83.53.209:5678',
+  'http://34.169.28.106:5678',
+];
 
 loadEnvFile();
 
@@ -29,17 +35,9 @@ async function roundTrip(options) {
 
   const provider = new ethers.JsonRpcProvider(options.evmRpc);
   const signer = new ethers.Wallet(options.privateKey, provider);
-  const indexer = new Indexer(options.indexerRpc);
   const kv = new KvClient(options.kvRpc);
 
-  console.log('Selecting storage node(s)...');
-  const [nodes, selectError] = await indexer.selectNodes(
-    options.expectedReplica,
-  );
-  if (selectError !== null) {
-    throw new Error(`0G node selection failed: ${selectError.message}`);
-  }
-  console.log(`Selected nodes: ${nodes.map(formatNode).join(', ')}`);
+  const nodes = await resolveStorageNodes(options);
 
   const status = await nodes[0]?.getStatus();
   const flowAddress = status?.networkIdentity.flowAddress;
@@ -77,8 +75,19 @@ async function roundTrip(options) {
   console.log('Write complete.');
   console.log(`txHash: ${result.txHash}`);
   console.log(`rootHash: ${result.rootHash}`);
-  console.log(`txSeq: ${readTxSeq(result) ?? '<unknown>'}`);
+  const txSeq = readTxSeq(result);
+  console.log(`txSeq: ${txSeq ?? '<unknown>'}`);
   console.log('');
+
+  await printKvNodeDiagnostics(kv, options.kvRpc, txSeq);
+  if (txSeq !== undefined) {
+    await waitForKvTransactionResult(
+      options.kvRpc,
+      txSeq,
+      options.transactionTimeoutMs,
+      options.readIntervalMs,
+    );
+  }
 
   console.log('Reading latest KV value...');
   const encodedKey = encodeKeyForRead(options.key);
@@ -100,11 +109,81 @@ async function roundTrip(options) {
 
   if (decoded !== options.value) {
     throw new Error(
-      `Round trip mismatch. Expected ${JSON.stringify(options.value)}, got ${JSON.stringify(decoded)}.`,
+      `Round trip mismatch. Expected ${JSON.stringify(options.value)}, got ${JSON.stringify(decoded)}. Raw value: ${JSON.stringify(value)}.`,
     );
   }
 
   console.log('Round trip ok.');
+}
+
+async function printKvNodeDiagnostics(kv, kvRpc, txSeq) {
+  try {
+    const streamIds = await kv.getHoldingStreamIds();
+    console.log(`KV node holding stream ids: ${JSON.stringify(streamIds)}`);
+  } catch (error) {
+    console.log(`KV node holding stream ids: failed: ${formatError(error)}`);
+  }
+
+  if (txSeq === undefined) {
+    return;
+  }
+
+  try {
+    const transactionResult = await getKvTransactionResult(kvRpc, txSeq);
+    console.log(`KV transaction result for txSeq ${txSeq}: ${JSON.stringify(transactionResult)}`);
+  } catch (error) {
+    console.log(`KV transaction result for txSeq ${txSeq}: failed: ${formatError(error)}`);
+  }
+
+  console.log('');
+}
+
+async function getKvTransactionResult(kvRpc, txSeq) {
+  const response = await fetch(kvRpc, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'kv_getTransactionResult',
+      params: [txSeq],
+    }),
+  });
+  const payload = await response.json();
+  if (payload.error !== undefined) {
+    throw new Error(JSON.stringify(payload.error));
+  }
+
+  return payload.result;
+}
+
+async function waitForKvTransactionResult(
+  kvRpc,
+  txSeq,
+  timeoutMs,
+  intervalMs,
+) {
+  const startedAt = Date.now();
+
+  while (true) {
+    const result = await getKvTransactionResult(kvRpc, txSeq);
+    if (result !== null && result !== undefined) {
+      console.log(`KV transaction result became visible for txSeq ${txSeq}.`);
+      return result;
+    }
+
+    if (Date.now() - startedAt >= timeoutMs) {
+      console.log(
+        `KV transaction result is still missing for txSeq ${txSeq} after ${timeoutMs}ms; continuing to value read anyway.`,
+      );
+      return result;
+    }
+
+    console.log(
+      `[0G] KV transaction result missing for txSeq ${txSeq}; waiting for KV indexing...`,
+    );
+    await delay(intervalMs);
+  }
 }
 
 function readOptions() {
@@ -120,6 +199,10 @@ function readOptions() {
     readArgValue('--replica') ?? process.env.AGENTIO_0G_EXPECTED_REPLICA,
     1,
   );
+  const storageNodeUrls = readStorageNodeUrls(
+    readArgValue('--storage-nodes') ?? process.env.AGENTIO_0G_STORAGE_NODES,
+    DEFAULT_STORAGE_NODE_URLS,
+  );
   const batchVersion = readPositiveInteger(
     readArgValue('--batch-version') ?? process.env.AGENTIO_0G_BATCH_VERSION,
     1,
@@ -127,7 +210,12 @@ function readOptions() {
   const readTimeoutMs = readPositiveInteger(
     readArgValue('--read-timeout-ms') ??
       process.env.AGENTIO_0G_KV_READ_RETRY_TIMEOUT_MS,
-    30_000,
+    120_000,
+  );
+  const transactionTimeoutMs = readPositiveInteger(
+    readArgValue('--tx-timeout-ms') ??
+      process.env.AGENTIO_0G_KV_TX_RESULT_TIMEOUT_MS,
+    readTimeoutMs,
   );
   const readIntervalMs = readPositiveInteger(
     readArgValue('--read-interval-ms') ??
@@ -181,11 +269,33 @@ function readOptions() {
     key,
     value,
     expectedReplica,
+    storageNodeUrls,
     batchVersion,
     readTimeoutMs,
+    transactionTimeoutMs,
     readIntervalMs,
     finalityRequired,
   };
+}
+
+async function resolveStorageNodes(options) {
+  if (options.storageNodeUrls.length > 0) {
+    console.log('Using fixed storage node(s)...');
+    const nodes = options.storageNodeUrls.map((url) => new StorageNode(url));
+    console.log(`Selected nodes: ${nodes.map(formatNode).join(', ')}`);
+    return nodes;
+  }
+
+  console.log('Selecting storage node(s) from indexer...');
+  const indexer = new Indexer(options.indexerRpc);
+  const [nodes, selectError] = await indexer.selectNodes(
+    options.expectedReplica,
+  );
+  if (selectError !== null) {
+    throw new Error(`0G node selection failed: ${selectError.message}`);
+  }
+  console.log(`Selected nodes: ${nodes.map(formatNode).join(', ')}`);
+  return nodes;
 }
 
 async function readWithRetry(kv, streamId, encodedKey, timeoutMs, intervalMs) {
@@ -206,6 +316,14 @@ async function readWithRetry(kv, streamId, encodedKey, timeoutMs, intervalMs) {
     );
     await delay(intervalMs);
   }
+}
+
+function formatError(error) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }
 
 function encodeKeyForRead(key) {
@@ -277,6 +395,21 @@ function readPositiveInteger(value, fallback) {
 
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readStorageNodeUrls(value, fallback) {
+  if (value === undefined || value === '') {
+    return fallback;
+  }
+
+  if (value === 'indexer') {
+    return [];
+  }
+
+  return value
+    .split(',')
+    .map((url) => url.trim())
+    .filter((url) => url !== '');
 }
 
 function readBoolean(value, fallback) {
