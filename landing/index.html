@@ -496,46 +496,7 @@
             </span>
           </div>
 
-          <div class="stream-list">
-            <div class="stream-row">
-              <code class="stream-id" data-copy-source
-                >0x35dd3e73dd3d8474f286fb6f5af5a1e953662d2d5d176994520390e14bad083d</code
-              >
-              <button class="copy-btn" data-copy type="button" aria-label="Copy stream id">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span class="copy-label">Copy</span>
-              </button>
-            </div>
-            <div class="stream-row">
-              <code class="stream-id" data-copy-source
-                >0x000000000000000000000000000000000000000000000000000000000000f2bd</code
-              >
-              <button class="copy-btn" data-copy type="button" aria-label="Copy stream id">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span class="copy-label">Copy</span>
-              </button>
-            </div>
-          </div>
+          <div class="stream-list" id="streamList"></div>
         </section>
 
         <p class="note">
@@ -553,7 +514,31 @@
 
     <script>
       (function () {
-        var buttons = document.querySelectorAll('[data-copy]');
+        let streamIds = [
+          '0x000000000000000000000000000000000000000000000000000000000000f2bd',
+          '0x000000000000000000000000000000000000000000000000000000000000f009',
+          '0x0000000000000000000000000000000000000000000000000000000000016879',
+          '0x0000000000000000000000000000000000000000000000000000000000002e3d',
+        ];
+
+        let copyIcon =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+        let list = document.getElementById('streamList');
+        for (let i = 0; i < streamIds.length; i++) {
+          let row = document.createElement('div');
+          row.className = 'stream-row';
+          row.innerHTML =
+            '<code class="stream-id" data-copy-source>' +
+            streamIds[i] +
+            '</code>' +
+            '<button class="copy-btn" data-copy type="button" aria-label="Copy stream id">' +
+            copyIcon +
+            '<span class="copy-label">Copy</span></button>';
+          list.appendChild(row);
+        }
+
+        let buttons = document.querySelectorAll('[data-copy]');
         for (let i = 0; i < buttons.length; i++) {
           let btn = buttons[i];
           let row = btn.parentElement;
