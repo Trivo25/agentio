@@ -299,6 +299,53 @@
         margin-top: 2px;
       }
 
+      .card + .card {
+        margin-top: 20px;
+      }
+
+      .stream-list {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .stream-row {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+      }
+
+      .stream-row + .stream-row {
+        border-top: 1px solid var(--border-soft);
+      }
+
+      .stream-id {
+        flex: 1;
+        padding: 16px 20px;
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+        font-size: 13px;
+        color: var(--navy-950);
+        background: var(--gray-100);
+        white-space: nowrap;
+        overflow-x: auto;
+        scrollbar-width: thin;
+      }
+
+      .stream-row .copy-btn {
+        background: #ffffff;
+        color: var(--navy-600);
+        border-left: 1px solid var(--border-soft);
+      }
+
+      .stream-row .copy-btn:hover {
+        background: var(--gray-50);
+        color: var(--blue);
+      }
+
+      .stream-row .copy-btn.copied {
+        background: rgba(39, 194, 179, 0.12);
+        color: var(--teal-deep);
+      }
+
       .note {
         margin-top: 24px;
         font-size: 13px;
@@ -397,8 +444,8 @@
           </div>
 
           <div class="endpoint-row">
-            <code class="endpoint" id="endpoint">http://178.238.236.119:6789</code>
-            <button class="copy-btn" id="copyBtn" type="button">
+            <code class="endpoint" data-copy-source>http://178.238.236.119:6789</code>
+            <button class="copy-btn" data-copy type="button">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -410,7 +457,7 @@
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
-              <span id="copyLabel">Copy</span>
+              <span class="copy-label">Copy</span>
             </button>
           </div>
 
@@ -426,10 +473,36 @@
           </div>
         </section>
 
+        <section class="card" aria-label="Supported stream IDs">
+          <div class="card-header">
+            <span class="card-label">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 7c4-3 12-3 16 0"></path>
+                <path d="M4 12c4-3 12-3 16 0"></path>
+                <path d="M4 17c4-3 12-3 16 0"></path>
+              </svg>
+              Supported stream IDs
+            </span>
+            <span class="badge-verified">
+              <span class="pulse"></span>
+              Indexed
+            </span>
+          </div>
+
+          <div class="stream-list" id="streamList"></div>
+        </section>
+
         <p class="note">
-          Drop it into your <code>.env</code> as
-          <code>AGENTIO_0G_KV_RPC</code> or wire it directly into the 0G KV
-          client. No auth, no rate limits today — please be kind.
+          Set <code>AGENTIO_0G_KV_RPC</code> to the endpoint and
+          <code>AGENTIO_0G_STREAM_ID</code> to one of the indexed streams above.
+          No auth, no rate limits today — please be kind.
         </p>
       </main>
 
@@ -441,19 +514,48 @@
 
     <script>
       (function () {
-        var btn = document.getElementById('copyBtn');
-        var label = document.getElementById('copyLabel');
-        var endpoint = document.getElementById('endpoint').textContent.trim();
-        btn.addEventListener('click', function () {
-          navigator.clipboard.writeText(endpoint).then(function () {
-            btn.classList.add('copied');
-            label.textContent = 'Copied';
-            setTimeout(function () {
-              btn.classList.remove('copied');
-              label.textContent = 'Copy';
-            }, 1600);
+        let streamIds = [
+          '0x000000000000000000000000000000000000000000000000000000000000f2bd',
+          '0x000000000000000000000000000000000000000000000000000000000000f009',
+          '0x0000000000000000000000000000000000000000000000000000000000016879',
+          '0x0000000000000000000000000000000000000000000000000000000000002e3d',
+        ];
+
+        let copyIcon =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+        let list = document.getElementById('streamList');
+        for (let i = 0; i < streamIds.length; i++) {
+          let row = document.createElement('div');
+          row.className = 'stream-row';
+          row.innerHTML =
+            '<code class="stream-id" data-copy-source>' +
+            streamIds[i] +
+            '</code>' +
+            '<button class="copy-btn" data-copy type="button" aria-label="Copy stream id">' +
+            copyIcon +
+            '<span class="copy-label">Copy</span></button>';
+          list.appendChild(row);
+        }
+
+        let buttons = document.querySelectorAll('[data-copy]');
+        for (let i = 0; i < buttons.length; i++) {
+          let btn = buttons[i];
+          let row = btn.parentElement;
+          let source = row.querySelector('[data-copy-source]');
+          let label = btn.querySelector('.copy-label');
+          if (!source || !label) continue;
+          btn.addEventListener('click', function () {
+            navigator.clipboard.writeText(source.textContent.trim()).then(function () {
+              btn.classList.add('copied');
+              label.textContent = 'Copied';
+              setTimeout(function () {
+                btn.classList.remove('copied');
+                label.textContent = 'Copy';
+              }, 1600);
+            });
           });
-        });
+        }
       })();
     </script>
   </body>
