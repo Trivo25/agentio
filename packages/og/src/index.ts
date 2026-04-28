@@ -45,6 +45,27 @@ export type OgPutObjectResult = {
   readonly reference?: string;
 };
 
+/**
+ * Checks whether an object client exposes a specific storage guarantee.
+ *
+ * Use this before relying on backend behavior that not every 0G-compatible
+ * client can provide, such as durable lookup by logical key after restart.
+ */
+export function hasOgObjectCapability(client: OgObjectClient, capability: OgObjectCapability): boolean {
+  return client.capabilities?.includes(capability) ?? false;
+}
+
+/**
+ * Checks whether a storage client is suitable for long-lived agent state.
+ *
+ * Durable agent state needs logical-key reads that survive process restarts.
+ * File-backed clients without an external manifest intentionally return false
+ * here even though they can write and read objects during the same runtime.
+ */
+export function supportsDurableOgState(client: OgObjectClient): boolean {
+  return hasOgObjectCapability(client, 'durable-key-read');
+}
+
 /** Options for the 0G storage adapter. */
 export type OgStorageOptions = {
   /** Logical namespace or bucket/prefix for this app's agent records. */

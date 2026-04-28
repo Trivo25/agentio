@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { loadEnvFile } from './env.js';
-import { memoryOgObjectClient, ogKvObjectClient, ogStorage } from './index.js';
+import { memoryOgObjectClient, ogKvObjectClient, ogStorage, supportsDurableOgState } from './index.js';
 
 loadEnvFile();
 const liveOptions = process.env.AGENTIO_0G_RUN_LIVE === '1' && process.env.AGENTIO_0G_SKIP_LIVE !== '1'
@@ -17,6 +17,7 @@ test('ogKvObjectClient can round-trip state on the real 0G network when credenti
   const client = ogKvObjectClient(liveOptions);
 
   assert.deepEqual(client.capabilities, ['object-write', 'object-read', 'durable-key-read', 'audit-append']);
+  assert.equal(supportsDurableOgState(client), true);
 
   const storage = ogStorage({ namespace: liveOptions.namespace, client });
   const identity = { id: `agent-live-${Date.now()}`, publicKey: 'agent-live-public-key' };

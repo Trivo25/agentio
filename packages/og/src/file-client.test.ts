@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { loadEnvFile } from './env.js';
-import { ogFileObjectClient } from './index.js';
+import { ogFileObjectClient, supportsDurableOgState } from './index.js';
 
 loadEnvFile();
 const liveOptions = process.env.AGENTIO_0G_RUN_LIVE === '1' && process.env.AGENTIO_0G_SKIP_LIVE !== '1'
@@ -25,6 +25,7 @@ test('ogFileObjectClient can upload an immutable object on the real 0G network w
     'immutable-object-reference',
     'audit-append',
   ]);
+  assert.equal(supportsDurableOgState(client), false);
 
   const result = await client.putObject(key, value);
 
