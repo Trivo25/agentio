@@ -4,3 +4,4 @@ dist/
 packages/noir/circuits/**/target/
 packages/noir/circuits/**/Prover.toml
 .env
+.axl
