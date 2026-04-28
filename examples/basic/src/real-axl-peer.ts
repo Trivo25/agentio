@@ -3,8 +3,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { startLocalAxlNetwork } from '@0xagentio/axl-local';
+import { noirProofs } from '@0xagentio/noir';
 import {
   axlTransport,
+  encodeAgentMessage,
   createActionIntent,
   createAgentIdentity,
   createAgentPeer,
@@ -14,17 +16,21 @@ import {
   hashPolicy,
   issueLocalCredential,
   localDelegationSigner,
-  localNoirProofs,
   verifyMessageAction,
 } from '@0xagentio/sdk';
+import { toJsonSafe } from './json.js';
 
 const binaryPath = process.env.AGENTIO_AXL_NODE_BINARY;
 if (binaryPath === undefined || binaryPath === '') {
-  throw new Error('Set AGENTIO_AXL_NODE_BINARY to the compiled Gensyn AXL node binary.');
+  throw new Error(
+    'Set AGENTIO_AXL_NODE_BINARY to the compiled Gensyn AXL node binary.',
+  );
 }
 
 const aliceApiPort = Number(process.env.AGENTIO_AXL_ALICE_API_PORT ?? 19101);
-const aliceListenPort = Number(process.env.AGENTIO_AXL_ALICE_LISTEN_PORT ?? 19201);
+const aliceListenPort = Number(
+  process.env.AGENTIO_AXL_ALICE_LISTEN_PORT ?? 19201,
+);
 const bobApiPort = Number(process.env.AGENTIO_AXL_BOB_API_PORT ?? 19102);
 const directory = await mkdtemp(join(tmpdir(), 'agentio-real-axl-peer-'));
 const now = new Date('2026-04-28T12:00:00.000Z');
@@ -33,7 +39,9 @@ console.log('Starting two local AXL nodes for AgentIO peers...');
 const network = await startLocalAxlNetwork({
   binaryPath,
   workingDirectory: directory,
-  startupTimeoutMs: Number(process.env.AGENTIO_AXL_STARTUP_TIMEOUT_MS ?? 15_000),
+  startupTimeoutMs: Number(
+    process.env.AGENTIO_AXL_STARTUP_TIMEOUT_MS ?? 15_000,
+  ),
   nodes: [
     {
       name: 'alice',
@@ -48,8 +56,16 @@ const network = await startLocalAxlNetwork({
   ],
 });
 
-const aliceTransport = axlTransport({ client: network.node('alice').client, pollIntervalMs: 100 });
-const bobTransport = axlTransport({ client: network.node('bob').client, pollIntervalMs: 100 });
+const aliceTransport = axlTransport({
+  client: network.node('alice').client,
+  pollIntervalMs: 100,
+  onError: (error) => console.error('Alice AXL transport error:', error),
+});
+const bobTransport = axlTransport({
+  client: network.node('bob').client,
+  pollIntervalMs: 100,
+  onError: (error) => console.error('Bob AXL transport error:', error),
+});
 
 try {
   const aliceIdentity = createAgentIdentity({
@@ -66,6 +82,11 @@ try {
     allowedActions: ['request-quote'],
     constraints: [
       { type: 'max-amount', value: 5n, actionTypes: ['request-quote'] },
+      {
+        type: 'max-cumulative-amount',
+        value: 10n,
+        actionTypes: ['request-quote'],
+      },
       {
         type: 'allowed-metadata-value',
         key: 'assetPair',
@@ -89,21 +110,29 @@ try {
     issuedAt: new Date('2026-04-28T00:00:00.000Z'),
     signer: localDelegationSigner('principal-real-axl-demo'),
   });
-  const proof = localNoirProofs();
+  const proof = noirProofs();
 
-  const alice = createAgentPeer({ identity: aliceIdentity, transport: aliceTransport });
-  const bob = createAgentPeer({ identity: bobIdentity, transport: bobTransport });
+  const alice = createAgentPeer({
+    identity: aliceIdentity,
+    transport: aliceTransport,
+  });
+  const bob = createAgentPeer({
+    identity: bobIdentity,
+    transport: bobTransport,
+  });
 
   console.log(`Alice AgentIO peer id: ${alice.identity.id}`);
   console.log(`Bob AgentIO peer id: ${bob.identity.id}`);
   console.log(`Delegated policy hash: ${policyHash}`);
 
   bob.onMessage(async (message) => {
+    console.log(
+      `Bob received message ${message.id ?? '<no-id>'} of type ${message.type} from Alice.  Content: ${JSON.stringify(toJsonSafe(message.payload)).slice(0, 200)}...`,
+    );
     if (message.type !== 'quote.request') {
       return;
     }
 
-    console.log('Bob received proof-backed quote.request over AXL.');
     const verification = await verifyMessageAction(message, proof, {
       agentId: alice.identity.id,
       actionType: 'request-quote',
@@ -115,7 +144,9 @@ try {
       return;
     }
 
-    console.log(`Bob verified action: ${verification.action.type} ${String(verification.action.amount)} ETH/USDC`);
+    console.log(
+      `Bob verified action: ${verification.action.type} ${String(verification.action.amount)} ETH/USDC`,
+    );
     await bob.send(
       message.sender,
       createAgentReply({
@@ -133,7 +164,7 @@ try {
     );
   });
 
-  console.log('Alice creates a proof-backed quote request.');
+  console.log('Alice creates a real Noir proof-backed quote request.');
   const request = await createProofBackedMessage({
     id: 'quote-request-1',
     type: 'quote.request',
@@ -159,11 +190,21 @@ try {
     },
   });
 
+  console.log(
+    `Encoded quote request size: ${encodeAgentMessage(request).byteLength} bytes.`,
+  );
   console.log('Alice asks Bob for a quote through the real AXL transport...');
-  const reply = await alice.request(bob.identity.id, request, { expectedType: 'quote.reply', timeoutMs: 10_000 });
+  const reply = await alice.request(bob.identity.id, request, {
+    expectedType: 'quote.reply',
+    timeoutMs: 10_000,
+  });
 
-  console.log(`Alice received verified quote reply: ${String(reply.payload.price)}`);
-  console.log(`Bob echoed verified policy hash: ${String(reply.payload.verifiedPolicyHash)}`);
+  console.log(
+    `Alice received verified quote reply: ${String(reply.payload.price)}`,
+  );
+  console.log(
+    `Bob echoed verified policy hash: ${String(reply.payload.verifiedPolicyHash)}`,
+  );
 } finally {
   aliceTransport.stop();
   bobTransport.stop();
