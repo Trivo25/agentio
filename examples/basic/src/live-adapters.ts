@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { startLocalAxlNetwork } from '@0xagentio/axl-local';
-import { ogKvObjectClient, ogStorage } from '@0xagentio/og';
+import { createOgProgressLogger, ogKvObjectClient, ogStorage } from '@0xagentio/og';
 import {
   axlTransport,
   createActionIntent,
@@ -127,7 +127,7 @@ try {
       logSyncTimeoutMs: options.logSyncTimeoutMs,
       readRetryTimeoutMs: options.readRetryTimeoutMs,
       readRetryIntervalMs: options.readRetryIntervalMs,
-      onProgress: (message) => console.log(`[0G] ${message}`),
+      onProgress: createOgProgressLogger({ level: 1, log: console.log }),
     }),
   });
   logDetail('Policy hash', policyHash);
