@@ -54,6 +54,19 @@ npm run build
 npm run example:run-until-complete
 ```
 
+## `mock-llm-run-until-complete.ts`
+
+CI-safe multi-step LLM runtime demo.
+
+It mirrors the live 0G Compute loop with `mockLlmClient(...)`. The mock model returns realistic imperfect outputs across steps: an amount as a JSON number, an amount as `"100.0"`, and an oversized amount. A deterministic guard converts each proposal into the next safe 100-unit swap, then `runUntilComplete(...)` repeats validation, proof, execution, state persistence, and audit until cumulative spend reaches 300.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:mock-llm-run-until-complete
+```
+
 ## `zero-g-compute-reasoning.ts`
 
 Opt-in live 0G Compute Router reasoning demo.
@@ -75,6 +88,20 @@ Run it with:
 
 ```sh
 npm run example:0g-compute-reasoning
+```
+
+## `zero-g-compute-run-until-complete.ts`
+
+Opt-in live 0G Compute multi-step reasoning demo.
+
+It uses the real 0G Compute Router as the LLM provider for a bounded `runUntilComplete(...)` loop. Alice asks the model for one rebalance action per cycle, a deterministic guard normalizes the proposal to the next safe 100-unit step, and AgentIO validates, proves, executes, persists, and audits each action independently until cumulative spend reaches 300.
+
+Use the same environment values as `zero-g-compute-reasoning.ts`.
+
+Run it with:
+
+```sh
+npm run example:0g-compute-run-until-complete
 ```
 
 ## `live-stack.ts`
