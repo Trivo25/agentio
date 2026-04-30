@@ -335,6 +335,43 @@
       .stream-list {
         display: flex;
         flex-direction: column;
+        max-height: 320px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--navy-400) transparent;
+      }
+
+      .stream-list::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .stream-list::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      .stream-list::-webkit-scrollbar-thumb:hover {
+        background: var(--navy-400);
+      }
+
+      .stream-disclaimer {
+        padding: 12px 20px;
+        font-size: 12px;
+        color: var(--navy-600);
+        background: rgba(251, 191, 36, 0.08);
+        border-top: 1px solid var(--border-soft);
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        line-height: 1.5;
+      }
+
+      .stream-disclaimer svg {
+        width: 14px;
+        height: 14px;
+        color: #d97706;
+        flex-shrink: 0;
+        margin-top: 2px;
       }
 
       .stream-row {
@@ -597,6 +634,29 @@
           </div>
 
           <div class="stream-list" id="streamList"></div>
+
+          <div class="stream-disclaimer">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              ></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span
+              >Stream IDs are first-come, first-served on 0G. If a stream ID is
+              already claimed by another user, pick a different one from the
+              list until you find a free slot.</span
+            >
+          </div>
         </section>
 
         <p class="note">
