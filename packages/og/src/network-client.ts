@@ -488,7 +488,6 @@ function uploadOptions(
     finalityRequired: options.finalityRequired ?? false,
     expectedReplica: options.expectedReplica,
     fee: options.fee,
-    expectedReplica: options.expectedReplica,
     onProgress(message: string) {
       captureUploadProgress(message, state);
       options.onProgress?.(message);
