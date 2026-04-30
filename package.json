@@ -11,6 +11,7 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "test": "npm run build && AGENTIO_0G_SKIP_LIVE=1 node --test packages/*/dist/*.test.js",
+    "example:getting-started": "node examples/basic/dist/getting-started.js",
     "example:basic": "node examples/basic/dist/index.js",
     "example:flow": "node examples/basic/dist/sdk-flow.js",
     "example:peer": "node examples/basic/dist/peer-message.js",

@@ -110,6 +110,28 @@ const agent = createTrustedAgent({
 
 For now, the local adapters are not pretending to be secure production implementations. They are scaffolding for the final architecture: prove with Noir, coordinate over AXL, persist on 0G and execute through domain-specific adapters.
 
+### Quick Start
+
+Run the canonical local walkthrough:
+
+```sh
+npm install
+npm run build
+npm run example:getting-started
+```
+
+The example shows the core value prop without external credentials: Alice carries
+a delegated policy, sends Bob a proof-backed quote request, Bob verifies before
+replying, Alice reasons over the reply, and Alice's runtime validates, proves,
+stores and executes the final action through a verifying adapter.
+
+For the full live stack with real Noir, live 0G KV and real local Gensyn AXL
+nodes, use:
+
+```sh
+npm run example:live-stack
+```
+
 ### The Demo App: 0xAgentio-Trade
 
 The first application built on 0xAgentio. A multi-agent DCA trading system where agents autonomously trade on Uniswap within credential-enforced budget envelopes and share Sybil-resistant market signals over AXL. It demonstrates the framework in action - provable delegation, bounded execution and peer-to-peer coordination in a real trading scenario.

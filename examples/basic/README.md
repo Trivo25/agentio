@@ -2,6 +2,19 @@
 
 Most examples use local or in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected. The live adapter examples are explicitly opt-in and write to external systems.
 
+## `getting-started.ts`
+
+Canonical first example.
+
+It shows the unique 0xAgentio flow in one local scenario: a principal delegates bounded authority to Alice, Alice sends Bob a proof-backed quote request, Bob verifies before replying, Alice reasons over the quote, and Alice's runtime validates, proves, stores, and executes the final action through a verifying adapter.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:getting-started
+```
+
 ## `live-stack.ts`
 
 Full live stack demo.
