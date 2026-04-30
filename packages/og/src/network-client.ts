@@ -22,7 +22,7 @@ export type OgKvObjectClientOptions = {
   readonly privateKey: string;
   /** Existing 0G KV stream id that owns this app's key/value records. */
   readonly streamId: string;
-  /** Number of storage replicas requested for writes. Defaults to 1 for tests. */
+  /** Number of storage replicas requested for writes. Defaults to 2 for durable KV writes. */
   readonly expectedReplica?: number;
   /**
    * Controls whether writes wait for storage finality before returning.
@@ -181,7 +181,7 @@ export function ogFileObjectClient(options: OgFileObjectClientOptions): OgObject
  */
 export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClient {
   const version = options.version ?? 1;
-  const expectedReplica = options.expectedReplica ?? 1;
+  const expectedReplica = options.expectedReplica ?? 2;
   const provider = new ethers.JsonRpcProvider(options.evmRpc);
   const signer = new ethers.Wallet(options.privateKey, provider);
   const indexer = new Indexer(options.indexerRpc);
@@ -224,7 +224,7 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
       const batcher = new Batcher(version, nodes, flow, options.evmRpc);
       batcher.streamDataBuilder.set(options.streamId, encodeKey(key), Buffer.from(value, 'utf8'));
 
-      const [result, uploadError] = await batcher.exec(uploadOptions(options));
+      const [result, uploadError] = await batcher.exec(uploadOptions({ ...options, expectedReplica }));
       if (uploadError !== null) {
         throw new Error(`0G KV write failed: ${uploadError.message}`);
       }
@@ -366,6 +366,7 @@ async function supportsKvRpc(url: string, timeoutMs: number): Promise<boolean> {
 function uploadOptions(options: {
   readonly finalityRequired?: boolean;
   readonly fee?: bigint;
+  readonly expectedReplica?: number;
   readonly logSyncTimeoutMs?: number;
   readonly onProgress?: (message: string) => void;
 }) {
@@ -374,6 +375,7 @@ function uploadOptions(options: {
   return {
     finalityRequired: options.finalityRequired ?? false,
     fee: options.fee,
+    expectedReplica: options.expectedReplica,
     onProgress(message: string) {
       options.onProgress?.(message);
       if (options.logSyncTimeoutMs !== undefined && Date.now() - startedAt > options.logSyncTimeoutMs) {
