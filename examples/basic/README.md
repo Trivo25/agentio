@@ -15,6 +15,19 @@ npm run build
 npm run example:getting-started
 ```
 
+## `llm-reasoning-flow.ts`
+
+Dynamic reasoning demo with a mock LLM client.
+
+Alice asks Bob for verified market context, a mock LLM receives the goal and Bob's quote, the LLM proposes a swap, and Alice's runtime still validates, proves, stores, and executes the action. This shows where 0G Compute, OpenAI, Anthropic, or a local model can plug in later without changing the runtime trust boundary.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:llm-reasoning
+```
+
 ## `live-stack.ts`
 
 Full live stack demo.
