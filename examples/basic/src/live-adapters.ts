@@ -13,7 +13,7 @@ import {
   axlTransport,
   createActionIntent,
   createAgentIdentity,
-  createAgentMessage,
+  createProofBackedMessage,
   createAgentRuntime,
   createPolicy,
   hashPolicy,
@@ -24,6 +24,7 @@ import {
   localVerifyingExecution,
   staticReasoningEngine,
   verifyLocalDelegation,
+  verifyMessageAction,
   type AgentMessage,
 } from '@0xagentio/sdk';
 
@@ -184,8 +185,9 @@ try {
     transport: bobTransport,
   });
   const bobInbox: AgentMessage[] = [];
-  bob.onMessage((message) => {
-    if (message.type !== 'live-adapter.summary') {
+  const bobVerifiedActions: string[] = [];
+  bob.onMessage(async (message) => {
+    if (message.type !== 'live-adapter.action-proof') {
       return;
     }
 
@@ -193,6 +195,25 @@ try {
     logDetail(
       'Bob received AXL message',
       `${message.type} from ${message.sender}`,
+    );
+
+    const verification = await verifyMessageAction(message, proof, {
+      agentId: alice.identity.id,
+      actionType: 'swap',
+      policyHash,
+    });
+    if (!verification.valid) {
+      throw new Error(
+        `Bob rejected Alice proof-backed action: ${verification.reason}`,
+      );
+    }
+
+    bobVerifiedActions.push(
+      `${verification.action.type}:${String(verification.action.amount)}`,
+    );
+    logDetail(
+      'Bob verified action proof',
+      `${verification.action.type} ${String(verification.action.amount)}`,
     );
   });
 
@@ -205,30 +226,43 @@ try {
     String(storedState.cumulativeSpend),
   );
 
-  logStep('Sending Alice summary to Bob over real AXL transport');
+  if (result.status !== 'accepted') {
+    throw new Error(
+      `Expected Alice action to be accepted, got ${result.status}.`,
+    );
+  }
+
+  logStep('Sending Alice proof-backed action to Bob over real AXL transport');
   await alice.send(
     bob.identity.id,
-    createAgentMessage({
-      id: 'live-adapter-summary-1',
-      type: 'live-adapter.summary',
+    await createProofBackedMessage({
+      id: 'live-adapter-action-proof-1',
+      type: 'live-adapter.action-proof',
       sender: alice.identity.id,
       createdAt: new Date('2026-04-30T12:00:01.000Z'),
+      credential,
+      policy,
+      state: storedState,
+      action: result.action,
+      proof,
+      now,
       payload: {
         status: result.status,
         policyHash,
-        cumulativeSpend: storedState.cumulativeSpend,
+        executionReference: result.execution?.reference,
       },
     }),
   );
   await waitUntil(
-    () => bobInbox.length > 0,
+    () => bobVerifiedActions.length > 0,
     10_000,
-    'Bob did not receive the AXL summary message.',
+    'Bob did not verify the AXL proof-backed action message.',
   );
 
   logStep('Live adapter composition complete');
   logDetail('0G state readback', String(storedState.cumulativeSpend));
   logDetail('AXL messages received', String(bobInbox.length));
+  logDetail('AXL proofs verified by Bob', String(bobVerifiedActions.length));
 } finally {
   aliceTransport.stop();
   bobTransport.stop();
