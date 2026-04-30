@@ -1,7 +1,31 @@
 # Basic Examples
 
-These examples use only local in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected.
+Most examples use local or in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected. The live adapter example is explicitly opt-in and writes to external systems.
 
+
+
+## `live-adapters.ts`
+
+Opt-in live adapter composition demo.
+
+It starts two real local Gensyn AXL node processes, runs Alice through `createAgentRuntime(...)` with live 0G KV storage, loads Alice state back from 0G, and sends Bob a summary message over AXL. This writes to 0G and requires local credentials plus an AXL binary.
+
+Required environment values:
+
+```sh
+AGENTIO_0G_EVM_RPC=...
+AGENTIO_0G_INDEXER_RPC=...
+AGENTIO_0G_KV_RPC=...
+AGENTIO_0G_PRIVATE_KEY=...
+AGENTIO_0G_STREAM_ID=...
+AGENTIO_AXL_NODE_BINARY=/path/to/axl/node
+```
+
+Run it with:
+
+```sh
+npm run example:live-adapters
+```
 
 ## `agent-runtime-flow.ts`
 
