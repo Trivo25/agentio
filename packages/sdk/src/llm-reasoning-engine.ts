@@ -20,6 +20,24 @@ export type LlmReasoningDecision =
       readonly reason?: string;
     };
 
+/** Context passed to an optional guard after an LLM returns a decision. */
+export type LlmReasoningGuardContext = {
+  /** Parsed LLM decision before runtime policy validation or proof generation. */
+  readonly decision: LlmReasoningDecision;
+  /** Agent context that was sent to the reasoning engine. */
+  readonly context: AgentContext;
+};
+
+/**
+ * Optional deterministic check that runs after LLM output is parsed.
+ *
+ * Guards let developers approve, rewrite, reject, or skip model output with
+ * testable code before the normal runtime validation/proof boundary runs.
+ */
+export type LlmReasoningGuard = (
+  context: LlmReasoningGuardContext,
+) => LlmReasoningDecision | 'skip' | Promise<LlmReasoningDecision | 'skip'>;
+
 /** Options for creating an LLM-backed reasoning engine. */
 export type LlmReasoningEngineOptions = {
   /** Provider-neutral LLM client. */
@@ -30,6 +48,8 @@ export type LlmReasoningEngineOptions = {
   readonly instructions?: string;
   /** Optional action allow-list checked before runtime policy validation. */
   readonly allowedActionTypes?: readonly string[];
+  /** Optional deterministic guard checked after parsing model output. */
+  readonly guard?: LlmReasoningGuard;
 };
 
 /**
@@ -54,7 +74,8 @@ export function llmReasoningEngine(
           },
         ],
       });
-      const decision = parseLlmReasoningDecision(completion.content);
+      const parsedDecision = parseLlmReasoningDecision(completion.content);
+      const decision = await applyGuard(parsedDecision, context, options.guard);
 
       if (decision.decision === 'skip') {
         return 'skip';
@@ -73,6 +94,19 @@ export function llmReasoningEngine(
       return action;
     },
   };
+}
+
+async function applyGuard(
+  decision: LlmReasoningDecision,
+  context: AgentContext,
+  guard: LlmReasoningGuard | undefined,
+): Promise<LlmReasoningDecision> {
+  if (guard === undefined) {
+    return decision;
+  }
+
+  const guarded = await guard({ decision, context });
+  return guarded === 'skip' ? { decision: 'skip' } : guarded;
 }
 
 /**

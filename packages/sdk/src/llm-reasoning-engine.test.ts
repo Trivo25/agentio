@@ -82,6 +82,75 @@ test('llmReasoningEngine rejects action types outside the configured allow-list'
   );
 });
 
+test('llmReasoningEngine lets guards skip an otherwise valid LLM action', async () => {
+  const reasoning = llmReasoningEngine({
+    client: mockLlmClient(() =>
+      JSON.stringify({
+        decision: 'act',
+        action: {
+          type: 'swap',
+          amount: '250',
+          metadata: { assetPair: 'ETH/USDC' },
+        },
+      }),
+    ),
+    goal: 'rebalance if quote is acceptable',
+    guard: async ({ decision, context: guardContext }) => {
+      assert.equal(decision.decision, 'act');
+      assert.equal(guardContext.identity.id, 'agent-llm');
+      return 'skip' as const;
+    },
+  });
+
+  assert.equal(await reasoning.decide(context), 'skip');
+});
+
+test('llmReasoningEngine lets guards rewrite LLM actions before runtime validation', async () => {
+  const reasoning = llmReasoningEngine({
+    client: mockLlmClient(() =>
+      JSON.stringify({
+        decision: 'act',
+        action: {
+          type: 'swap',
+          amount: '999',
+          metadata: { assetPair: 'ETH/USDC' },
+        },
+      }),
+    ),
+    goal: 'rebalance if quote is acceptable',
+    allowedActionTypes: ['swap'],
+    guard: ({ decision }) => {
+      if (decision.decision === 'skip') {
+        return decision;
+      }
+
+      return {
+        ...decision,
+        action: {
+          ...decision.action,
+          amount: 250n,
+          metadata: {
+            ...decision.action.metadata,
+            guarded: true,
+          },
+        },
+      };
+    },
+  });
+
+  const action = await reasoning.decide(context);
+
+  assert.notEqual(action, 'skip');
+  if (action === 'skip') {
+    throw new Error('Expected guard to return an action.');
+  }
+  assert.equal(action.amount, 250n);
+  assert.deepEqual(action.metadata, {
+    assetPair: 'ETH/USDC',
+    guarded: true,
+  });
+});
+
 test('parseLlmReasoningDecision requires strict JSON object output', () => {
   assert.throws(
     () => parseLlmReasoningDecision('The answer is swap.'),
