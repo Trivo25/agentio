@@ -20,6 +20,21 @@ export {
   type StaticReasoningRuleDecision,
   type StaticRulesReasoningEngineOptions,
 } from './static-reasoning-engine.js';
+export {
+  createLlmClient,
+  mockLlmClient,
+  type LlmClient,
+  type LlmCompletionRequest,
+  type LlmCompletionResult,
+  type LlmMessage,
+  type LlmMessageRole,
+} from './llm-client.js';
+export {
+  llmReasoningEngine,
+  parseLlmReasoningDecision,
+  type LlmReasoningDecision,
+  type LlmReasoningEngineOptions,
+} from './llm-reasoning-engine.js';
 export { localAxlTransport, type LocalAxlEnvelope, type LocalAxlTransport } from './local-axl-transport.js';
 export { axlTransport, decodeAgentMessage, encodeAgentMessage, type AxlTransport, type AxlTransportOptions } from './axl-transport.js';
 export { localTransport, type LocalTransport } from './local-transport.js';
