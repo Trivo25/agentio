@@ -148,10 +148,14 @@ function readOptions(): Options {
   if (apiKey === undefined || apiKey === '') {
     throw new Error('Missing AGENTIO_0G_COMPUTE_API_KEY.');
   }
+  const model = process.env.AGENTIO_0G_COMPUTE_MODEL;
+  if (model === undefined || model === '') {
+    throw new Error('Missing AGENTIO_0G_COMPUTE_MODEL.');
+  }
 
   return {
     apiKey,
-    model: process.env.AGENTIO_0G_COMPUTE_MODEL ?? 'zai-org/GLM-5-FP8',
+    model,
     baseUrl:
       process.env.AGENTIO_0G_COMPUTE_BASE_URL ??
       ZERO_G_COMPUTE_ROUTER_TESTNET_BASE_URL,
