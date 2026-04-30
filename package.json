@@ -43,7 +43,9 @@
     "example:real-axl-peer:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:real-axl-peer",
     "example:runtime": "node examples/basic/dist/agent-runtime-flow.js",
     "example:live-adapters": "npm run build && node examples/basic/dist/live-adapters.js",
-    "example:live-adapters:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:live-adapters"
+    "example:live-adapters:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:live-adapters",
+    "example:live-stack": "npm run noir:compile && npm run build && node examples/basic/dist/live-stack.js",
+    "example:live-stack:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:live-stack"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

@@ -1,8 +1,26 @@
 # Basic Examples
 
-Most examples use local or in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected. The live adapter example is explicitly opt-in and writes to external systems.
+Most examples use local or in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected. The live adapter examples are explicitly opt-in and write to external systems.
 
+## `live-stack.ts`
 
+Full live stack demo.
+
+It compiles and uses the real Noir proof adapter, starts two real local Gensyn AXL node processes, persists Alice runtime state on live 0G KV, sends Alice's real Noir proof over AXL, and has Bob verify the proof/action/policy binding before trusting the message.
+
+Required environment values are the same as `live-adapters.ts`.
+
+Run it with:
+
+```sh
+npm run example:live-stack
+```
+
+Or, if your AXL binary is at `$HOME/Documents/GitHub/axl/node`:
+
+```sh
+npm run example:live-stack:binary
+```
 
 ## `live-adapters.ts`
 
@@ -18,6 +36,7 @@ AGENTIO_0G_INDEXER_RPC=...
 AGENTIO_0G_KV_RPC=...
 AGENTIO_0G_PRIVATE_KEY=...
 AGENTIO_0G_STREAM_ID=...
+AGENTIO_0G_EXPECTED_REPLICA=2
 AGENTIO_AXL_NODE_BINARY=/path/to/axl/node
 ```
 
