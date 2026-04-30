@@ -4,15 +4,9 @@ import {
   Batcher,
   Indexer,
   KvClient,
-  StorageNode,
   getFlowContract,
 } from '@0gfoundation/0g-ts-sdk';
 import { ethers } from 'ethers';
-
-const DEFAULT_STORAGE_NODE_URLS = [
-  'http://34.83.53.209:5678',
-  'http://34.169.28.106:5678',
-];
 
 loadEnvFile();
 
@@ -219,10 +213,6 @@ function readOptions() {
     readArgValue('--replica') ?? process.env.AGENTIO_0G_EXPECTED_REPLICA,
     1,
   );
-  const storageNodeUrls = readStorageNodeUrls(
-    readArgValue('--storage-nodes') ?? process.env.AGENTIO_0G_STORAGE_NODES,
-    DEFAULT_STORAGE_NODE_URLS,
-  );
   const batchVersion = readPositiveInteger(
     readArgValue('--batch-version') ?? process.env.AGENTIO_0G_BATCH_VERSION,
     1,
@@ -289,7 +279,6 @@ function readOptions() {
     key,
     value,
     expectedReplica,
-    storageNodeUrls,
     batchVersion,
     readTimeoutMs,
     transactionTimeoutMs,
@@ -299,13 +288,6 @@ function readOptions() {
 }
 
 async function resolveStorageNodes(options) {
-  if (options.storageNodeUrls.length > 0) {
-    console.log('Using fixed storage node(s)...');
-    const nodes = options.storageNodeUrls.map((url) => new StorageNode(url));
-    console.log(`Selected nodes: ${nodes.map(formatNode).join(', ')}`);
-    return nodes;
-  }
-
   console.log('Selecting storage node(s) from indexer...');
   const indexer = new Indexer(options.indexerRpc);
   const [nodes, selectError] = await indexer.selectNodes(
@@ -415,21 +397,6 @@ function readPositiveInteger(value, fallback) {
 
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function readStorageNodeUrls(value, fallback) {
-  if (value === undefined || value === '') {
-    return fallback;
-  }
-
-  if (value === 'indexer') {
-    return [];
-  }
-
-  return value
-    .split(',')
-    .map((url) => url.trim())
-    .filter((url) => url !== '');
 }
 
 function readBoolean(value, fallback) {
