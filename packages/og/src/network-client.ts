@@ -1,4 +1,10 @@
-import { Batcher, Indexer, KvClient, MemData, getFlowContract } from '@0gfoundation/0g-ts-sdk';
+import {
+  Batcher,
+  Indexer,
+  KvClient,
+  MemData,
+  getFlowContract,
+} from '@0gfoundation/0g-ts-sdk';
 import { ethers } from 'ethers';
 
 import type { OgObjectClient, OgPutObjectResult } from './index.js';
@@ -22,7 +28,7 @@ export type OgKvObjectClientOptions = {
   readonly privateKey: string;
   /** Existing 0G KV stream id that owns this app's key/value records. */
   readonly streamId: string;
-  /** Number of storage replicas requested for writes. Defaults to 1 for tests. */
+  /** Number of storage replicas requested for writes. Defaults to 2 for durable KV writes. */
   readonly expectedReplica?: number;
   /**
    * Controls whether writes wait for storage finality before returning.
@@ -83,7 +89,6 @@ export type OgKvObjectClientOptions = {
   readonly version?: number;
 };
 
-
 /** Configuration for live 0G file/object uploads. */
 export type OgFileObjectClientOptions = {
   /** 0G EVM RPC used by the official SDK for upload transactions. */
@@ -130,14 +135,22 @@ export type OgFileObjectClientOptions = {
  * hash reference. It keeps an in-memory key-to-root index for the current
  * process, so use 0G KV when you need durable lookups by logical key.
  */
-export function ogFileObjectClient(options: OgFileObjectClientOptions): OgObjectClient {
+export function ogFileObjectClient(
+  options: OgFileObjectClientOptions,
+): OgObjectClient {
   const provider = new ethers.JsonRpcProvider(options.evmRpc);
   const signer = new ethers.Wallet(options.privateKey, provider);
   const indexer = new Indexer(options.indexerRpc);
   const roots = new Map<string, string>();
 
   return {
-    capabilities: ['object-write', 'object-read', 'same-process-key-read', 'immutable-object-reference', 'audit-append'],
+    capabilities: [
+      'object-write',
+      'object-read',
+      'same-process-key-read',
+      'immutable-object-reference',
+      'audit-append',
+    ],
 
     async getObject(key: string): Promise<string | undefined> {
       const rootHash = roots.get(key);
@@ -145,7 +158,9 @@ export function ogFileObjectClient(options: OgFileObjectClientOptions): OgObject
         return undefined;
       }
 
-      throw new Error(`0G file object ${rootHash} is stored remotely, but in-memory download decoding is not implemented yet.`);
+      throw new Error(
+        `0G file object ${rootHash} is stored remotely, but in-memory download decoding is not implemented yet.`,
+      );
     },
 
     async putObject(key: string, value: string): Promise<OgPutObjectResult> {
@@ -160,7 +175,8 @@ export function ogFileObjectClient(options: OgFileObjectClientOptions): OgObject
         throw new Error(`0G file upload failed: ${uploadError.message}`);
       }
 
-      const rootHash = 'rootHash' in result ? result.rootHash : result.rootHashes[0];
+      const rootHash =
+        'rootHash' in result ? result.rootHash : result.rootHashes[0];
       const txHash = 'txHash' in result ? result.txHash : result.txHashes[0];
       if (rootHash === undefined || txHash === undefined) {
         throw new Error('0G file upload did not return a root hash.');
@@ -179,9 +195,11 @@ export function ogFileObjectClient(options: OgFileObjectClientOptions): OgObject
  * write to 0G. Local tests should keep using `memoryOgObjectClient()` so the
  * default suite stays fast, deterministic, and free of network side effects.
  */
-export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClient {
+export function ogKvObjectClient(
+  options: OgKvObjectClientOptions,
+): OgObjectClient {
   const version = options.version ?? 1;
-  const expectedReplica = options.expectedReplica ?? 1;
+  const expectedReplica = options.expectedReplica ?? 2;
   const provider = new ethers.JsonRpcProvider(options.evmRpc);
   const signer = new ethers.Wallet(options.privateKey, provider);
   const indexer = new Indexer(options.indexerRpc);
@@ -193,11 +211,21 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
   };
 
   return {
-    capabilities: ['object-write', 'object-read', 'durable-key-read', 'audit-append'],
+    capabilities: [
+      'object-write',
+      'object-read',
+      'durable-key-read',
+      'audit-append',
+    ],
 
     async getObject(key: string): Promise<string | undefined> {
       const kv = await getKvClient();
-      const value = await readKvValue(kv, options.streamId, encodeReadKey(key), options);
+      const value = await readKvValue(
+        kv,
+        options.streamId,
+        encodeReadKey(key),
+        options,
+      );
       if (value === null) {
         return undefined;
       }
@@ -209,31 +237,61 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
     async putObject(key: string, value: string): Promise<OgPutObjectResult> {
       await getKvClient();
 
-      reportProgress(options, `0G KV write preparing stream=${options.streamId} key=${key} encodedKey=${encodeReadKey(key)} bytes=${Buffer.byteLength(value, 'utf8')}`);
-      reportProgress(options, `0G KV write key bytes=${formatBytes(encodeKey(key))} value bytes=${formatBytes(Buffer.from(value, 'utf8'))}`);
+      reportProgress(
+        options,
+        `0G KV write preparing stream=${options.streamId} key=${key} encodedKey=${encodeReadKey(key)} bytes=${Buffer.byteLength(value, 'utf8')}`,
+      );
+      reportProgress(
+        options,
+        `0G KV write key bytes=${formatBytes(encodeKey(key))} value bytes=${formatBytes(Buffer.from(value, 'utf8'))}`,
+      );
 
       const [nodes, selectError] = await indexer.selectNodes(expectedReplica);
       if (selectError !== null) {
         throw new Error(`0G node selection failed: ${selectError.message}`);
       }
-      reportProgress(options, `0G KV selected storage nodes: ${nodes.map(formatStorageNode).join(', ')}`);
+      reportProgress(
+        options,
+        `0G KV selected storage nodes: ${nodes.map(formatStorageNode).join(', ')}`,
+      );
 
       const status = await nodes[0]?.getStatus();
       const flowAddress = status?.networkIdentity.flowAddress;
       if (flowAddress === undefined) {
-        throw new Error('0G node status did not include a flow contract address.');
+        throw new Error(
+          '0G node status did not include a flow contract address.',
+        );
       }
       reportProgress(options, `0G KV using flow contract ${flowAddress}`);
 
-      const flow = getFlowContract(flowAddress, signer as unknown as Parameters<typeof getFlowContract>[1]);
+      const flow = getFlowContract(
+        flowAddress,
+        signer as unknown as Parameters<typeof getFlowContract>[1],
+      );
       const batcher = new Batcher(version, nodes, flow, options.evmRpc);
-      batcher.streamDataBuilder.set(options.streamId, encodeKey(key), Buffer.from(value, 'utf8'));
+      batcher.streamDataBuilder.set(
+        options.streamId,
+        encodeKey(key),
+        Buffer.from(value, 'utf8'),
+      );
 
       const uploadState: UploadProgressState = {};
-      const uploadConfig = { ...options, expectedReplica, finalityRequired: options.finalityRequired ?? true };
-      reportProgress(options, `0G KV upload options finalityRequired=${uploadConfig.finalityRequired} expectedReplica=${expectedReplica} taskSize=<sdk-default> skipTx=<sdk-default>`);
-      const [result, uploadError] = await batcher.exec(uploadOptions(uploadConfig, uploadState));
-      reportProgress(options, `0G KV batcher result=${formatUnknown(result)} uploadError=${formatUnknown(uploadError)}`);
+      const uploadConfig = {
+        ...options,
+        expectedReplica,
+        finalityRequired: options.finalityRequired ?? true,
+      };
+      reportProgress(
+        options,
+        `0G KV upload options finalityRequired=${uploadConfig.finalityRequired} expectedReplica=${expectedReplica} taskSize=<sdk-default> skipTx=<sdk-default>`,
+      );
+      const [result, uploadError] = await batcher.exec(
+        uploadOptions(uploadConfig, uploadState),
+      );
+      reportProgress(
+        options,
+        `0G KV batcher result=${formatUnknown(result)} uploadError=${formatUnknown(uploadError)}`,
+      );
       if (uploadError !== null) {
         throw new Error(`0G KV write failed: ${uploadError.message}`);
       }
@@ -241,15 +299,22 @@ export function ogKvObjectClient(options: OgKvObjectClientOptions): OgObjectClie
       if (txSeq !== undefined) {
         await verifyUploadedFileInfo(nodes, txSeq, options);
       }
-      reportProgress(options, `0G KV write completed txHash=${result.txHash} rootHash=${result.rootHash} txSeq=${txSeq ?? '<unknown>'}`);
+      reportProgress(
+        options,
+        `0G KV write completed txHash=${result.txHash} rootHash=${result.rootHash} txSeq=${txSeq ?? '<unknown>'}`,
+      );
 
-      return { reference: `0g-kv:${result.txHash}:${result.rootHash}${txSeq === undefined ? '' : `:${txSeq}`}` };
+      return {
+        reference: `0g-kv:${result.txHash}:${result.rootHash}${txSeq === undefined ? '' : `:${txSeq}`}`,
+      };
     },
   };
 }
 
-
-async function createKvClient(options: OgKvObjectClientOptions, expectedReplica: number): Promise<KvClient> {
+async function createKvClient(
+  options: OgKvObjectClientOptions,
+  expectedReplica: number,
+): Promise<KvClient> {
   if (options.kvRpc !== undefined && options.kvRpc !== '') {
     return new KvClient(options.kvRpc);
   }
@@ -261,7 +326,10 @@ async function readKvValue(
   kv: KvClient,
   streamId: string,
   key: string,
-  options: Pick<OgKvObjectClientOptions, 'readRetryTimeoutMs' | 'readRetryIntervalMs' | 'onProgress'>,
+  options: Pick<
+    OgKvObjectClientOptions,
+    'readRetryTimeoutMs' | 'readRetryIntervalMs' | 'onProgress'
+  >,
 ) {
   const timeoutMs = options.readRetryTimeoutMs ?? 10_000;
   const intervalMs = options.readRetryIntervalMs ?? 500;
@@ -269,7 +337,10 @@ async function readKvValue(
 
   while (true) {
     try {
-      const value = await kv.getValue(streamId, key as unknown as Parameters<KvClient['getValue']>[1]);
+      const value = await kv.getValue(
+        streamId,
+        key as unknown as Parameters<KvClient['getValue']>[1],
+      );
       if (value === null || value.data !== '') {
         return value;
       }
@@ -278,13 +349,15 @@ async function readKvValue(
         return value;
       }
 
-      options.onProgress?.('0G KV returned an empty value; waiting for read visibility...');
+      options.onProgress?.(
+        '0G KV returned an empty value; waiting for read visibility...',
+      );
       await delay(intervalMs);
     } catch (error) {
       if (isJsonRpcMethodNotFound(error)) {
         throw new Error(
           '0G KV read failed because the configured endpoint does not expose KV RPC methods. ' +
-          'Set kvRpc/AGENTIO_0G_KV_RPC to a real 0G KV node; storage-node URLs selected by the indexer may not support kv_getValue.',
+            'Set kvRpc/AGENTIO_0G_KV_RPC to a real 0G KV node; storage-node URLs selected by the indexer may not support kv_getValue.',
         );
       }
 
@@ -294,7 +367,11 @@ async function readKvValue(
 }
 
 function isJsonRpcMethodNotFound(error: unknown): boolean {
-  return error instanceof Error && (error.message === 'Method not found' || ('code' in error && error.code === -32601));
+  return (
+    error instanceof Error &&
+    (error.message === 'Method not found' ||
+      ('code' in error && error.code === -32601))
+  );
 }
 
 type DiscoveredNode = {
@@ -306,23 +383,35 @@ type ShardedNodeResponse = {
   readonly discovered?: readonly DiscoveredNode[] | null;
 };
 
-async function discoverKvRpc(options: OgKvObjectClientOptions, expectedReplica: number): Promise<string> {
+async function discoverKvRpc(
+  options: OgKvObjectClientOptions,
+  expectedReplica: number,
+): Promise<string> {
   const timeoutMs = options.kvRpcDiscoveryTimeoutMs ?? 3_000;
   const indexer = new Indexer(options.indexerRpc);
-  const shardedNodes = await indexer.getShardedNodes() as ShardedNodeResponse;
-  const nodes = [...(shardedNodes.trusted ?? []), ...(shardedNodes.discovered ?? [])];
+  const shardedNodes = (await indexer.getShardedNodes()) as ShardedNodeResponse;
+  const nodes = [
+    ...(shardedNodes.trusted ?? []),
+    ...(shardedNodes.discovered ?? []),
+  ];
   const candidates = unique(nodes.flatMap((node) => kvRpcCandidates(node.url)));
 
   if (candidates.length === 0) {
-    throw new Error('0G indexer did not return storage nodes that can be probed for KV RPC.');
+    throw new Error(
+      '0G indexer did not return storage nodes that can be probed for KV RPC.',
+    );
   }
 
-  options.onProgress?.(`Probing ${candidates.length} discovered 0G KV endpoint candidate(s)...`);
+  options.onProgress?.(
+    `Probing ${candidates.length} discovered 0G KV endpoint candidate(s)...`,
+  );
 
-  const probes = await Promise.all(candidates.map(async (candidate) => ({
-    candidate,
-    ok: await supportsKvRpc(candidate, timeoutMs),
-  })));
+  const probes = await Promise.all(
+    candidates.map(async (candidate) => ({
+      candidate,
+      ok: await supportsKvRpc(candidate, timeoutMs),
+    })),
+  );
   const selected = probes.find((probe) => probe.ok)?.candidate;
   if (selected !== undefined) {
     options.onProgress?.(`Discovered 0G KV endpoint: ${selected}`);
@@ -331,8 +420,8 @@ async function discoverKvRpc(options: OgKvObjectClientOptions, expectedReplica: 
 
   throw new Error(
     `Could not discover a 0G KV RPC endpoint from ${nodes.length} indexer node(s) for replica target ${expectedReplica}. ` +
-    'The indexer exposes storage RPC URLs, but none of the derived KV candidates responded to KV methods. ' +
-    'Check whether the current testnet exposes KV on a different port or behind a separate service.',
+      'The indexer exposes storage RPC URLs, but none of the derived KV candidates responded to KV methods. ' +
+      'Check whether the current testnet exposes KV on a different port or behind a separate service.',
   );
 }
 
@@ -363,11 +452,18 @@ async function supportsKvRpc(url: string, timeoutMs: number): Promise<boolean> {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'kv_getHoldingStreamIds', params: [] }),
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'kv_getHoldingStreamIds',
+        params: [],
+      }),
       signal: controller.signal,
     });
 
-    const payload = await response.json() as { readonly error?: { readonly code?: number } };
+    const payload = (await response.json()) as {
+      readonly error?: { readonly code?: number };
+    };
     return payload.error?.code !== -32601;
   } catch {
     return false;
@@ -376,24 +472,33 @@ async function supportsKvRpc(url: string, timeoutMs: number): Promise<boolean> {
   }
 }
 
-function uploadOptions(options: {
-  readonly finalityRequired?: boolean;
-  readonly fee?: bigint;
-  readonly expectedReplica?: number;
-  readonly logSyncTimeoutMs?: number;
-  readonly onProgress?: (message: string) => void;
-}, state: UploadProgressState = {}) {
+function uploadOptions(
+  options: {
+    readonly finalityRequired?: boolean;
+    readonly fee?: bigint;
+    readonly expectedReplica?: number;
+    readonly logSyncTimeoutMs?: number;
+    readonly onProgress?: (message: string) => void;
+  },
+  state: UploadProgressState = {},
+) {
   const startedAt = Date.now();
 
   return {
     finalityRequired: options.finalityRequired ?? false,
     expectedReplica: options.expectedReplica,
     fee: options.fee,
+    expectedReplica: options.expectedReplica,
     onProgress(message: string) {
       captureUploadProgress(message, state);
       options.onProgress?.(message);
-      if (options.logSyncTimeoutMs !== undefined && Date.now() - startedAt > options.logSyncTimeoutMs) {
-        throw new Error(`0G upload did not sync within ${options.logSyncTimeoutMs}ms. ${formatUploadState(state, message)}`);
+      if (
+        options.logSyncTimeoutMs !== undefined &&
+        Date.now() - startedAt > options.logSyncTimeoutMs
+      ) {
+        throw new Error(
+          `0G upload did not sync within ${options.logSyncTimeoutMs}ms. ${formatUploadState(state, message)}`,
+        );
       }
     },
   };
@@ -405,30 +510,44 @@ type StorageFileInfo = {
 };
 
 async function verifyUploadedFileInfo(
-  nodes: readonly { readonly getFileInfoByTxSeq: (txSeq: number) => Promise<StorageFileInfo | null> }[],
+  nodes: readonly {
+    readonly getFileInfoByTxSeq: (
+      txSeq: number,
+    ) => Promise<StorageFileInfo | null>;
+  }[],
   txSeq: number,
   options: Pick<OgKvObjectClientOptions, 'onProgress'>,
 ): Promise<void> {
-  const infos = await Promise.all(nodes.map(async (node, index) => {
-    try {
-      return { index, info: await node.getFileInfoByTxSeq(txSeq) };
-    } catch (error) {
-      return { index, error };
-    }
-  }));
+  const infos = await Promise.all(
+    nodes.map(async (node, index) => {
+      try {
+        return { index, info: await node.getFileInfoByTxSeq(txSeq) };
+      } catch (error) {
+        return { index, error };
+      }
+    }),
+  );
 
   for (const entry of infos) {
     if ('error' in entry) {
-      options.onProgress?.(`0G KV storage node[${entry.index}] file info failed for txSeq=${txSeq}: ${formatUnknown(entry.error)}`);
+      options.onProgress?.(
+        `0G KV storage node[${entry.index}] file info failed for txSeq=${txSeq}: ${formatUnknown(entry.error)}`,
+      );
       continue;
     }
 
-    options.onProgress?.(`0G KV storage node[${entry.index}] file info txSeq=${txSeq}: ${formatUnknown(entry.info)}`);
+    options.onProgress?.(
+      `0G KV storage node[${entry.index}] file info txSeq=${txSeq}: ${formatUnknown(entry.info)}`,
+    );
     if (entry.info !== null && entry.info.finalized === false) {
-      throw new Error(`0G KV upload did not finalize on storage node[${entry.index}] for txSeq=${txSeq}; uploadedSegNum=${entry.info.uploadedSegNum ?? '<unknown>'}.`);
+      throw new Error(
+        `0G KV upload did not finalize on storage node[${entry.index}] for txSeq=${txSeq}; uploadedSegNum=${entry.info.uploadedSegNum ?? '<unknown>'}.`,
+      );
     }
     if (entry.info !== null && entry.info.uploadedSegNum === 0) {
-      throw new Error(`0G KV upload reported zero uploaded segments on storage node[${entry.index}] for txSeq=${txSeq}.`);
+      throw new Error(
+        `0G KV upload reported zero uploaded segments on storage node[${entry.index}] for txSeq=${txSeq}.`,
+      );
     }
   }
 }
@@ -441,7 +560,10 @@ type UploadProgressState = {
   uploadedSegments?: boolean;
 };
 
-function captureUploadProgress(message: string, state: UploadProgressState): void {
+function captureUploadProgress(
+  message: string,
+  state: UploadProgressState,
+): void {
   const txHash = /Transaction submitted: (0x[0-9a-fA-F]+)/.exec(message)?.[1];
   if (txHash !== undefined) {
     state.txHash = txHash;
@@ -463,12 +585,17 @@ function captureUploadProgress(message: string, state: UploadProgressState): voi
   }
 }
 
-function formatUploadState(state: UploadProgressState, lastMessage: string): string {
+function formatUploadState(
+  state: UploadProgressState,
+  lastMessage: string,
+): string {
   const details = [
     `Last progress: ${lastMessage}`,
     state.txHash === undefined ? undefined : `txHash=${state.txHash}`,
     state.txSeq === undefined ? undefined : `txSeq=${state.txSeq}`,
-    state.lastStorageSyncHeight === undefined ? undefined : `storageSyncHeight=${state.lastStorageSyncHeight}`,
+    state.lastStorageSyncHeight === undefined
+      ? undefined
+      : `storageSyncHeight=${state.lastStorageSyncHeight}`,
     `reachedSegmentUpload=${state.reachedSegmentUpload === true}`,
     `uploadedSegments=${state.uploadedSegments === true}`,
   ].filter((detail): detail is string => detail !== undefined);
@@ -476,7 +603,10 @@ function formatUploadState(state: UploadProgressState, lastMessage: string): str
   return details.join(' ');
 }
 
-function reportProgress(options: { readonly onProgress?: (message: string) => void }, message: string): void {
+function reportProgress(
+  options: { readonly onProgress?: (message: string) => void },
+  message: string,
+): void {
   options.onProgress?.(message);
 }
 
@@ -507,7 +637,10 @@ function formatStorageNode(node: unknown): string {
   return '<unknown-node-url>';
 }
 
-function readUploadTxSeq(result: { readonly txHash: string; readonly rootHash: string }): number | undefined {
+function readUploadTxSeq(result: {
+  readonly txHash: string;
+  readonly rootHash: string;
+}): number | undefined {
   const txSeq = (result as { readonly txSeq?: unknown }).txSeq;
   return typeof txSeq === 'number' ? txSeq : undefined;
 }

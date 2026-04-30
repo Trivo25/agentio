@@ -4,8 +4,5 @@ dist/
 packages/noir/circuits/**/target/
 packages/noir/circuits/**/Prover.toml
 .env
-.axl
 .omc
-docs/
-/.omc/state
-.omc/state/hud-stdin-cache.json
+.claude

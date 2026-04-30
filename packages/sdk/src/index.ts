@@ -1,4 +1,9 @@
 export {
+  createAgentRuntime,
+  type AgentRuntime,
+  type CreateAgentRuntimeOptions,
+} from './agent-runtime.js';
+export {
   createTrustedAgent,
   type AgentStepResult,
   type CreateTrustedAgentOptions,
