@@ -80,6 +80,53 @@ export type AgentStepResult =
       readonly event: AuditEvent;
     };
 
+/** Data passed to `runUntilComplete` stop predicates after each step. */
+export type AgentRunStopContext = {
+  /** Latest completed step. */
+  readonly step: AgentStepResult;
+  /** All steps completed in this run so far. */
+  readonly history: readonly AgentStepResult[];
+  /** Latest persisted state after the step. */
+  readonly state: AgentState;
+};
+
+/** Options for running a bounded multi-step trusted-agent loop. */
+export type AgentRunUntilCompleteOptions = {
+  /** Maximum number of decision cycles. Defaults to 10. */
+  readonly maxSteps?: number;
+  /** Optional wall-clock timeout for the whole run. */
+  readonly timeoutMs?: number;
+  /** Optional cancellation signal checked between steps. */
+  readonly signal?: AbortSignal;
+  /** Optional app-specific stop condition checked after each completed step. */
+  readonly stopWhen?: (
+    context: AgentRunStopContext,
+  ) => boolean | Promise<boolean>;
+};
+
+/**
+ * Result returned by a bounded multi-step trusted-agent run.
+ *
+ * The loop is intentionally conservative: every step still goes through
+ * `startOnce`, so validation, proof generation, execution, state updates, and
+ * audit events remain per-action and independently inspectable.
+ */
+export type AgentRunUntilCompleteResult = {
+  /** Why the loop stopped. */
+  readonly status:
+    | 'completed'
+    | 'stopped'
+    | 'rejected'
+    | 'execution-failed'
+    | 'max-steps'
+    | 'timeout'
+    | 'aborted';
+  /** Completed step results in execution order. */
+  readonly steps: readonly AgentStepResult[];
+  /** Latest persisted state after the loop stopped. */
+  readonly finalState: AgentState;
+};
+
 /**
  * Lower-level decision/proof agent without peer messaging.
  *
@@ -89,6 +136,8 @@ export type AgentStepResult =
 export type TrustedAgent = {
   /** Runs one cycle: load state, reason, validate, prove, optionally execute, persist, and audit. */
   startOnce(): Promise<AgentStepResult>;
+  /** Runs bounded decision cycles until completion, stop condition, rejection, failure, or guardrail. */
+  runUntilComplete(options?: AgentRunUntilCompleteOptions): Promise<AgentRunUntilCompleteResult>;
 };
 
 /**
@@ -101,7 +150,7 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
   const now = options.now ?? (() => new Date());
   const createEventId = options.createEventId ?? (() => crypto.randomUUID());
 
-  return {
+  const trusted: TrustedAgent = {
     async startOnce(): Promise<AgentStepResult> {
       const cycleTime = now();
       const state = await loadStateOrInitial(options.storage, options.identity, options.initialState);
@@ -194,7 +243,47 @@ export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedA
 
       return { status: 'accepted', action: decision, validation, proof: proofResult.proof, execution, event };
     },
+
+    async runUntilComplete(runOptions: AgentRunUntilCompleteOptions = {}): Promise<AgentRunUntilCompleteResult> {
+      const maxSteps = runOptions.maxSteps ?? 10;
+      if (!Number.isInteger(maxSteps) || maxSteps <= 0) {
+        throw new Error('runUntilComplete maxSteps must be a positive integer.');
+      }
+
+      const startedAt = Date.now();
+      const steps: AgentStepResult[] = [];
+
+      for (let index = 0; index < maxSteps; index += 1) {
+        if (runOptions.signal?.aborted === true) {
+          return await finishRun(options, 'aborted', steps);
+        }
+        if (hasTimedOut(startedAt, runOptions.timeoutMs)) {
+          return await finishRun(options, 'timeout', steps);
+        }
+
+        const step = await trusted.startOnce();
+        steps.push(step);
+        const state = await loadStateOrInitial(options.storage, options.identity, options.initialState);
+
+        if (step.status === 'skipped') {
+          return { status: 'completed', steps, finalState: state };
+        }
+        if (step.status === 'rejected') {
+          return { status: 'rejected', steps, finalState: state };
+        }
+        if (step.execution?.success === false) {
+          return { status: 'execution-failed', steps, finalState: state };
+        }
+        if (await runOptions.stopWhen?.({ step, history: steps, state })) {
+          return { status: 'stopped', steps, finalState: state };
+        }
+      }
+
+      return await finishRun(options, 'max-steps', steps);
+    },
   };
+
+  return trusted;
 }
 
 
@@ -231,6 +320,22 @@ async function loadStateOrInitial(
 async function appendEvent(storage: StorageAdapter, event: AuditEvent): Promise<AuditEvent> {
   await storage.appendAuditEvent(event);
   return event;
+}
+
+async function finishRun(
+  options: CreateTrustedAgentOptions,
+  status: AgentRunUntilCompleteResult['status'],
+  steps: readonly AgentStepResult[],
+): Promise<AgentRunUntilCompleteResult> {
+  return {
+    status,
+    steps,
+    finalState: await loadStateOrInitial(options.storage, options.identity, options.initialState),
+  };
+}
+
+function hasTimedOut(startedAt: number, timeoutMs: number | undefined): boolean {
+  return timeoutMs !== undefined && Date.now() - startedAt >= timeoutMs;
 }
 
 async function validateCredentialDelegation(
