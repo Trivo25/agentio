@@ -146,3 +146,4 @@ export {
   type OgFileObjectClientOptions,
   type OgKvObjectClientOptions,
 } from './network-client.js';
+export { createOgProgressLogger, formatOgProgressMessage, type OgProgressLoggerOptions, type OgProgressLogLevel } from './progress.js';

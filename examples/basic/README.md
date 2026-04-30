@@ -1,7 +1,63 @@
 # Basic Examples
 
-These examples use only local in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected.
+Most examples use local or in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected. The live adapter examples are explicitly opt-in and write to external systems.
 
+## `getting-started.ts`
+
+Canonical first example.
+
+It shows the unique 0xAgentio flow in one local scenario: a principal delegates bounded authority to Alice, Alice sends Bob a proof-backed quote request, Bob verifies before replying, Alice reasons over the quote, and Alice's runtime validates, proves, stores, and executes the final action through a verifying adapter.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:getting-started
+```
+
+## `live-stack.ts`
+
+Full live stack demo.
+
+It compiles and uses the real Noir proof adapter, starts two real local Gensyn AXL node processes, persists Alice runtime state on live 0G KV, sends Alice's real Noir proof over AXL, and has Bob verify the proof/action/policy binding before trusting the message.
+
+Required environment values are the same as `live-adapters.ts`.
+
+Run it with:
+
+```sh
+npm run example:live-stack
+```
+
+Or, if your AXL binary is at `$HOME/Documents/GitHub/axl/node`:
+
+```sh
+npm run example:live-stack:binary
+```
+
+## `live-adapters.ts`
+
+Opt-in live adapter composition demo.
+
+It starts two real local Gensyn AXL node processes, runs Alice through `createAgentRuntime(...)` with live 0G KV storage, loads Alice state back from 0G, and sends Bob a summary message over AXL. This writes to 0G and requires local credentials plus an AXL binary.
+
+Required environment values:
+
+```sh
+AGENTIO_0G_EVM_RPC=...
+AGENTIO_0G_INDEXER_RPC=...
+AGENTIO_0G_KV_RPC=...
+AGENTIO_0G_PRIVATE_KEY=...
+AGENTIO_0G_STREAM_ID=...
+AGENTIO_0G_EXPECTED_REPLICA=2
+AGENTIO_AXL_NODE_BINARY=/path/to/axl/node
+```
+
+Run it with:
+
+```sh
+npm run example:live-adapters
+```
 
 ## `agent-runtime-flow.ts`
 

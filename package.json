@@ -11,6 +11,7 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "test": "npm run build && AGENTIO_0G_SKIP_LIVE=1 node --test packages/*/dist/*.test.js",
+    "example:getting-started": "node examples/basic/dist/getting-started.js",
     "example:basic": "node examples/basic/dist/index.js",
     "example:flow": "node examples/basic/dist/sdk-flow.js",
     "example:peer": "node examples/basic/dist/peer-message.js",
@@ -41,7 +42,11 @@
     "example:axl:local-network:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:axl:local-network",
     "example:real-axl-peer": "npm run build && node examples/basic/dist/real-axl-peer.js",
     "example:real-axl-peer:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:real-axl-peer",
-    "example:runtime": "node examples/basic/dist/agent-runtime-flow.js"
+    "example:runtime": "node examples/basic/dist/agent-runtime-flow.js",
+    "example:live-adapters": "npm run build && node examples/basic/dist/live-adapters.js",
+    "example:live-adapters:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:live-adapters",
+    "example:live-stack": "npm run noir:compile && npm run build && node examples/basic/dist/live-stack.js",
+    "example:live-stack:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:live-stack"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
