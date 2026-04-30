@@ -13,6 +13,7 @@
     "test": "npm run build && AGENTIO_0G_SKIP_LIVE=1 node --test packages/*/dist/*.test.js",
     "example:getting-started": "node examples/basic/dist/getting-started.js",
     "example:llm-reasoning": "node examples/basic/dist/llm-reasoning-flow.js",
+    "example:guarded-llm-reasoning": "node examples/basic/dist/guarded-llm-reasoning.js",
     "example:0g-compute-reasoning": "npm run build && node examples/basic/dist/zero-g-compute-reasoning.js",
     "example:basic": "node examples/basic/dist/index.js",
     "example:flow": "node examples/basic/dist/sdk-flow.js",

@@ -28,6 +28,19 @@ npm run build
 npm run example:llm-reasoning
 ```
 
+## `guarded-llm-reasoning.ts`
+
+Dynamic reasoning demo with a deterministic guard.
+
+The mock LLM proposes an oversized swap. A developer-defined guard rewrites the amount to the app's deterministic risk limit, then Alice's runtime still validates policy, proves, stores, and executes the guarded action. This shows how applications can combine flexible model reasoning with explicit static safety checks.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:guarded-llm-reasoning
+```
+
 ## `zero-g-compute-reasoning.ts`
 
 Opt-in live 0G Compute Router reasoning demo.
