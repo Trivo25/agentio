@@ -30,7 +30,12 @@
         --purple: #b58dff;
         --shadow-card: 0 12px 40px rgba(15, 23, 42, 0.08);
         --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04);
-        --gradient: linear-gradient(135deg, #4f7dff 0%, #27c2b3 50%, #b58dff 100%);
+        --gradient: linear-gradient(
+          135deg,
+          #4f7dff 0%,
+          #27c2b3 50%,
+          #b58dff 100%
+        );
       }
 
       * {
@@ -44,7 +49,11 @@
       }
 
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
         color: var(--navy-950);
         background: #ffffff;
         -webkit-font-smoothing: antialiased;
@@ -390,7 +399,8 @@
         align-items: center;
         gap: 12px;
         max-width: calc(100vw - 32px);
-        transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1),
+        transition:
+          transform 240ms cubic-bezier(0.4, 0, 0.2, 1),
           opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 10;
       }
@@ -497,7 +507,9 @@
       </header>
 
       <main>
-        <span class="badge"><span class="dot"></span>Public Infrastructure</span>
+        <span class="badge"
+          ><span class="dot"></span>Public Infrastructure</span
+        >
         <h1>0G KV Storage Node</h1>
         <p class="subtitle">
           Open RPC endpoint for hackers building on 0G. Hosted by 0xAgentio
@@ -528,7 +540,9 @@
           </div>
 
           <div class="endpoint-row">
-            <code class="endpoint" data-copy-source>http://178.238.236.119:6789</code>
+            <code class="endpoint" data-copy-source
+              >http://178.238.236.119:6789</code
+            >
             <button class="copy-btn" data-copy data-toast="star" type="button">
               <svg
                 viewBox="0 0 24 24"
@@ -539,7 +553,9 @@
                 stroke-linejoin="round"
               >
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                <path
+                  d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                ></path>
               </svg>
               <span class="copy-label">Copy</span>
             </button>
@@ -596,7 +612,9 @@
 
       <footer>
         <span>0xAgentio · Trust layer for autonomous agents</span>
-        <a href="https://github.com/trivo25/agentio" id="repo">github.com/trivo25/agentio</a>
+        <a href="https://github.com/trivo25/agentio" id="repo"
+          >github.com/trivo25/agentio</a
+        >
       </footer>
     </div>
 
@@ -613,20 +631,52 @@
       </svg>
       <span class="toast-text">
         Copied. If this saves you time,
-        <a href="https://github.com/trivo25/agentio" target="_blank" rel="noopener"
+        <a
+          href="https://github.com/trivo25/agentio"
+          target="_blank"
+          rel="noopener"
           >drop a star on GitHub</a
         >.
       </span>
-      <button class="toast-close" type="button" aria-label="Dismiss" id="toastClose">×</button>
+      <button
+        class="toast-close"
+        type="button"
+        aria-label="Dismiss"
+        id="toastClose"
+      >
+        ×
+      </button>
     </div>
 
     <script>
       (function () {
         let fallbackStreamIds = [
+          '0x35dd3e73dd3d8474f286fb6f5af5a1e953662d2d5d176994520390e14bad083d',
           '0x000000000000000000000000000000000000000000000000000000000000f2bd',
           '0x000000000000000000000000000000000000000000000000000000000000f009',
           '0x0000000000000000000000000000000000000000000000000000000000016879',
           '0x0000000000000000000000000000000000000000000000000000000000002e3d',
+          '0xa540cfe0abd10b375988aa11fb47e680847822cebf99adecb9e6ec0e1b863a1a',
+          '0x203338b4cbc0dcda63e2dfef9b7869ceff23c8afa25a618aa81ea8a39930973c',
+          '0x2ea9052bae2463fb752827e067804146d4f919cb6ee0b1447fbc53a2b5bb3078',
+          '0x6c2a9f7112a3699ee706d919dbee7200b4875176d78528a525aab336288c4b08',
+          '0xddac296a8ea4fc5ce8646f0b7d12879ac8d0aa713f579c5a03f72a8e739f0310',
+          '0x6c7648f937c4d3b461b88661c64ed9756183b543d165a6f3cf55ec5fef69f342',
+          '0x737c1bfc1730a391959184480f23275f8a67cf72fe0554417f4553a61fb3c4f4',
+          '0xabbed37b1b11b0d77715aaa9e82bbc295528b1b707bb6e0b07194a349ca70b86',
+          '0xda0ccb2f5edde73cb32b7039324f214646014132e789db1a168efb4748d1493b',
+          '0xbd44b5e5ee818fe1d3378ef455e53ee8d5641e3f8c6c2b5f0025f2a6d762e4e4',
+          '0x6a36c6a13112e4a51583007b712250b5685d1039fa0f6c49d7aae39609a44a64',
+          '0xa453eccc1729c0eaeb06623b499a2a3f34969d6ea6262dfd410fe2ba1a01ec6a',
+          '0xcd3720dfae28ed3b8af53bddf8f5fa73f0d894881ae22108dc3b0ad35723602f',
+          '0xc2c86c5b7a8d82cd40128ce069f699c8827c56f93df5f8b097de03c015d30c5f',
+          '0xa7a2397e71293822f684f61b81f7ef39eecac10546a31d51b5f7923877b39a23',
+          '0x492d925e444063449868443fc4824bcad556d58c6b82d098958f7db909e5694a',
+          '0xe543dbdc94e2ae8a93a54f9e9eab4e633a87bfcc3160110991e353ee2d9cef5c',
+          '0xede2ea37c37396995bad6da415763455386410a02c9f53b2f6600d4843b600be',
+          '0x8a6a818b3b7800eee82a2fc80545c0103c35868349472be3d33149f778883c0f',
+          '0xf10aa2b22668b89a0ed10388cdbe15dc2cacdd9ce5a318a0bb51612400055f6f',
+          '0xb6b84e5d82cb9881e20040b0e22f68603805f0daf6cf72813b2cc1666e37d1b4',
         ];
 
         let copyIcon =
@@ -675,15 +725,17 @@
             let label = btn.querySelector('.copy-label');
             if (!source || !label) continue;
             btn.addEventListener('click', function () {
-              navigator.clipboard.writeText(source.textContent.trim()).then(function () {
-                btn.classList.add('copied');
-                label.textContent = 'Copied';
-                if (btn.dataset.toast === 'star') showToast();
-                setTimeout(function () {
-                  btn.classList.remove('copied');
-                  label.textContent = 'Copy';
-                }, 1600);
-              });
+              navigator.clipboard
+                .writeText(source.textContent.trim())
+                .then(function () {
+                  btn.classList.add('copied');
+                  label.textContent = 'Copied';
+                  if (btn.dataset.toast === 'star') showToast();
+                  setTimeout(function () {
+                    btn.classList.remove('copied');
+                    label.textContent = 'Copy';
+                  }, 1600);
+                });
             });
           }
         }
@@ -725,7 +777,11 @@
             return r.json();
           })
           .then(function (s) {
-            setStatus(s.online ? 'online' : 'offline', s.online ? 'Online' : 'Offline', s.checkedAt);
+            setStatus(
+              s.online ? 'online' : 'offline',
+              s.online ? 'Online' : 'Offline',
+              s.checkedAt,
+            );
           })
           .catch(function () {
             setStatus('online', 'Active', null);
