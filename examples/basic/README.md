@@ -41,6 +41,19 @@ npm run build
 npm run example:guarded-llm-reasoning
 ```
 
+## `run-until-complete.ts`
+
+Bounded multi-step runtime demo.
+
+It uses deterministic static rules to run three small swaps until the target cumulative spend is reached. Each step still validates the policy, creates a proof, executes, persists state, and writes an audit event.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:run-until-complete
+```
+
 ## `zero-g-compute-reasoning.ts`
 
 Opt-in live 0G Compute Router reasoning demo.
@@ -52,8 +65,11 @@ Required environment values:
 ```sh
 AGENTIO_0G_COMPUTE_API_KEY=sk-...
 AGENTIO_0G_COMPUTE_BASE_URL=https://router-api-testnet.integratenetwork.work/v1
-AGENTIO_0G_COMPUTE_MODEL=zai-org/GLM-5-FP8
+AGENTIO_0G_COMPUTE_MODEL=qwen/qwen-2.5-7b-instruct
+AGENTIO_0G_COMPUTE_RESPONSE_FORMAT=prompt-only
 ```
+
+`prompt-only` is the safe default for the current GLM example model because it rejects OpenAI `response_format=json_object`. Use `openai-json-object` only with models/providers that support JSON object mode.
 
 Run it with:
 
