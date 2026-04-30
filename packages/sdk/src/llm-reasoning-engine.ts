@@ -193,11 +193,38 @@ function parseOptionalAmount(value: unknown): bigint | undefined {
     return undefined;
   }
 
-  if (typeof value !== 'string' || !/^-?\d+$/.test(value)) {
-    throw new Error('LLM reasoning action.amount must be a decimal string.');
+  if (typeof value === 'string') {
+    const normalized = normalizeIntegerAmountString(value);
+    if (normalized !== undefined) {
+      return BigInt(normalized);
+    }
   }
 
-  return BigInt(value);
+  if (typeof value === 'number' && Number.isSafeInteger(value)) {
+    return BigInt(value);
+  }
+
+  throw new Error(
+    `LLM reasoning action.amount must be a decimal string or safe integer. Received ${describeAmountValue(value)}.`,
+  );
+}
+
+function normalizeIntegerAmountString(value: string): string | undefined {
+  const trimmed = value.trim();
+  const match = /^(-?\d+)(?:\.0+)?$/.exec(trimmed);
+  return match?.[1];
+}
+
+function describeAmountValue(value: unknown): string {
+  if (typeof value === 'bigint') {
+    return `${value.toString()}n`;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function parseOptionalMetadata(

@@ -162,16 +162,50 @@ test('parseLlmReasoningDecision requires strict JSON object output', () => {
   );
 });
 
-test('parseLlmReasoningDecision requires decimal string amounts', () => {
+test('parseLlmReasoningDecision accepts integer number amounts from providers', () => {
+  const decision = parseLlmReasoningDecision(
+    JSON.stringify({
+      decision: 'act',
+      action: { type: 'swap', amount: 250 },
+    }),
+  );
+
+  assert.equal(decision.decision, 'act');
+  assert.equal(decision.action.amount, 250n);
+});
+
+test('parseLlmReasoningDecision accepts integer-looking amount strings from providers', () => {
+  const decision = parseLlmReasoningDecision(
+    JSON.stringify({
+      decision: 'act',
+      action: { type: 'swap', amount: ' 250.0 ' },
+    }),
+  );
+
+  assert.equal(decision.decision, 'act');
+  assert.equal(decision.action.amount, 250n);
+});
+
+test('parseLlmReasoningDecision rejects unsafe or fractional number amounts', () => {
   assert.throws(
     () =>
       parseLlmReasoningDecision(
         JSON.stringify({
           decision: 'act',
-          action: { type: 'swap', amount: 250 },
+          action: { type: 'swap', amount: 1.5 },
         }),
       ),
-    /decimal string/,
+    /decimal string or safe integer/,
+  );
+  assert.throws(
+    () =>
+      parseLlmReasoningDecision(
+        JSON.stringify({
+          decision: 'act',
+          action: { type: 'swap', amount: Number.MAX_SAFE_INTEGER + 1 },
+        }),
+      ),
+    /decimal string or safe integer/,
   );
 });
 
