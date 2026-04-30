@@ -6,6 +6,9 @@ export {
 export {
   createTrustedAgent,
   type AgentStepResult,
+  type AgentRunStopContext,
+  type AgentRunUntilCompleteOptions,
+  type AgentRunUntilCompleteResult,
   type CreateTrustedAgentOptions,
   type TrustedAgent,
 } from './create-trusted-agent.js';

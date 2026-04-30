@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { hashPolicy, type ExecutionRequest } from '@0xagentio/core';
+import { hashPolicy, type ActionIntent, type ExecutionRequest, type ReasoningEngine } from '@0xagentio/core';
 
 import { createTrustedAgent } from './create-trusted-agent.js';
 import { localDelegationSigner, verifyLocalDelegation } from './local-delegation.js';
@@ -206,3 +206,163 @@ test('createTrustedAgent does not advance cumulative state when execution fails'
   assert.equal(result.status, 'accepted');
   assert.deepEqual(await storage.loadState(identity), initialState);
 });
+
+test('createTrustedAgent runUntilComplete stops when reasoning skips', async () => {
+  const storage = localMemoryStorage();
+  const decisions: Array<ActionIntent | 'skip'> = [
+    { type: 'swap', amount: 100n },
+    { type: 'swap', amount: 150n },
+    'skip',
+  ];
+  const reasoning = sequentialReasoning(decisions);
+  const agent = createTrustedAgent({
+    identity,
+    credential,
+    policy,
+    initialState,
+    reasoning,
+    proof: localPolicyProofs(),
+    storage,
+    execution: localExecution(async (request) => ({
+      success: true,
+      reference: `executed:${request.action.amount?.toString() ?? '0'}`,
+    })),
+    now: () => new Date('2026-04-25T12:00:00.000Z'),
+    createEventId: () => crypto.randomUUID(),
+  });
+
+  const result = await agent.runUntilComplete({ maxSteps: 5 });
+
+  assert.equal(result.status, 'completed');
+  assert.equal(result.steps.length, 3);
+  assert.deepEqual(result.finalState, {
+    cumulativeSpend: 250n,
+    updatedAt: new Date('2026-04-25T12:00:00.000Z'),
+  });
+});
+
+test('createTrustedAgent runUntilComplete supports stopWhen predicates', async () => {
+  const storage = localMemoryStorage();
+  const agent = createTrustedAgent({
+    identity,
+    credential,
+    policy,
+    initialState,
+    reasoning: staticReasoningEngine({ type: 'swap', amount: 100n }),
+    proof: localPolicyProofs(),
+    storage,
+    execution: localExecution(async () => ({
+      success: true,
+      reference: 'executed:swap',
+    })),
+    now: () => new Date('2026-04-25T12:00:00.000Z'),
+    createEventId: () => crypto.randomUUID(),
+  });
+
+  const result = await agent.runUntilComplete({
+    maxSteps: 5,
+    stopWhen: ({ state }) => state.cumulativeSpend >= 300n,
+  });
+
+  assert.equal(result.status, 'stopped');
+  assert.equal(result.steps.length, 3);
+  assert.equal(result.finalState.cumulativeSpend, 300n);
+});
+
+test('createTrustedAgent runUntilComplete stops on rejection', async () => {
+  const executions: ExecutionRequest[] = [];
+  const { agent } = createTestAgent({ type: 'swap', amount: 750n }, executions);
+
+  const result = await agent.runUntilComplete({ maxSteps: 5 });
+
+  assert.equal(result.status, 'rejected');
+  assert.equal(result.steps.length, 1);
+  assert.equal(executions.length, 0);
+});
+
+test('createTrustedAgent runUntilComplete stops on execution failure', async () => {
+  const storage = localMemoryStorage();
+  const agent = createTrustedAgent({
+    identity,
+    credential,
+    policy,
+    initialState,
+    reasoning: staticReasoningEngine({ type: 'swap', amount: 100n }),
+    proof: localPolicyProofs(),
+    storage,
+    execution: localExecution(async () => ({
+      success: false,
+      reference: 'execution-failed',
+    })),
+    now: () => new Date('2026-04-25T12:00:00.000Z'),
+    createEventId: () => crypto.randomUUID(),
+  });
+
+  const result = await agent.runUntilComplete({ maxSteps: 5 });
+
+  assert.equal(result.status, 'execution-failed');
+  assert.equal(result.steps.length, 1);
+  assert.deepEqual(result.finalState, initialState);
+});
+
+test('createTrustedAgent runUntilComplete stops at maxSteps', async () => {
+  const storage = localMemoryStorage();
+  const agent = createTrustedAgent({
+    identity,
+    credential,
+    policy,
+    initialState,
+    reasoning: staticReasoningEngine({ type: 'swap', amount: 1n }),
+    proof: localPolicyProofs(),
+    storage,
+    execution: localExecution(async () => ({
+      success: true,
+      reference: 'executed:swap',
+    })),
+    now: () => new Date('2026-04-25T12:00:00.000Z'),
+    createEventId: () => crypto.randomUUID(),
+  });
+
+  const result = await agent.runUntilComplete({ maxSteps: 2 });
+
+  assert.equal(result.status, 'max-steps');
+  assert.equal(result.steps.length, 2);
+  assert.equal(result.finalState.cumulativeSpend, 2n);
+});
+
+test('createTrustedAgent runUntilComplete reports aborted before starting a step', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const executions: ExecutionRequest[] = [];
+  const { agent } = createTestAgent({ type: 'swap', amount: 250n }, executions);
+
+  const result = await agent.runUntilComplete({
+    maxSteps: 5,
+    signal: controller.signal,
+  });
+
+  assert.equal(result.status, 'aborted');
+  assert.equal(result.steps.length, 0);
+  assert.equal(executions.length, 0);
+});
+
+test('createTrustedAgent runUntilComplete validates maxSteps', async () => {
+  const executions: ExecutionRequest[] = [];
+  const { agent } = createTestAgent({ type: 'swap', amount: 250n }, executions);
+
+  await assert.rejects(
+    () => agent.runUntilComplete({ maxSteps: 0 }),
+    /maxSteps must be a positive integer/,
+  );
+});
+
+function sequentialReasoning(decisions: Array<ActionIntent | 'skip'>): ReasoningEngine {
+  let index = 0;
+  return {
+    async decide() {
+      const decision = decisions[index] ?? 'skip';
+      index += 1;
+      return decision;
+    },
+  };
+}
