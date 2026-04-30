@@ -156,9 +156,9 @@ function readOptions(): Options {
       process.env.AGENTIO_0G_COMPUTE_BASE_URL ??
       ZERO_G_COMPUTE_ROUTER_TESTNET_BASE_URL,
     responseFormatStrategy:
-      process.env.AGENTIO_0G_COMPUTE_RESPONSE_FORMAT === 'prompt-only'
-        ? 'prompt-only'
-        : 'openai-json-object',
+      process.env.AGENTIO_0G_COMPUTE_RESPONSE_FORMAT === 'openai-json-object'
+        ? 'openai-json-object'
+        : 'prompt-only',
   };
 }
 
