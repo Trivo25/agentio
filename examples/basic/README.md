@@ -2,6 +2,19 @@
 
 These examples use only local in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected.
 
+
+## `agent-runtime-flow.ts`
+
+High-level agent runtime demo.
+
+It shows the recommended composed API for most applications: `createAgentRuntime(...)`. Alice gets identity, credential, policy, reasoning, proof, storage, execution, and transport adapters in one runtime object. Alice runs one authorized action and then sends Bob a compact execution summary over the local AXL-shaped transport.
+
+Run it with:
+
+```sh
+npm run example:runtime
+```
+
 ## `multi-agent-local-stack.ts`
 
 Milestone 1 local end-to-end demo.
