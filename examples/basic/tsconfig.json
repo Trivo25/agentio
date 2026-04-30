@@ -16,6 +16,9 @@
       "path": "../../packages/og"
     },
     {
+      "path": "../../packages/compute"
+    },
+    {
       "path": "../../packages/axl-client"
     },
     {

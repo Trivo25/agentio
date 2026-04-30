@@ -11,6 +11,7 @@
     "@0xagentio/sdk": "file:../../packages/sdk",
     "@0xagentio/noir": "file:../../packages/noir",
     "@0xagentio/og": "file:../../packages/og",
+    "@0xagentio/compute": "file:../../packages/compute",
     "@0xagentio/axl-local": "^0.1.0",
     "@0xagentio/axl-client": "^0.1.0"
   }
