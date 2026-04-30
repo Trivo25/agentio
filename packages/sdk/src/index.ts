@@ -13,7 +13,13 @@ export { localMemoryStorage, type LocalMemoryStorage } from './local-memory-stor
 export { localOgStorage, type LocalOgStorage, type LocalOgStorageRecord } from './local-og-storage.js';
 export { localNoirProofs } from './local-noir-proof.js';
 export { localPolicyProofs } from './local-policy-proof.js';
-export { staticReasoningEngine } from './static-reasoning-engine.js';
+export {
+  staticReasoningEngine,
+  staticRulesReasoningEngine,
+  type StaticReasoningRule,
+  type StaticReasoningRuleDecision,
+  type StaticRulesReasoningEngineOptions,
+} from './static-reasoning-engine.js';
 export { localAxlTransport, type LocalAxlEnvelope, type LocalAxlTransport } from './local-axl-transport.js';
 export { axlTransport, decodeAgentMessage, encodeAgentMessage, type AxlTransport, type AxlTransportOptions } from './axl-transport.js';
 export { localTransport, type LocalTransport } from './local-transport.js';
