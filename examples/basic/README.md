@@ -28,6 +28,26 @@ npm run build
 npm run example:llm-reasoning
 ```
 
+## `zero-g-compute-reasoning.ts`
+
+Opt-in live 0G Compute Router reasoning demo.
+
+It uses the real 0G Compute Router OpenAI-compatible API as the LLM provider for `llmReasoningEngine(...)`. The model proposes an action, then AgentIO still validates the policy, creates the proof, persists local 0G-shaped state, and executes through a verifying adapter.
+
+Required environment values:
+
+```sh
+AGENTIO_0G_COMPUTE_API_KEY=sk-...
+AGENTIO_0G_COMPUTE_BASE_URL=https://router-api-testnet.integratenetwork.work/v1
+AGENTIO_0G_COMPUTE_MODEL=zai-org/GLM-5-FP8
+```
+
+Run it with:
+
+```sh
+npm run example:0g-compute-reasoning
+```
+
 ## `live-stack.ts`
 
 Full live stack demo.
