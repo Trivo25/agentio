@@ -6,7 +6,7 @@ import {
   createAgentReply,
   createProofBackedMessage,
   createPolicy,
-  createTrustedAgent,
+  createAgentRuntime,
   hashPolicy,
   issueLocalCredential,
   localAxlTransport,
@@ -140,7 +140,7 @@ const rebalanceAction = createSwapActionFromQuote(goal, quoteReply, offeredOutpu
 logStep('Carol starts verified result listener');
 installCarolVerifiedResultListener(stats);
 
-logStep('Creating Alice trusted runtime');
+logStep('Creating Alice runtime');
 const agent = createAliceRuntime(rebalanceAction, stats);
 
 logStep('Alice proves and requests execution');
@@ -368,9 +368,14 @@ function installCarolVerifiedResultListener(stats: ScenarioStats): void {
   });
 }
 
-/** Creates Alice's trusted runtime for the final proof-backed execution request. */
+/**
+ * Creates Alice's runtime for the final proof-backed execution request.
+ *
+ * The runtime keeps Alice's decision, proof generation, state update, and audit
+ * write in one place while Bob still acts as an external verifying executor.
+ */
 function createAliceRuntime(rebalanceAction: ReturnType<typeof createActionIntent>, stats: ScenarioStats) {
-  return createTrustedAgent({
+  return createAgentRuntime({
     identity: alice,
     credential,
     policy,

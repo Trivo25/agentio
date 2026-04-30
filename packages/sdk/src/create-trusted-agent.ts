@@ -19,37 +19,46 @@ import type {
 import { validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
 
 /**
- * Dependencies required to create a trusted agent runtime.
+ * Dependencies for the lower-level trusted decision agent.
+ *
+ * Use this when an application wants direct control over a single
+ * reason/validate/prove/execute/audit loop and does not want this helper to own
+ * peer communication. Most applications should start with `createAgentRuntime`
+ * and use this only when they need custom orchestration.
  */
 export type CreateTrustedAgentOptions = {
-  /** Identity of the running agent. */
+  /** Identity that names the agent in validation, proofs, state, and audit events. */
   readonly identity: AgentIdentity;
-  /** Credential binding the agent to delegated authority. */
+  /** Credential showing which delegated authority this decision loop may use. */
   readonly credential: Credential;
-  /** Policy constraining the agent's actions. */
+  /** Policy checked before proof generation or execution can happen. */
   readonly policy: Policy;
-  /** Initial state used when storage has no prior state. */
+  /** Initial mutable state saved before the first run when storage is empty. */
   readonly initialState: AgentState;
-  /** Decision layer that proposes the next action. */
+  /** Reasoning layer that proposes an action or chooses to skip this cycle. */
   readonly reasoning: ReasoningEngine;
-  /** Proof backend that proves and verifies authorized actions. */
+  /** Proof backend used to bind an approved action to the credential and policy. */
   readonly proof: ProofAdapter;
-  /** Persistence backend for state and audit events. */
+  /** Storage backend that persists cumulative state and audit events. */
   readonly storage: StorageAdapter;
-  /** Optional backend for executing authorized actions after proof generation. */
+  /** Optional executor that consumes a proved action and returns a domain receipt. */
   readonly execution?: ExecutionAdapter;
-  /** Optional verifier for principal delegation signatures on credentials. */
+  /** Optional verifier that rejects credentials not signed by the delegating principal. */
   readonly delegationVerifier?: DelegationVerifier;
-  /** Optional clock for deterministic examples and tests. */
+  /** Optional clock for deterministic examples, tests, and replayable runs. */
   readonly now?: () => Date;
-  /** Optional event id generator for deterministic examples and tests. */
+  /** Optional event id generator for deterministic audit records. */
   readonly createEventId?: () => string;
 };
 
 export type { DelegationVerificationResult, DelegationVerifier } from '@0xagentio/core';
 
 /**
- * Result returned after one agent decision cycle.
+ * Result returned after one trusted-agent decision cycle.
+ *
+ * Applications inspect this result to learn whether the agent skipped, rejected,
+ * or accepted an action and to retrieve proof, execution, and audit details when
+ * an action was accepted.
  */
 export type AgentStepResult =
   | {
@@ -72,15 +81,21 @@ export type AgentStepResult =
     };
 
 /**
- * Minimal trusted agent runtime exposed by the SDK.
+ * Lower-level decision/proof agent without peer messaging.
+ *
+ * This surface is intentionally small so applications can embed the trusted loop
+ * inside their own scheduler, server, or multi-agent coordinator.
  */
 export type TrustedAgent = {
-  /** Runs one reasoning, validation, proof, and audit cycle. */
+  /** Runs one cycle: load state, reason, validate, prove, optionally execute, persist, and audit. */
   startOnce(): Promise<AgentStepResult>;
 };
 
 /**
- * Creates a trusted agent runtime from pluggable reasoning, proof, and storage dependencies.
+ * Creates the lower-level trusted agent used by `createAgentRuntime`.
+ *
+ * Choose this helper when message handling lives somewhere else and the
+ * application only needs the decision/proof/execution loop.
  */
 export function createTrustedAgent(options: CreateTrustedAgentOptions): TrustedAgent {
   const now = options.now ?? (() => new Date());

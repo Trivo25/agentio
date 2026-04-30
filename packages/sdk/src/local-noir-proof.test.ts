@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { hashPolicy } from '@0xagentio/core';
+import { hashAction, hashPolicy } from '@0xagentio/core';
 
 import { localNoirProofs } from './local-noir-proof.js';
 
@@ -22,11 +22,12 @@ const credential = {
 };
 
 test('localNoirProofs creates Noir-shaped public inputs from an authorized action', async () => {
+  const action = { type: 'swap', amount: 250n, metadata: { assetPair: 'ETH/USDC' } };
   const proof = await localNoirProofs().proveAction({
     credential,
     policy,
     state: { cumulativeSpend: 100n, updatedAt: new Date('2026-04-25T00:00:00.000Z') },
-    action: { type: 'swap', amount: 250n, metadata: { assetPair: 'ETH/USDC' } },
+    action,
     now: new Date('2026-04-25T12:00:00.000Z'),
   });
 
@@ -35,10 +36,13 @@ test('localNoirProofs creates Noir-shaped public inputs from an authorized actio
     agentId: 'agent-test',
     policyHash: credential.policyHash,
     actionType: 'swap',
+    actionHash: hashAction(action),
+    actionAmount: '250',
   });
 });
 
 test('localNoirProofs verifies non-empty local Noir proof payloads', async () => {
+  const action = { type: 'swap', amount: 250n, metadata: { assetPair: 'ETH/USDC' } };
   const proof = await localNoirProofs().proveAction({
     credential,
     policy,

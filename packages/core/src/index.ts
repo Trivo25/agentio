@@ -11,6 +11,7 @@ export type { AuditEvent, AuditStatus } from './audit.js';
 export type { StorageAdapter } from './storage.js';
 export type { AgentMessage, MessageHandler, PeerId, TransportAdapter } from './transport.js';
 export type { ExecutionAdapter, ExecutionRequest, ExecutionResult } from './execution.js';
+export { ACTION_HASH_ALGORITHM, hashAction, serializeAction } from './action-commitment.js';
 export { POLICY_HASH_ALGORITHM, hashPolicy, serializePolicy } from './policy-commitment.js';
 export { validateCredentialForPolicy } from './credential-validation.js';
 export type {

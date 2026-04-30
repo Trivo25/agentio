@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { hashPolicy } from '@0xagentio/core';
+import { hashAction, hashPolicy } from '@0xagentio/core';
 import { buildAuthorizationCircuitInput, hashToField } from './witness.js';
 
 const policy = {
@@ -24,11 +24,12 @@ const credential = {
 };
 
 test('buildAuthorizationCircuitInput maps SDK proof requests into v0 circuit inputs', () => {
+  const action = { type: 'swap', amount: 125n };
   const input = buildAuthorizationCircuitInput({
     credential,
     policy,
     state: { cumulativeSpend: 700n, updatedAt: new Date('2026-04-25T00:00:00.000Z') },
-    action: { type: 'swap', amount: 125n },
+    action,
     now: new Date('2026-04-25T12:00:00.000Z'),
   });
 
@@ -36,6 +37,9 @@ test('buildAuthorizationCircuitInput maps SDK proof requests into v0 circuit inp
     public_agent_id_hash: hashToField('agent-alice'),
     public_policy_hash: hashToField(credential.policyHash),
     public_action_type_hash: hashToField('swap'),
+    public_action_hash: hashToField(hashAction(action)),
+    public_action_amount: '125',
+    action_hash: hashToField(hashAction(action)),
     credential_agent_id_hash: hashToField('agent-alice'),
     credential_policy_hash: hashToField(credential.policyHash),
     allowed_action_type_hash: hashToField('swap'),

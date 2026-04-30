@@ -3,22 +3,21 @@ import type { AgentIdentity, AgentMessage, MessageHandler, PeerId, ProofAdapter,
 import { onVerifiedMessage, type VerifiedMessageHandlers } from './verified-message.js';
 
 /**
- * Options for creating an agent-scoped peer messaging helper.
+ * Options for creating the lower-level peer messaging helper.
  *
- * Use this when an identity needs to participate in peer communication through
- * a transport adapter. The helper keeps send/listen calls attached to a named
- * agent so examples and applications can show who is speaking or listening.
+ * Use this when an application wants an agent identity to send, request, or
+ * listen on a transport without also running the decision/proof loop. The
+ * higher-level `createAgentRuntime` uses the same helper when transport is
+ * configured.
  */
 export type CreateAgentPeerOptions = {
-  /** Identity of the peer agent using the transport. */
+  /** Identity used as the owner of sends, requests, and listeners. */
   readonly identity: AgentIdentity;
-  /** Transport used by this peer agent. */
+  /** Transport adapter that actually delivers or records peer messages. */
   readonly transport: TransportAdapter;
 };
 
-/**
- * Compatibility alias for the previous peer helper options name.
- */
+/** Compatibility alias for applications still using the previous peer options name. */
 export type CreatePeerAgentOptions = CreateAgentPeerOptions;
 
 /**
@@ -30,9 +29,9 @@ export type CreatePeerAgentOptions = CreateAgentPeerOptions;
  * the same `id`, `correlationId`, and `replyTo` message metadata.
  */
 export type AgentPeerRequestOptions = {
-  /** Expected reply message type, when the caller wants to ignore unrelated replies. */
+  /** Expected reply type when the caller wants to ignore unrelated peer traffic. */
   readonly expectedType?: string;
-  /** Maximum time to wait for a matching reply before rejecting. */
+  /** Maximum time to wait before treating the request as unanswered. */
   readonly timeoutMs?: number;
 };
 
@@ -45,27 +44,29 @@ export type AgentPeerRequestOptions = {
  * accepting proof-backed verified messages.
  */
 export type AgentPeer = {
-  /** Identity associated with this peer helper. */
+  /** Identity that owns this peer communication helper. */
   readonly identity: AgentIdentity;
-  /** Sends a message to another peer without waiting for a response. */
+  /** Sends a message when the caller does not need a correlated response. */
   send(peerId: PeerId, message: AgentMessage): Promise<void>;
-  /** Sends a message and resolves with the first matching reply. */
+  /** Sends a request and resolves with the first reply matching `replyTo` and correlation metadata. */
   request(peerId: PeerId, message: AgentMessage, options?: AgentPeerRequestOptions): Promise<AgentMessage>;
-  /** Broadcasts a message to all peers supported by the transport. */
+  /** Broadcasts a message when the transport supports fan-out delivery. */
   broadcast(message: AgentMessage): Promise<void>;
-  /** Registers this peer agent as a listener for raw incoming messages. */
+  /** Registers this agent as a raw message listener for custom protocol logic. */
   onMessage(handler: MessageHandler): Promise<void> | void;
-  /** Registers this peer agent as a listener for proof-backed messages. */
+  /** Registers this agent as a verified-message listener so app code can trust proof-backed payloads. */
   onVerifiedMessage(proofAdapter: ProofAdapter, handlers: VerifiedMessageHandlers): Promise<void> | void;
 };
 
-/**
- * Compatibility alias for the previous peer helper type name.
- */
+/** Compatibility alias for applications still using the previous peer helper type name. */
 export type PeerAgent = AgentPeer;
 
 /**
- * Creates an agent-scoped peer helper so listener ownership is explicit.
+ * Creates a lower-level peer helper for transport-only agent communication.
+ *
+ * Choose this helper for custom messaging flows, or use `createAgentRuntime`
+ * when the same agent should also own reasoning, proof generation, state, and
+ * execution.
  */
 export function createAgentPeer(options: CreateAgentPeerOptions): AgentPeer {
   return {
@@ -93,9 +94,7 @@ export function createAgentPeer(options: CreateAgentPeerOptions): AgentPeer {
   };
 }
 
-/**
- * Compatibility alias for createAgentPeer.
- */
+/** Compatibility alias for `createAgentPeer`. */
 export const createPeerAgent = createAgentPeer;
 
 function requestPeer(

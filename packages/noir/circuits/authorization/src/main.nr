@@ -7,6 +7,9 @@ fn main(
     public_agent_id_hash: pub Field,
     public_policy_hash: pub Field,
     public_action_type_hash: pub Field,
+    public_action_hash: pub Field,
+    public_action_amount: pub u64,
+    action_hash: Field,
     credential_agent_id_hash: Field,
     credential_policy_hash: Field,
     allowed_action_type_hash: Field,
@@ -21,6 +24,8 @@ fn main(
     assert(public_agent_id_hash == credential_agent_id_hash, "agent identity must match credential");
     assert(public_policy_hash == credential_policy_hash, "policy commitment must match credential");
     assert(public_action_type_hash == allowed_action_type_hash, "action type must be allowed");
+    assert(public_action_hash == action_hash, "action hash must match public input");
+    assert(public_action_amount == action_amount, "action amount must match public input");
     assert(now <= credential_expires_at, "credential must not be expired");
     assert(now <= policy_expires_at, "policy must not be expired");
     assert(action_amount <= max_action_amount, "action amount must stay within policy");
@@ -33,6 +38,9 @@ fn accepts_valid_authorization() {
         1,
         2,
         3,
+        4,
+        250,
+        4,
         1,
         2,
         3,
@@ -52,6 +60,9 @@ fn rejects_amount_above_policy_bound() {
         1,
         2,
         3,
+        4,
+        251,
+        4,
         1,
         2,
         3,
@@ -71,6 +82,9 @@ fn rejects_cumulative_amount_above_policy_bound() {
         1,
         2,
         3,
+        4,
+        350,
+        4,
         1,
         2,
         3,
@@ -90,6 +104,9 @@ fn rejects_policy_mismatch() {
         1,
         2,
         3,
+        4,
+        250,
+        4,
         1,
         999,
         3,

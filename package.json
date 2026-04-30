@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "examples/*"
+    "examples/*",
+    "site"
   ],
   "scripts": {
     "build": "tsc -b",
@@ -31,12 +32,16 @@
     "keys:evm": "node scripts/generate-test-evm-wallets.mjs",
     "keys:stream": "node scripts/generate-test-og-stream-id.mjs",
     "og:kv:status": "node scripts/diagnose-og-kv.mjs",
+    "og:kv:roundtrip": "node scripts/og-kv-roundtrip.mjs",
     "test:og:live": "npm run build && AGENTIO_0G_RUN_LIVE=1 node --test --test-concurrency=1 packages/og/dist/file-client.test.js packages/og/dist/network-client.test.js",
     "test:og:live:file": "npm run build && AGENTIO_0G_RUN_LIVE=1 node --test packages/og/dist/file-client.test.js",
     "test:og:live:kv": "npm run build && AGENTIO_0G_RUN_LIVE=1 node --test packages/og/dist/network-client.test.js",
     "test:axl:local": "npm run build && AGENTIO_AXL_RUN_LOCAL=1 node --test packages/axl-local/dist/local-smoke.test.js",
     "example:axl:local-network": "npm run build && node examples/axl-local-network/dist/index.js",
-    "example:axl:local-network:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:axl:local-network"
+    "example:axl:local-network:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:axl:local-network",
+    "example:real-axl-peer": "npm run build && node examples/basic/dist/real-axl-peer.js",
+    "example:real-axl-peer:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:real-axl-peer",
+    "example:runtime": "node examples/basic/dist/agent-runtime-flow.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

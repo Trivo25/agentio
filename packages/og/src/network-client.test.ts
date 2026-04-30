@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { loadEnvFile } from './env.js';
+import { decodeAgentStateDocument } from './codec.js';
 import { agentStateKey, namespacedKey } from './index.js';
 import { memoryOgObjectClient, ogKvObjectClient, ogStorage, supportsDurableOgState } from './index.js';
 
@@ -30,6 +31,9 @@ test('ogKvObjectClient can round-trip state on the real 0G network when credenti
 
   await storage.saveState(identity, state);
 
+  const rawDocument = await client.getObject(probeKey);
+  assert.ok(rawDocument !== undefined);
+  assert.deepEqual(decodeAgentStateDocument(rawDocument), state);
   assert.deepEqual(await storage.loadState(identity), state);
 });
 

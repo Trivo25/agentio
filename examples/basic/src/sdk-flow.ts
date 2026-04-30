@@ -11,19 +11,29 @@ import {
   localMemoryStorage,
   localPolicyProofs,
   staticReasoningEngine,
+  type AgentStepResult,
 } from '@0xagentio/sdk';
 
-import { toJsonSafe } from './json.js';
 
-// This example is the smallest happy-path SDK flow for a third-party developer.
-// It shows how identity, policy, credential issuance, reasoning, proof generation,
-// execution and audit storage fit together without any real network dependencies.
+/**
+ * Demonstrates the lower-level trusted-agent API.
+ *
+ * This example is useful when a developer wants direct control over one local
+ * decision/proof/execution cycle without peer messaging. Most applications can
+ * start with `createAgentRuntime`; this lower-level helper remains available
+ * when the app wants to own communication or orchestration separately.
+ */
 
+logTitle('0xAgentio trusted-agent flow');
+
+logStep('Creating Alice identity');
 const identity = createAgentIdentity({
   id: 'agent-alice',
   publicKey: 'agent-public-key-alice',
 });
+logDetail('Alice', identity.id);
 
+logStep('Creating delegated policy and credential');
 const policy = createPolicy({
   id: 'policy-basic',
   allowedActions: ['swap'],
@@ -35,6 +45,7 @@ const policy = createPolicy({
 });
 
 const policyHash = hashPolicy(policy);
+logDetail('Policy commitment', policyHash);
 
 const credential = await issueLocalCredential({
   identity,
@@ -43,13 +54,17 @@ const credential = await issueLocalCredential({
   issuedAt: new Date('2026-04-25T00:00:00.000Z'),
   signer: localDelegationSigner('principal-alice'),
 });
+logDetail('Credential', credential.id);
 
+logStep('Creating Alice action');
 const action = createActionIntent({
   type: 'swap',
   amount: 250n,
   metadata: { assetPair: 'ETH/USDC' },
 });
+logDetail('Action', `${action.type} ${String(action.amount)} ${String(action.metadata?.assetPair)}`);
 
+logStep('Creating lower-level trusted agent');
 const storage = localMemoryStorage();
 const agent = createTrustedAgent({
   identity,
@@ -72,6 +87,33 @@ const agent = createTrustedAgent({
   createEventId: () => 'event-sdk-flow-1',
 });
 
+logStep('Running one decision cycle');
 const result = await agent.startOnce();
+logDetail('Decision result', describeResult(result));
+logDetail('Audit events', String(storage.getAuditEvents().length));
 
-console.log(JSON.stringify(toJsonSafe({ policyHash, credential, result, auditEvents: storage.getAuditEvents() }), null, 2));
+/** Returns a readable one-line description for the trusted-agent result. */
+function describeResult(result: AgentStepResult): string {
+  if (result.status === 'accepted') {
+    return `accepted ${result.action.type} with ${result.proof.format}`;
+  }
+
+  if (result.status === 'rejected') {
+    return `rejected with ${result.validation.issues.length} issue(s)`;
+  }
+
+  return 'skipped';
+}
+
+function logTitle(title: string): void {
+  console.log(`\n${title}`);
+  console.log('='.repeat(title.length));
+}
+
+function logStep(message: string): void {
+  console.log(`\n▶ ${message}`);
+}
+
+function logDetail(label: string, value: string): void {
+  console.log(`  - ${label}: ${value}`);
+}

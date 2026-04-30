@@ -1,3 +1,4 @@
+import { hashAction } from './action-commitment.js';
 import type { ProofRequest } from './proof.js';
 
 /**
@@ -15,6 +16,10 @@ export type NoirAuthorizationPublicInputs = {
   readonly policyHash: string;
   /** Action kind being authorized. */
   readonly actionType: string;
+  /** Deterministic commitment to the full action payload being authorized. */
+  readonly actionHash: string;
+  /** Action amount exposed so verifiers can bind executable quantity to the circuit. */
+  readonly actionAmount: string;
 };
 
 /**
@@ -58,6 +63,8 @@ export function createNoirAuthorizationInput(request: ProofRequest): NoirAuthori
       agentId: request.credential.agentId,
       policyHash: request.credential.policyHash,
       actionType: request.action.type,
+      actionHash: hashAction(request.action),
+      actionAmount: (request.action.amount ?? 0n).toString(),
     },
     privateInputs: {
       credentialId: request.credential.id,

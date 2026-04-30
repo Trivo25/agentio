@@ -2,7 +2,7 @@ import { UltraHonkBackend, type BackendOptions, type ProofData } from '@aztec/bb
 import type { CompiledCircuit } from '@noir-lang/types';
 import { Noir } from '@noir-lang/noir_js';
 import type { CredentialProof, ProofAdapter, ProofRequest, ProofResult, VerifierResult } from '@0xagentio/core';
-import { validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
+import { createNoirAuthorizationInput, validateActionAgainstPolicy, validateCredentialForPolicy } from '@0xagentio/core';
 import type { AuthorizationCircuitArtifact } from './artifact.js';
 import { loadAuthorizationCircuitArtifact } from './artifact.js';
 import { buildAuthorizationCircuitInput, hashToField } from './witness.js';
@@ -73,6 +73,7 @@ class NoirProofAdapter implements ProofAdapter {
       throw new Error(`Cannot create Noir proof for invalid action: ${actionValidation.issues.map((issue) => issue.code).join(', ')}`);
     }
 
+    const authorizationInput = createNoirAuthorizationInput(request);
     const artifact = await this.#loadArtifact();
     const input = buildAuthorizationCircuitInput(request);
     const noir = new Noir(artifact as CompiledCircuit);
@@ -90,6 +91,8 @@ class NoirProofAdapter implements ProofAdapter {
             agentId: request.credential.agentId,
             policyHash: request.credential.policyHash,
             actionType: request.action.type,
+            actionHash: authorizationInput.publicInputs.actionHash,
+            actionAmount: authorizationInput.publicInputs.actionAmount,
           },
         },
       };
@@ -121,6 +124,14 @@ class NoirProofAdapter implements ProofAdapter {
     try {
       const valid = await backend.verifyProof(decoded.proofData as ProofData);
       return { valid, reason: valid ? undefined : 'Barretenberg proof verification failed.' };
+    } catch (error) {
+      return {
+        valid: false,
+        reason:
+          error instanceof Error
+            ? `Barretenberg proof verification failed: ${error.message}`
+            : 'Barretenberg proof verification failed.',
+      };
     } finally {
       await backend.destroy();
     }
@@ -134,14 +145,18 @@ class NoirProofAdapter implements ProofAdapter {
     const agentId = proof.publicInputs.agentId;
     const policyHash = proof.publicInputs.policyHash;
     const actionType = proof.publicInputs.actionType;
+    const actionHash = proof.publicInputs.actionHash;
+    const actionAmount = proof.publicInputs.actionAmount;
 
-    if (typeof agentId !== 'string' || typeof policyHash !== 'string' || typeof actionType !== 'string') {
-      throw new TypeError('Noir proof public inputs must include string agentId, policyHash, and actionType.');
+    if (typeof agentId !== 'string' || typeof policyHash !== 'string' || typeof actionType !== 'string' || typeof actionHash !== 'string' || typeof actionAmount !== 'string') {
+      throw new TypeError('Noir proof public inputs must include string agentId, policyHash, actionType, actionHash, and actionAmount.');
     }
 
     assertFieldEquals(noirPublicInputs[0], hashToField(agentId), 'agentId');
     assertFieldEquals(noirPublicInputs[1], hashToField(policyHash), 'policyHash');
     assertFieldEquals(noirPublicInputs[2], hashToField(actionType), 'actionType');
+    assertFieldEquals(noirPublicInputs[3], hashToField(actionHash), 'actionHash');
+    assertFieldEquals(noirPublicInputs[4], actionAmount, 'actionAmount');
   }
 }
 

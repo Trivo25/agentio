@@ -25,76 +25,80 @@ import {
 } from './peer-agent.js';
 
 /**
- * Dependencies for creating a full agent runtime.
+ * Dependencies for creating the recommended high-level agent runtime.
  *
- * Use this when an application wants one object that combines the agent's
- * decision loop with optional peer communication. The individual adapters stay
- * pluggable, so the same runtime can run locally or with real backends such as
- * Noir proofs, 0G storage, and AXL transport.
+ * Use this when an application wants one object that can decide, prove, execute,
+ * persist state, and communicate with other agents. Each capability is supplied
+ * as an adapter, so the same application code can start locally and later swap
+ * in real Noir, 0G, Gensyn AXL, or domain-specific execution backends.
  */
 export type CreateAgentRuntimeOptions = {
-  /** Identity of the running agent. */
+  /** Identity that names this agent in proofs, state records, and peer messages. */
   readonly identity: AgentIdentity;
-  /** Credential binding the agent to delegated authority. */
+  /** Credential showing which principal authority this agent is allowed to use. */
   readonly credential: Credential;
-  /** Policy constraining the agent's decisions and proof requests. */
+  /** Policy that every runtime decision must satisfy before proof or execution. */
   readonly policy: Policy;
-  /** Initial state saved when the storage backend has no prior state. */
+  /** Initial mutable state used for the first run before persisted state exists. */
   readonly initialState: AgentState;
-  /** Decision layer that proposes the next action. */
+  /** Reasoning layer that proposes the next action or chooses to skip. */
   readonly reasoning: ReasoningEngine;
-  /** Proof backend that proves and verifies authorized actions. */
+  /** Proof backend used to bind an approved action to this credential and policy. */
   readonly proof: ProofAdapter;
-  /** Persistence backend for state and audit events. */
+  /** Storage backend used to remember agent state and audit what happened. */
   readonly storage: StorageAdapter;
-  /** Optional transport for peer-to-peer agent messages. */
+  /** Optional transport that lets this runtime send, request, and listen for peer messages. */
   readonly transport?: TransportAdapter;
-  /** Optional backend for executing authorized actions after proof generation. */
+  /** Optional executor that consumes a proved action and returns a domain receipt. */
   readonly execution?: ExecutionAdapter;
-  /** Optional verifier for principal delegation signatures on credentials. */
+  /** Optional verifier that rejects credentials not signed by the delegating principal. */
   readonly delegationVerifier?: DelegationVerifier;
-  /** Optional clock for deterministic examples and tests. */
+  /** Optional clock for deterministic examples, tests, and replayable runs. */
   readonly now?: () => Date;
-  /** Optional event id generator for deterministic examples and tests. */
+  /** Optional event id generator for deterministic audit records. */
   readonly createEventId?: () => string;
 };
 
 /**
- * Agent runtime composed from the SDK's pluggable backend adapters.
+ * High-level agent object composed from the SDK's pluggable adapters.
  *
- * Developers use this as the high-level surface for an agent that can decide,
- * prove, persist state, and optionally communicate with other agents. Lower
- * level helpers remain available when an application needs finer control.
+ * Developers use this as the primary application surface when an agent should
+ * own both its decision loop and its communication boundary. Lower-level helpers
+ * remain available for applications that need to orchestrate those pieces
+ * separately.
  */
 export type AgentRuntime = {
-  /** Identity associated with this runtime. */
+  /** Identity this runtime uses for decisions, state, proofs, and messages. */
   readonly identity: AgentIdentity;
-  /** Runs one reasoning, validation, proof, execution, and audit cycle. */
+  /** Runs one full agent cycle: load state, reason, validate, prove, execute, persist, and audit. */
   startOnce(): Promise<AgentStepResult>;
-  /** Loads this agent's latest state from the configured storage backend. */
+  /** Loads the latest persisted state so applications can inspect runtime progress. */
   loadState(): Promise<AgentState>;
-  /** Saves this agent's latest state to the configured storage backend. */
+  /** Saves state explicitly when an application updates agent state outside `startOnce`. */
   saveState(state: AgentState): Promise<void>;
-  /** Sends a message through the configured transport. */
+  /** Sends a peer message from this runtime's identity through the configured transport. */
   send(peerId: PeerId, message: AgentMessage): Promise<void>;
-  /** Sends a message and waits for a correlated reply through the configured transport. */
+  /** Sends a peer request and waits for the first reply matching its correlation metadata. */
   request(
     peerId: PeerId,
     message: AgentMessage,
     options?: AgentPeerRequestOptions,
   ): Promise<AgentMessage>;
-  /** Registers this runtime as a listener for raw incoming peer messages. */
+  /** Registers this runtime as the listener for incoming raw peer messages. */
   onMessage(
     handler: Parameters<AgentPeer['onMessage']>[0],
   ): Promise<void> | void;
-  /** Returns the lower-level trusted decision agent when direct access is needed. */
+  /** Returns the lower-level decision/proof agent when an application needs direct control. */
   trustedAgent(): TrustedAgent;
-  /** Returns the lower-level peer helper, or undefined when no transport was configured. */
+  /** Returns the lower-level peer helper, or undefined when this runtime is non-networked. */
   peer(): AgentPeer | undefined;
 };
 
 /**
- * Creates a composed agent runtime from proof, storage, reasoning, and transport adapters.
+ * Creates the recommended high-level runtime for a pluggable AgentIO agent.
+ *
+ * This is the easiest entry point for applications because it wires the trusted
+ * decision loop and optional peer messaging into one agent-scoped object.
  */
 export function createAgentRuntime(
   options: CreateAgentRuntimeOptions,

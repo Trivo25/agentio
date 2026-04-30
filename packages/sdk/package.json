@@ -16,6 +16,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@0xagentio/core": "file:../core"
+    "@0xagentio/core": "file:../core",
+    "@0xagentio/axl-client": "^0.1.0"
   }
 }
