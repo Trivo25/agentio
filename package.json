@@ -40,7 +40,8 @@
     "example:axl:local-network": "npm run build && node examples/axl-local-network/dist/index.js",
     "example:axl:local-network:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:axl:local-network",
     "example:real-axl-peer": "npm run build && node examples/basic/dist/real-axl-peer.js",
-    "example:real-axl-peer:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:real-axl-peer"
+    "example:real-axl-peer:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:real-axl-peer",
+    "example:runtime": "node examples/basic/dist/agent-runtime-flow.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
