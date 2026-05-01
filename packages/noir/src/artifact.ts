@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Minimal compiled Noir circuit shape needed by the NoirJS adapter.
@@ -70,7 +71,10 @@ export function parseAuthorizationCircuitArtifact(
  * loading it in a fresh checkout.
  */
 export function defaultAuthorizationCircuitArtifactPath(): string {
-  return resolve('packages/noir/circuits/authorization/target/agentio_authorization.json');
+  return resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    '../circuits/authorization/target/agentio_authorization.json',
+  );
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {

@@ -1,8 +1,7 @@
 {
   "name": "@0xagentio/og",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,11 +12,42 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@0gfoundation/0g-ts-sdk": "^1.2.6",
-    "@0xagentio/core": "file:../core",
+    "@0xagentio/core": "^0.1.0",
     "ethers": "^6.13.1"
+  },
+  "description": "0G Storage and KV adapters for AgentIO state and audit persistence.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xagentio/agentio.git",
+    "directory": "packages/og"
+  },
+  "keywords": [
+    "agentio",
+    "0g",
+    "storage",
+    "kv",
+    "agents"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts.map",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts",
+    "!dist/**/*.test.js.map",
+    "!dist/**/*.test.d.ts.map",
+    "!dist/.tsbuildinfo",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }
