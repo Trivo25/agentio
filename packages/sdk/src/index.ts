@@ -6,6 +6,9 @@ export {
 export {
   createTrustedAgent,
   type AgentStepResult,
+  type AgentRunStopContext,
+  type AgentRunUntilCompleteOptions,
+  type AgentRunUntilCompleteResult,
   type CreateTrustedAgentOptions,
   type TrustedAgent,
 } from './create-trusted-agent.js';
@@ -31,9 +34,14 @@ export {
 } from './llm-client.js';
 export {
   llmReasoningEngine,
+  parseLlmReasoningAmount,
   parseLlmReasoningDecision,
   type LlmReasoningDecision,
+  type LlmReasoningDecisionObserver,
+  type LlmReasoningDecisionTrace,
   type LlmReasoningEngineOptions,
+  type LlmReasoningGuard,
+  type LlmReasoningGuardContext,
 } from './llm-reasoning-engine.js';
 export { localAxlTransport, type LocalAxlEnvelope, type LocalAxlTransport } from './local-axl-transport.js';
 export { axlTransport, decodeAgentMessage, encodeAgentMessage, type AxlTransport, type AxlTransportOptions } from './axl-transport.js';

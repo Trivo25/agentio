@@ -1,8 +1,7 @@
 {
   "name": "@0xagentio/compute",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,9 +12,40 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "prepack": "npm run build"
   },
   "dependencies": {
-    "@0xagentio/sdk": "file:../sdk"
+    "@0xagentio/sdk": "^0.1.0"
+  },
+  "description": "0G Compute Router LLM client for AgentIO reasoning engines.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xagentio/agentio.git",
+    "directory": "packages/compute"
+  },
+  "keywords": [
+    "agentio",
+    "0g",
+    "compute",
+    "llm",
+    "reasoning"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts.map",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts",
+    "!dist/**/*.test.js.map",
+    "!dist/**/*.test.d.ts.map",
+    "!dist/.tsbuildinfo",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

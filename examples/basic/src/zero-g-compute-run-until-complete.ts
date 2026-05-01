@@ -11,6 +11,7 @@ import {
   createPolicy,
   hashPolicy,
   issueLocalCredential,
+  type LlmReasoningDecision,
   llmReasoningEngine,
   localDelegationSigner,
   localNoirProofs,
@@ -20,33 +21,38 @@ import {
 } from '@0xagentio/sdk';
 
 /**
- * Runs dynamic reasoning through the 0G Compute Router.
+ * Runs a bounded multi-step agent loop with 0G Compute as the reasoning layer.
  *
- * This opt-in example uses the real 0G Router OpenAI-compatible API for the
- * reasoning step, then keeps the normal AgentIO trust boundary: policy
- * validation, proof generation, state persistence, and verified execution still
- * happen locally after the model proposes an action.
+ * The example shows the shape of a useful autonomous agent: the model proposes
+ * one small action at a time, deterministic guard code keeps each proposal in
+ * the app's safety envelope, and `runUntilComplete` repeats the normal AgentIO
+ * validation/proof/execution/audit lifecycle until persisted state reaches the
+ * target.
  */
 
 loadEnvFile();
 const options = readOptions();
 const now = new Date('2026-04-30T12:00:00.000Z');
+const targetSpend = 300n;
+const stepAmount = 100n;
 
-logTitle('0xAgentio 0G Compute reasoning flow');
+logTitle('0xAgentio 0G Compute runUntilComplete flow');
 logStep('Checking 0G Compute Router configuration');
 logDetail('Router base URL', options.baseUrl);
 logDetail('Model', options.model);
+logDetail('Response format strategy', options.responseFormatStrategy);
 
-logStep('Creating delegated Alice');
+logStep('1. Create delegated Alice');
 const aliceIdentity = createAgentIdentity({
-  id: 'agent-alice-0g-compute',
-  publicKey: 'agent-public-key-alice-0g-compute',
+  id: 'agent-alice-0g-compute-loop',
+  publicKey: 'agent-public-key-alice-0g-compute-loop',
 });
 const policy = createPolicy({
-  id: 'policy-0g-compute-rebalance',
+  id: 'policy-0g-compute-loop',
   allowedActions: ['swap'],
   constraints: [
-    { type: 'max-amount', value: 500n, actionTypes: ['swap'] },
+    { type: 'max-amount', value: stepAmount, actionTypes: ['swap'] },
+    { type: 'max-cumulative-amount', value: targetSpend, actionTypes: ['swap'] },
     {
       type: 'allowed-metadata-value',
       key: 'assetPair',
@@ -66,14 +72,16 @@ const policyHash = hashPolicy(policy);
 const credential = await issueLocalCredential({
   identity: aliceIdentity,
   policy,
-  id: `credential-alice-0g-compute-${Date.now()}`,
+  id: `credential-alice-0g-compute-loop-${Date.now()}`,
   issuedAt: now,
-  signer: localDelegationSigner('principal-0g-compute-demo'),
+  signer: localDelegationSigner('principal-0g-compute-loop-demo'),
 });
 logDetail('Alice', aliceIdentity.id);
+logDetail('Per-step max', stepAmount.toString());
+logDetail('Target cumulative spend', targetSpend.toString());
 logDetail('Policy commitment', policyHash);
 
-logStep('Creating 0G Compute LLM reasoning adapter');
+logStep('2. Create 0G Compute reasoning with a deterministic guard');
 const client = zeroGComputeRouterLlmClient({
   apiKey: options.apiKey,
   baseUrl: options.baseUrl,
@@ -83,16 +91,25 @@ const client = zeroGComputeRouterLlmClient({
 const reasoning = llmReasoningEngine({
   client,
   goal: [
-    'Return JSON only.',
-    'A verified market agent quoted ETH/USDC at 1:3.',
-    'If this meets the minimum 1:2 threshold, propose a swap for 250 units.',
+    'Run an incremental ETH/USDC rebalance until cumulativeSpend reaches 300.',
+    'Return one action per decision cycle, not the whole plan.',
+    'If cumulativeSpend is already 300 or higher, return {"decision":"skip"}.',
+    'Otherwise propose {"decision":"act","action":{"type":"swap","amount":"100","metadata":{"assetPair":"ETH/USDC","venue":"uniswap-demo"}}}.',
   ].join(' '),
   instructions:
-    'Only propose action type "swap". Use metadata assetPair="ETH/USDC" and venue="uniswap-demo".',
+    'Return strict JSON only. Use decimal strings for amounts. Do not propose actions other than swap.',
   allowedActionTypes: ['swap'],
+  guard: ({ decision, context }) => guardRebalanceDecision(decision, context.state.cumulativeSpend),
+  onDecision: ({ rawDecision, decision }) => {
+    logDecisionTrace(rawDecision, decision);
+  },
 });
+logDetail(
+  'Guard purpose',
+  'normalizes model output to one safe 100-unit ETH/USDC swap or skip when complete',
+);
 
-logStep('Running one AgentIO cycle with real 0G Compute reasoning');
+logStep('3. Run bounded cycles until Alice reaches the target');
 const proof = localNoirProofs();
 const storage = localOgStorage();
 const alice = createAgentRuntime({
@@ -107,12 +124,12 @@ const alice = createAgentRuntime({
   execution: localVerifyingExecution(proof, async ({ action, proof }) => {
     logDetail(
       'Execution adapter verified',
-      `${proof.publicInputs.agentId} may ${proof.publicInputs.actionType}`,
+      `${proof.publicInputs.agentId} may ${proof.publicInputs.actionType} ${String(action.amount)}`,
     );
 
     return {
       success: true,
-      reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${action.type}`,
+      reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${String(action.amount)}`,
       details: {
         assetPair: action.metadata?.assetPair,
         venue: action.metadata?.venue,
@@ -121,20 +138,53 @@ const alice = createAgentRuntime({
     };
   }),
   now: () => now,
-  createEventId: () => `audit-event-0g-compute-${Date.now()}`,
+  createEventId: () => `audit-event-0g-compute-loop-${crypto.randomUUID()}`,
 });
-const result = await alice.startOnce();
-if (result.status !== 'accepted') {
-  throw new Error(`Expected accepted action, got ${result.status}.`);
-}
-logDetail('Runtime result', result.status);
-logDetail('0G Compute proposed', describeAction(result.action));
-logDetail('Execution receipt', result.execution?.reference ?? 'none');
+const result = await alice.runUntilComplete({
+  maxSteps: 5,
+  timeoutMs: 60_000,
+  stopWhen: ({ state }) => state.cumulativeSpend >= targetSpend,
+});
 
-logStep('Inspecting persisted local state');
-const latestState = await alice.loadState();
-logDetail('Cumulative spend', String(latestState.cumulativeSpend));
-logDetail('0G-shaped records', String(storage.getRecords().length));
+logStep('4. Inspect the completed run');
+logDetail('Run status', result.status);
+logDetail('Steps completed', String(result.steps.length));
+logDetail('Accepted actions', String(result.steps.filter((step) => step.status === 'accepted').length));
+logDetail('Final cumulative spend', String(result.finalState.cumulativeSpend));
+logDetail('0G-shaped state records', String(storage.getRecords().length));
+logDetail('Audit events', String(storage.getAuditEvents().length));
+
+logStep('Outcome');
+logDetail(
+  'What this proves',
+  '0G Compute can drive repeated reasoning cycles while AgentIO keeps every action separately validated, proved, executed, and audited',
+);
+
+function guardRebalanceDecision(
+  decision: LlmReasoningDecision,
+  cumulativeSpend: bigint,
+): LlmReasoningDecision {
+  if (cumulativeSpend >= targetSpend) {
+    return { decision: 'skip', reason: 'target cumulative spend reached' };
+  }
+
+  const remaining = targetSpend - cumulativeSpend;
+  const amount = remaining < stepAmount ? remaining : stepAmount;
+
+  return {
+    decision: 'act',
+    action: createActionIntent({
+      type: 'swap',
+      amount,
+      metadata: {
+        assetPair: 'ETH/USDC',
+        venue: 'uniswap-demo',
+        reason: 'continue incremental rebalance until target is reached',
+      },
+    }),
+    reason: 'deterministic guard selected the next safe rebalance step',
+  };
+}
 
 type Options = {
   readonly apiKey: string;
@@ -164,10 +214,6 @@ function readOptions(): Options {
         ? 'openai-json-object'
         : 'prompt-only',
   };
-}
-
-function describeAction(action: ReturnType<typeof createActionIntent>): string {
-  return `${action.type} ${String(action.amount ?? 0n)} ${String(action.metadata?.assetPair ?? '')}`;
 }
 
 function loadEnvFile(path = '.env'): void {
@@ -213,6 +259,29 @@ function unquoteEnvValue(value: string): string {
   }
 
   return value;
+}
+
+function logDecisionTrace(
+  rawDecision: LlmReasoningDecision,
+  decision: LlmReasoningDecision,
+): void {
+  const raw = describeDecision(rawDecision);
+  const guarded = describeDecision(decision);
+
+  if (raw === guarded) {
+    logDetail('Guard accepted model decision', guarded);
+    return;
+  }
+
+  logDetail('Guard adjusted model decision', `${raw} -> ${guarded}`);
+}
+
+function describeDecision(decision: LlmReasoningDecision): string {
+  if (decision.decision === 'skip') {
+    return 'skip';
+  }
+
+  return `${decision.action.type} ${String(decision.action.amount ?? 0n)}`;
 }
 
 function logTitle(title: string): void {

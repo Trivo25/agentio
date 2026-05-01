@@ -1,8 +1,7 @@
 {
   "name": "@0xagentio/sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,10 +12,42 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "prepack": "npm run build"
   },
   "dependencies": {
-    "@0xagentio/core": "file:../core",
+    "@0xagentio/core": "^0.1.0",
     "@0xagentio/axl-client": "^0.1.0"
+  },
+  "description": "Primary TypeScript SDK for proof-carrying autonomous agents.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xagentio/agentio.git",
+    "directory": "packages/sdk"
+  },
+  "keywords": [
+    "agentio",
+    "agents",
+    "zk",
+    "reasoning",
+    "typescript",
+    "sdk"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts.map",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts",
+    "!dist/**/*.test.js.map",
+    "!dist/**/*.test.d.ts.map",
+    "!dist/.tsbuildinfo",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

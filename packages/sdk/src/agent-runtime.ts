@@ -16,6 +16,8 @@ import type {
 import {
   createTrustedAgent,
   type AgentStepResult,
+  type AgentRunUntilCompleteOptions,
+  type AgentRunUntilCompleteResult,
   type TrustedAgent,
 } from './create-trusted-agent.js';
 import {
@@ -72,6 +74,8 @@ export type AgentRuntime = {
   readonly identity: AgentIdentity;
   /** Runs one full agent cycle: load state, reason, validate, prove, execute, persist, and audit. */
   startOnce(): Promise<AgentStepResult>;
+  /** Runs bounded decision cycles until completion, stop condition, rejection, failure, or guardrail. */
+  runUntilComplete(options?: AgentRunUntilCompleteOptions): Promise<AgentRunUntilCompleteResult>;
   /** Loads the latest persisted state so applications can inspect runtime progress. */
   loadState(): Promise<AgentState>;
   /** Saves state explicitly when an application updates agent state outside `startOnce`. */
@@ -129,6 +133,10 @@ export function createAgentRuntime(
 
     startOnce() {
       return trusted.startOnce();
+    },
+
+    runUntilComplete(runOptions) {
+      return trusted.runUntilComplete(runOptions);
     },
 
     loadState() {

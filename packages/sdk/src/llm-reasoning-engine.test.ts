@@ -2,7 +2,11 @@ import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
 import { createAgentIdentity } from './identity.js';
-import { llmReasoningEngine, parseLlmReasoningDecision } from './llm-reasoning-engine.js';
+import {
+  llmReasoningEngine,
+  parseLlmReasoningAmount,
+  parseLlmReasoningDecision,
+} from './llm-reasoning-engine.js';
 import { mockLlmClient } from './llm-client.js';
 import { createPolicy } from './policy.js';
 
@@ -82,6 +86,111 @@ test('llmReasoningEngine rejects action types outside the configured allow-list'
   );
 });
 
+test('llmReasoningEngine lets guards skip an otherwise valid LLM action', async () => {
+  const reasoning = llmReasoningEngine({
+    client: mockLlmClient(() =>
+      JSON.stringify({
+        decision: 'act',
+        action: {
+          type: 'swap',
+          amount: '250',
+          metadata: { assetPair: 'ETH/USDC' },
+        },
+      }),
+    ),
+    goal: 'rebalance if quote is acceptable',
+    guard: async ({ decision, context: guardContext }) => {
+      assert.equal(decision.decision, 'act');
+      assert.equal(guardContext.identity.id, 'agent-llm');
+      return 'skip' as const;
+    },
+  });
+
+  assert.equal(await reasoning.decide(context), 'skip');
+});
+
+test('llmReasoningEngine lets guards rewrite LLM actions before runtime validation', async () => {
+  const reasoning = llmReasoningEngine({
+    client: mockLlmClient(() =>
+      JSON.stringify({
+        decision: 'act',
+        action: {
+          type: 'swap',
+          amount: '999',
+          metadata: { assetPair: 'ETH/USDC' },
+        },
+      }),
+    ),
+    goal: 'rebalance if quote is acceptable',
+    allowedActionTypes: ['swap'],
+    guard: ({ decision }) => {
+      if (decision.decision === 'skip') {
+        return decision;
+      }
+
+      return {
+        ...decision,
+        action: {
+          ...decision.action,
+          amount: 250n,
+          metadata: {
+            ...decision.action.metadata,
+            guarded: true,
+          },
+        },
+      };
+    },
+  });
+
+  const action = await reasoning.decide(context);
+
+  assert.notEqual(action, 'skip');
+  if (action === 'skip') {
+    throw new Error('Expected guard to return an action.');
+  }
+  assert.equal(action.amount, 250n);
+  assert.deepEqual(action.metadata, {
+    assetPair: 'ETH/USDC',
+    guarded: true,
+  });
+});
+
+test('llmReasoningEngine reports raw and guarded decisions to observers', async () => {
+  const traces: string[] = [];
+  const reasoning = llmReasoningEngine({
+    client: mockLlmClient(() =>
+      JSON.stringify({
+        decision: 'act',
+        action: { type: 'swap', amount: '999' },
+      }),
+    ),
+    goal: 'rebalance if quote is acceptable',
+    guard: ({ decision }) => {
+      if (decision.decision === 'skip') {
+        return decision;
+      }
+
+      return {
+        ...decision,
+        action: { ...decision.action, amount: 250n },
+      };
+    },
+    onDecision: ({ rawDecision, decision, context: traceContext }) => {
+      assert.equal(traceContext.identity.id, 'agent-llm');
+      assert.equal(rawDecision.decision, 'act');
+      assert.equal(decision.decision, 'act');
+      if (rawDecision.decision === 'act' && decision.decision === 'act') {
+        traces.push(`${String(rawDecision.action.amount)} -> ${String(decision.action.amount)}`);
+      }
+    },
+  });
+
+  const action = await reasoning.decide(context);
+
+  assert.notEqual(action, 'skip');
+  assert.deepEqual(traces, ['999 -> 250']);
+});
+
 test('parseLlmReasoningDecision requires strict JSON object output', () => {
   assert.throws(
     () => parseLlmReasoningDecision('The answer is swap.'),
@@ -93,16 +202,57 @@ test('parseLlmReasoningDecision requires strict JSON object output', () => {
   );
 });
 
-test('parseLlmReasoningDecision requires decimal string amounts', () => {
+test('parseLlmReasoningAmount converts provider amount variants', () => {
+  assert.equal(parseLlmReasoningAmount(undefined), undefined);
+  assert.equal(parseLlmReasoningAmount('250'), 250n);
+  assert.equal(parseLlmReasoningAmount(' 250.0 '), 250n);
+  assert.equal(parseLlmReasoningAmount(250), 250n);
+});
+
+test('parseLlmReasoningDecision accepts integer number amounts from providers', () => {
+  const decision = parseLlmReasoningDecision(
+    JSON.stringify({
+      decision: 'act',
+      action: { type: 'swap', amount: 250 },
+    }),
+  );
+
+  assert.equal(decision.decision, 'act');
+  assert.equal(decision.action.amount, 250n);
+});
+
+test('parseLlmReasoningDecision accepts integer-looking amount strings from providers', () => {
+  const decision = parseLlmReasoningDecision(
+    JSON.stringify({
+      decision: 'act',
+      action: { type: 'swap', amount: ' 250.0 ' },
+    }),
+  );
+
+  assert.equal(decision.decision, 'act');
+  assert.equal(decision.action.amount, 250n);
+});
+
+test('parseLlmReasoningDecision rejects unsafe or fractional number amounts', () => {
   assert.throws(
     () =>
       parseLlmReasoningDecision(
         JSON.stringify({
           decision: 'act',
-          action: { type: 'swap', amount: 250 },
+          action: { type: 'swap', amount: 1.5 },
         }),
       ),
-    /decimal string/,
+    /decimal string or safe integer/,
+  );
+  assert.throws(
+    () =>
+      parseLlmReasoningDecision(
+        JSON.stringify({
+          decision: 'act',
+          action: { type: 'swap', amount: Number.MAX_SAFE_INTEGER + 1 },
+        }),
+      ),
+    /decimal string or safe integer/,
   );
 });
 

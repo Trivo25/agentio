@@ -1,8 +1,7 @@
 {
   "name": "@0xagentio/noir",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,11 +12,55 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "prepack": "npm run build"
   },
   "dependencies": {
-    "@0xagentio/core": "file:../core",
+    "@0xagentio/core": "^0.1.0",
     "@aztec/bb.js": "^3.0.0-nightly.20251104",
     "@noir-lang/noir_js": "^1.0.0-beta.18"
+  },
+  "description": "Noir proof adapter and authorization circuit helpers for AgentIO.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xagentio/agentio.git",
+    "directory": "packages/noir"
+  },
+  "keywords": [
+    "agentio",
+    "noir",
+    "zk",
+    "proofs",
+    "authorization"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts.map",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts",
+    "!dist/**/*.test.js.map",
+    "!dist/**/*.test.d.ts.map",
+    "!dist/fixture.js",
+    "!dist/fixture.d.ts",
+    "!dist/fixture.js.map",
+    "!dist/fixture.d.ts.map",
+    "!dist/proof-smoke.js",
+    "!dist/proof-smoke.d.ts",
+    "!dist/proof-smoke.js.map",
+    "!dist/proof-smoke.d.ts.map",
+    "!dist/proof-adapter-smoke.js",
+    "!dist/proof-adapter-smoke.d.ts",
+    "!dist/proof-adapter-smoke.js.map",
+    "!dist/proof-adapter-smoke.d.ts.map",
+    "!dist/.tsbuildinfo",
+    "circuits/authorization/target/*.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

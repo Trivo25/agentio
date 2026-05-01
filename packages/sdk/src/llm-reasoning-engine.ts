@@ -20,6 +20,45 @@ export type LlmReasoningDecision =
       readonly reason?: string;
     };
 
+/** Context passed to an optional guard after an LLM returns a decision. */
+export type LlmReasoningGuardContext = {
+  /** Parsed LLM decision before runtime policy validation or proof generation. */
+  readonly decision: LlmReasoningDecision;
+  /** Agent context that was sent to the reasoning engine. */
+  readonly context: AgentContext;
+};
+
+/** Data emitted when an LLM decision has been parsed and optionally guarded. */
+export type LlmReasoningDecisionTrace = {
+  /** Original parsed provider decision before deterministic guard logic runs. */
+  readonly rawDecision: LlmReasoningDecision;
+  /** Final decision that will continue into allow-list and runtime validation. */
+  readonly decision: LlmReasoningDecision;
+  /** Agent context used for the decision cycle. */
+  readonly context: AgentContext;
+};
+
+/**
+ * Optional observer for model and guard decisions.
+ *
+ * Use this to record traces or print examples without mixing logging into guard
+ * code. The callback observes decisions only; validation, proof generation, and
+ * execution still happen later in the runtime.
+ */
+export type LlmReasoningDecisionObserver = (
+  trace: LlmReasoningDecisionTrace,
+) => void | Promise<void>;
+
+/**
+ * Optional deterministic check that runs after LLM output is parsed.
+ *
+ * Guards let developers approve, rewrite, reject, or skip model output with
+ * testable code before the normal runtime validation/proof boundary runs.
+ */
+export type LlmReasoningGuard = (
+  context: LlmReasoningGuardContext,
+) => LlmReasoningDecision | 'skip' | Promise<LlmReasoningDecision | 'skip'>;
+
 /** Options for creating an LLM-backed reasoning engine. */
 export type LlmReasoningEngineOptions = {
   /** Provider-neutral LLM client. */
@@ -30,6 +69,10 @@ export type LlmReasoningEngineOptions = {
   readonly instructions?: string;
   /** Optional action allow-list checked before runtime policy validation. */
   readonly allowedActionTypes?: readonly string[];
+  /** Optional deterministic guard checked after parsing model output. */
+  readonly guard?: LlmReasoningGuard;
+  /** Optional observer for parsed and guarded model decisions. */
+  readonly onDecision?: LlmReasoningDecisionObserver;
 };
 
 /**
@@ -54,7 +97,13 @@ export function llmReasoningEngine(
           },
         ],
       });
-      const decision = parseLlmReasoningDecision(completion.content);
+      const parsedDecision = parseLlmReasoningDecision(completion.content);
+      const decision = await applyGuard(parsedDecision, context, options.guard);
+      await options.onDecision?.({
+        rawDecision: parsedDecision,
+        decision,
+        context,
+      });
 
       if (decision.decision === 'skip') {
         return 'skip';
@@ -73,6 +122,19 @@ export function llmReasoningEngine(
       return action;
     },
   };
+}
+
+async function applyGuard(
+  decision: LlmReasoningDecision,
+  context: AgentContext,
+  guard: LlmReasoningGuard | undefined,
+): Promise<LlmReasoningDecision> {
+  if (guard === undefined) {
+    return decision;
+  }
+
+  const guarded = await guard({ decision, context });
+  return guarded === 'skip' ? { decision: 'skip' } : guarded;
 }
 
 /**
@@ -149,21 +211,56 @@ function parseAction(value: unknown): ActionIntent {
 
   return createActionIntent({
     type: value.type,
-    amount: parseOptionalAmount(value.amount),
+    amount: parseLlmReasoningAmount(value.amount),
     metadata: parseOptionalMetadata(value.metadata),
   });
 }
 
-function parseOptionalAmount(value: unknown): bigint | undefined {
+/**
+ * Converts provider amount output into the SDK's bigint action amount.
+ *
+ * Models are instructed to return decimal strings because they preserve integer
+ * precision across JSON boundaries. The parser also accepts safe integer JSON
+ * numbers and integer-looking strings such as `"100.0"` because live providers
+ * commonly produce those harmless variants.
+ */
+export function parseLlmReasoningAmount(value: unknown): bigint | undefined {
   if (value === undefined) {
     return undefined;
   }
 
-  if (typeof value !== 'string' || !/^-?\d+$/.test(value)) {
-    throw new Error('LLM reasoning action.amount must be a decimal string.');
+  if (typeof value === 'string') {
+    const normalized = normalizeIntegerAmountString(value);
+    if (normalized !== undefined) {
+      return BigInt(normalized);
+    }
   }
 
-  return BigInt(value);
+  if (typeof value === 'number' && Number.isSafeInteger(value)) {
+    return BigInt(value);
+  }
+
+  throw new Error(
+    `LLM reasoning action.amount must be a decimal string or safe integer. Received ${describeAmountValue(value)}.`,
+  );
+}
+
+function normalizeIntegerAmountString(value: string): string | undefined {
+  const trimmed = value.trim();
+  const match = /^(-?\d+)(?:\.0+)?$/.exec(trimmed);
+  return match?.[1];
+}
+
+function describeAmountValue(value: unknown): string {
+  if (typeof value === 'bigint') {
+    return `${value.toString()}n`;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function parseOptionalMetadata(

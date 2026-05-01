@@ -25,6 +25,7 @@ import {
   staticReasoningEngine,
   verifyLocalDelegation,
   verifyMessageAction,
+  type AgentState,
   type AgentMessage,
 } from '@0xagentio/sdk';
 
@@ -220,7 +221,13 @@ try {
   logStep('Running Alice runtime against live 0G storage');
   const result = await alice.startOnce();
   logDetail('Alice result', result.status);
-  const storedState = await alice.loadState();
+  const storedState = await waitForAgentState(
+    () => alice.loadState(),
+    (state) => state.cumulativeSpend === 7n,
+    options.readRetryTimeoutMs,
+    options.readRetryIntervalMs,
+    '0G state did not reflect Alice accepted action before timeout.',
+  );
   logDetail(
     'Loaded 0G state cumulative spend',
     String(storedState.cumulativeSpend),
@@ -381,6 +388,49 @@ async function waitUntil(
     }
     await delay(100);
   }
+}
+
+async function waitForAgentState(
+  loadState: () => Promise<AgentState>,
+  matches: (state: AgentState) => boolean,
+  timeoutMs: number,
+  intervalMs: number,
+  timeoutMessage: string,
+): Promise<AgentState> {
+  const startedAt = Date.now();
+  let lastState: AgentState | undefined;
+  let lastError: unknown;
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    try {
+      const state = await loadState();
+      lastState = state;
+      if (matches(state)) {
+        return state;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
+    await delay(intervalMs);
+  }
+
+  throw new Error(`${timeoutMessage}${stateReadbackDetail(lastState, lastError)}`);
+}
+
+function stateReadbackDetail(
+  state: AgentState | undefined,
+  error: unknown,
+): string {
+  if (state !== undefined) {
+    return ` Last cumulativeSpend=${state.cumulativeSpend.toString()}.`;
+  }
+
+  if (error instanceof Error) {
+    return ` Last read error: ${error.message}.`;
+  }
+
+  return '';
 }
 
 async function delay(ms: number): Promise<void> {

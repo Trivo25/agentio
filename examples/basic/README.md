@@ -28,6 +28,45 @@ npm run build
 npm run example:llm-reasoning
 ```
 
+## `guarded-llm-reasoning.ts`
+
+Dynamic reasoning demo with a deterministic guard.
+
+The mock LLM proposes an oversized swap. A developer-defined guard rewrites the amount to the app's deterministic risk limit, then Alice's runtime still validates policy, proves, stores, and executes the guarded action. This shows how applications can combine flexible model reasoning with explicit static safety checks.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:guarded-llm-reasoning
+```
+
+## `run-until-complete.ts`
+
+Bounded multi-step runtime demo.
+
+It uses deterministic static rules to run three small swaps until the target cumulative spend is reached. Each step still validates the policy, creates a proof, executes, persists state, and writes an audit event.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:run-until-complete
+```
+
+## `mock-llm-run-until-complete.ts`
+
+CI-safe multi-step LLM runtime demo.
+
+It mirrors the live 0G Compute loop with `mockLlmClient(...)`. The mock model returns realistic imperfect outputs across steps: an amount as a JSON number, an amount as `"100.0"`, and an oversized amount. A deterministic guard converts each proposal into the next safe 100-unit swap, then `runUntilComplete(...)` repeats validation, proof, execution, state persistence, and audit until cumulative spend reaches 300.
+
+Run it with:
+
+```sh
+npm run build
+npm run example:mock-llm-run-until-complete
+```
+
 ## `zero-g-compute-reasoning.ts`
 
 Opt-in live 0G Compute Router reasoning demo.
@@ -39,13 +78,30 @@ Required environment values:
 ```sh
 AGENTIO_0G_COMPUTE_API_KEY=sk-...
 AGENTIO_0G_COMPUTE_BASE_URL=https://router-api-testnet.integratenetwork.work/v1
-AGENTIO_0G_COMPUTE_MODEL=zai-org/GLM-5-FP8
+AGENTIO_0G_COMPUTE_MODEL=qwen/qwen-2.5-7b-instruct
+AGENTIO_0G_COMPUTE_RESPONSE_FORMAT=prompt-only
 ```
+
+`prompt-only` is the safe default for the current GLM example model because it rejects OpenAI `response_format=json_object`. Use `openai-json-object` only with models/providers that support JSON object mode.
 
 Run it with:
 
 ```sh
 npm run example:0g-compute-reasoning
+```
+
+## `zero-g-compute-run-until-complete.ts`
+
+Opt-in live 0G Compute multi-step reasoning demo.
+
+It uses the real 0G Compute Router as the LLM provider for a bounded `runUntilComplete(...)` loop. Alice asks the model for one rebalance action per cycle, a deterministic guard normalizes the proposal to the next safe 100-unit step, and AgentIO validates, proves, executes, persists, and audits each action independently until cumulative spend reaches 300.
+
+Use the same environment values as `zero-g-compute-reasoning.ts`.
+
+Run it with:
+
+```sh
+npm run example:0g-compute-run-until-complete
 ```
 
 ## `live-stack.ts`

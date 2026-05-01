@@ -117,3 +117,27 @@ test('createAgentRuntime reports missing transport before sending peer messages'
     /without a transport adapter/,
   );
 });
+
+test('createAgentRuntime exposes bounded multi-step runs', async () => {
+  const runtime = createAgentRuntime({
+    identity,
+    credential,
+    policy,
+    initialState,
+    reasoning: staticReasoningEngine({ type: 'swap', amount: 100n }),
+    proof: localPolicyProofs(),
+    storage: localMemoryStorage(),
+    execution: localExecution(() => ({ success: true, reference: 'executed:runtime' })),
+    now: () => new Date('2026-04-25T12:00:00.000Z'),
+    createEventId: () => crypto.randomUUID(),
+  });
+
+  const result = await runtime.runUntilComplete({
+    maxSteps: 5,
+    stopWhen: ({ state }) => state.cumulativeSpend >= 200n,
+  });
+
+  assert.equal(result.status, 'stopped');
+  assert.equal(result.steps.length, 2);
+  assert.equal(result.finalState.cumulativeSpend, 200n);
+});
