@@ -34,8 +34,11 @@ export {
 } from './llm-client.js';
 export {
   llmReasoningEngine,
+  parseLlmReasoningAmount,
   parseLlmReasoningDecision,
   type LlmReasoningDecision,
+  type LlmReasoningDecisionObserver,
+  type LlmReasoningDecisionTrace,
   type LlmReasoningEngineOptions,
   type LlmReasoningGuard,
   type LlmReasoningGuardContext,

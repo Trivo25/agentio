@@ -2,7 +2,11 @@ import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
 import { createAgentIdentity } from './identity.js';
-import { llmReasoningEngine, parseLlmReasoningDecision } from './llm-reasoning-engine.js';
+import {
+  llmReasoningEngine,
+  parseLlmReasoningAmount,
+  parseLlmReasoningDecision,
+} from './llm-reasoning-engine.js';
 import { mockLlmClient } from './llm-client.js';
 import { createPolicy } from './policy.js';
 
@@ -151,6 +155,42 @@ test('llmReasoningEngine lets guards rewrite LLM actions before runtime validati
   });
 });
 
+test('llmReasoningEngine reports raw and guarded decisions to observers', async () => {
+  const traces: string[] = [];
+  const reasoning = llmReasoningEngine({
+    client: mockLlmClient(() =>
+      JSON.stringify({
+        decision: 'act',
+        action: { type: 'swap', amount: '999' },
+      }),
+    ),
+    goal: 'rebalance if quote is acceptable',
+    guard: ({ decision }) => {
+      if (decision.decision === 'skip') {
+        return decision;
+      }
+
+      return {
+        ...decision,
+        action: { ...decision.action, amount: 250n },
+      };
+    },
+    onDecision: ({ rawDecision, decision, context: traceContext }) => {
+      assert.equal(traceContext.identity.id, 'agent-llm');
+      assert.equal(rawDecision.decision, 'act');
+      assert.equal(decision.decision, 'act');
+      if (rawDecision.decision === 'act' && decision.decision === 'act') {
+        traces.push(`${String(rawDecision.action.amount)} -> ${String(decision.action.amount)}`);
+      }
+    },
+  });
+
+  const action = await reasoning.decide(context);
+
+  assert.notEqual(action, 'skip');
+  assert.deepEqual(traces, ['999 -> 250']);
+});
+
 test('parseLlmReasoningDecision requires strict JSON object output', () => {
   assert.throws(
     () => parseLlmReasoningDecision('The answer is swap.'),
@@ -160,6 +200,13 @@ test('parseLlmReasoningDecision requires strict JSON object output', () => {
     () => parseLlmReasoningDecision('[]'),
     /JSON object/,
   );
+});
+
+test('parseLlmReasoningAmount converts provider amount variants', () => {
+  assert.equal(parseLlmReasoningAmount(undefined), undefined);
+  assert.equal(parseLlmReasoningAmount('250'), 250n);
+  assert.equal(parseLlmReasoningAmount(' 250.0 '), 250n);
+  assert.equal(parseLlmReasoningAmount(250), 250n);
 });
 
 test('parseLlmReasoningDecision accepts integer number amounts from providers', () => {

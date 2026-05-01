@@ -28,6 +28,27 @@ export type LlmReasoningGuardContext = {
   readonly context: AgentContext;
 };
 
+/** Data emitted when an LLM decision has been parsed and optionally guarded. */
+export type LlmReasoningDecisionTrace = {
+  /** Original parsed provider decision before deterministic guard logic runs. */
+  readonly rawDecision: LlmReasoningDecision;
+  /** Final decision that will continue into allow-list and runtime validation. */
+  readonly decision: LlmReasoningDecision;
+  /** Agent context used for the decision cycle. */
+  readonly context: AgentContext;
+};
+
+/**
+ * Optional observer for model and guard decisions.
+ *
+ * Use this to record traces or print examples without mixing logging into guard
+ * code. The callback observes decisions only; validation, proof generation, and
+ * execution still happen later in the runtime.
+ */
+export type LlmReasoningDecisionObserver = (
+  trace: LlmReasoningDecisionTrace,
+) => void | Promise<void>;
+
 /**
  * Optional deterministic check that runs after LLM output is parsed.
  *
@@ -50,6 +71,8 @@ export type LlmReasoningEngineOptions = {
   readonly allowedActionTypes?: readonly string[];
   /** Optional deterministic guard checked after parsing model output. */
   readonly guard?: LlmReasoningGuard;
+  /** Optional observer for parsed and guarded model decisions. */
+  readonly onDecision?: LlmReasoningDecisionObserver;
 };
 
 /**
@@ -76,6 +99,11 @@ export function llmReasoningEngine(
       });
       const parsedDecision = parseLlmReasoningDecision(completion.content);
       const decision = await applyGuard(parsedDecision, context, options.guard);
+      await options.onDecision?.({
+        rawDecision: parsedDecision,
+        decision,
+        context,
+      });
 
       if (decision.decision === 'skip') {
         return 'skip';
@@ -183,12 +211,20 @@ function parseAction(value: unknown): ActionIntent {
 
   return createActionIntent({
     type: value.type,
-    amount: parseOptionalAmount(value.amount),
+    amount: parseLlmReasoningAmount(value.amount),
     metadata: parseOptionalMetadata(value.metadata),
   });
 }
 
-function parseOptionalAmount(value: unknown): bigint | undefined {
+/**
+ * Converts provider amount output into the SDK's bigint action amount.
+ *
+ * Models are instructed to return decimal strings because they preserve integer
+ * precision across JSON boundaries. The parser also accepts safe integer JSON
+ * numbers and integer-looking strings such as `"100.0"` because live providers
+ * commonly produce those harmless variants.
+ */
+export function parseLlmReasoningAmount(value: unknown): bigint | undefined {
   if (value === undefined) {
     return undefined;
   }

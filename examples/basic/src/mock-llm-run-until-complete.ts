@@ -91,6 +91,9 @@ const reasoning = llmReasoningEngine({
     'Return one swap action at a time with metadata assetPair="ETH/USDC" and venue="uniswap-demo".',
   allowedActionTypes: ['swap'],
   guard: ({ decision, context }) => guardRebalanceDecision(decision, context.state.cumulativeSpend),
+  onDecision: ({ rawDecision, decision }) => {
+    logDecisionTrace(rawDecision, decision);
+  },
 });
 logDetail(
   'Guard purpose',
@@ -213,17 +216,6 @@ function guardRebalanceDecision(
   const remaining = targetSpend - cumulativeSpend;
   const amount = remaining < stepAmount ? remaining : stepAmount;
 
-  if (decision.decision === 'skip') {
-    logDetail('Guard adjusted model output', 'model skipped before the target; guard proposed the next safe step');
-  } else if (decision.action.amount !== amount) {
-    logDetail(
-      'Guard adjusted model output',
-      `model proposed ${String(decision.action.amount ?? 0n)}; guard normalized to ${amount.toString()}`,
-    );
-  } else {
-    logDetail('Guard accepted model amount', amount.toString());
-  }
-
   return {
     decision: 'act',
     action: createActionIntent({
@@ -237,6 +229,29 @@ function guardRebalanceDecision(
     }),
     reason: 'deterministic guard selected the next safe rebalance step',
   };
+}
+
+function logDecisionTrace(
+  rawDecision: LlmReasoningDecision,
+  decision: LlmReasoningDecision,
+): void {
+  const raw = describeDecision(rawDecision);
+  const guarded = describeDecision(decision);
+
+  if (raw === guarded) {
+    logDetail('Guard accepted model decision', guarded);
+    return;
+  }
+
+  logDetail('Guard adjusted model decision', `${raw} -> ${guarded}`);
+}
+
+function describeDecision(decision: LlmReasoningDecision): string {
+  if (decision.decision === 'skip') {
+    return 'skip';
+  }
+
+  return `${decision.action.type} ${String(decision.action.amount ?? 0n)}`;
 }
 
 function logTitle(title: string): void {

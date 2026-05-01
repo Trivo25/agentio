@@ -100,6 +100,9 @@ const reasoning = llmReasoningEngine({
     'Return strict JSON only. Use decimal strings for amounts. Do not propose actions other than swap.',
   allowedActionTypes: ['swap'],
   guard: ({ decision, context }) => guardRebalanceDecision(decision, context.state.cumulativeSpend),
+  onDecision: ({ rawDecision, decision }) => {
+    logDecisionTrace(rawDecision, decision);
+  },
 });
 logDetail(
   'Guard purpose',
@@ -167,15 +170,6 @@ function guardRebalanceDecision(
 
   const remaining = targetSpend - cumulativeSpend;
   const amount = remaining < stepAmount ? remaining : stepAmount;
-
-  if (decision.decision === 'skip') {
-    logDetail('Guard adjusted model output', 'model skipped before the target; guard proposed the next safe step');
-  } else if (decision.action.amount !== amount) {
-    logDetail(
-      'Guard adjusted model output',
-      `model proposed ${String(decision.action.amount ?? 0n)}; guard normalized to ${amount.toString()}`,
-    );
-  }
 
   return {
     decision: 'act',
@@ -265,6 +259,29 @@ function unquoteEnvValue(value: string): string {
   }
 
   return value;
+}
+
+function logDecisionTrace(
+  rawDecision: LlmReasoningDecision,
+  decision: LlmReasoningDecision,
+): void {
+  const raw = describeDecision(rawDecision);
+  const guarded = describeDecision(decision);
+
+  if (raw === guarded) {
+    logDetail('Guard accepted model decision', guarded);
+    return;
+  }
+
+  logDetail('Guard adjusted model decision', `${raw} -> ${guarded}`);
+}
+
+function describeDecision(decision: LlmReasoningDecision): string {
+  if (decision.decision === 'skip') {
+    return 'skip';
+  }
+
+  return `${decision.action.type} ${String(decision.action.amount ?? 0n)}`;
 }
 
 function logTitle(title: string): void {
