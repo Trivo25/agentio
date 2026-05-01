@@ -87,6 +87,10 @@ const storage = localOgStorage();
 const transport = localAxlTransport('agentio/getting-started');
 const alicePeer = createAgentPeer({ identity: aliceIdentity, transport });
 const bobPeer = createAgentPeer({ identity: bobIdentity, transport });
+const scenarioChecks = {
+  bobVerifiedQuoteRequest: false,
+  executionAdapterVerifiedSwap: false,
+};
 logDetail('Proof adapter', 'local Noir-shaped proof adapter');
 logDetail('Storage adapter', 'local 0G-shaped storage adapter');
 logDetail('Transport adapter', 'local AXL-shaped transport adapter');
@@ -157,8 +161,9 @@ const alice = createAgentRuntime({
   proof,
   storage,
   execution: localVerifyingExecution(proof, async ({ action, proof }) => {
+    scenarioChecks.executionAdapterVerifiedSwap = true;
     logDetail(
-      'Bob execution adapter verified',
+      'Execution adapter verified final proof',
       `${proof.publicInputs.agentId} may ${proof.publicInputs.actionType}`,
     );
 
@@ -184,6 +189,9 @@ logDetail('Execution receipt', result.execution?.reference ?? 'none');
 
 logStep('6. The app can inspect stored state and audit records');
 const latestState = await alice.loadState();
+assertScenario(scenarioChecks.bobVerifiedQuoteRequest, 'Bob did not verify Alice quote request.');
+assertScenario(scenarioChecks.executionAdapterVerifiedSwap, 'The execution adapter did not verify Alice final swap.');
+assertScenario(latestState.cumulativeSpend === 250n, 'Alice state was not persisted after the accepted action.');
 logDetail('Cumulative spend', String(latestState.cumulativeSpend));
 logDetail('0G-shaped records', String(storage.getRecords().length));
 logDetail('Audit events', String(storage.getAuditEvents().length));
@@ -219,6 +227,7 @@ function installBobQuoteEndpoint(): void {
     }
 
     logDetail('Bob verified request proof', verification.action.type);
+    scenarioChecks.bobVerifiedQuoteRequest = true;
     const reply = createAgentReply({
       id: 'quote-reply-1',
       type: 'quote.reply',
@@ -243,6 +252,13 @@ function readNumberPayload(message: CorrelatedAgentMessage, key: string): number
   }
 
   return value;
+}
+
+/** Fails the example if a trust boundary was skipped instead of demonstrated. */
+function assertScenario(condition: boolean, message: string): void {
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 function logTitle(title: string): void {
