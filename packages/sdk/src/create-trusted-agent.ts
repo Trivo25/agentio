@@ -310,11 +310,21 @@ async function loadStateOrInitial(
 ): Promise<AgentState> {
   try {
     return await storage.loadState(identity);
-  } catch {
-    // missing state should not block the first local decision cycle
-    await storage.saveState(identity, initialState);
+  } catch (error) {
+    if (!isMissingStateError(error)) {
+      throw error;
+    }
+
+    // missing state should bootstrap the first decision without creating an
+    // extra storage write. network-backed stores can expose stale reads when an
+    // initial snapshot and the first accepted snapshot are written to the same
+    // key in quick succession.
     return initialState;
   }
+}
+
+function isMissingStateError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('No state found for agent ');
 }
 
 async function appendEvent(storage: StorageAdapter, event: AuditEvent): Promise<AuditEvent> {

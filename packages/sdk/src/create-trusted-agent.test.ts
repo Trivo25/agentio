@@ -209,7 +209,10 @@ test('createTrustedAgent does not advance cumulative state when execution fails'
   const result = await agent.startOnce();
 
   assert.equal(result.status, 'accepted');
-  assert.deepEqual(await storage.loadState(identity), initialState);
+  await assert.rejects(
+    storage.loadState(identity),
+    /No state found for agent agent-test/,
+  );
 });
 
 test('createTrustedAgent runUntilComplete stops when reasoning skips', async () => {
@@ -359,7 +362,7 @@ test('createTrustedAgent runUntilComplete supports guarded LLM decisions through
   assert.deepEqual(observedDecisions, ['100 -> 100', '100 -> 100', '250 -> 100']);
   assert.equal(result.finalState.cumulativeSpend, targetSpend);
   assert.equal(storage.getAuditEvents().length, 3);
-  assert.equal(storage.getRecords().filter((record) => record.kind === 'agent-state').length, 4);
+  assert.equal(storage.getRecords().filter((record) => record.kind === 'agent-state').length, 3);
   assert.equal(storage.getRecords().filter((record) => record.kind === 'audit-event').length, 3);
   assert.ok(result.steps.every((step) => step.status === 'accepted'));
 });
