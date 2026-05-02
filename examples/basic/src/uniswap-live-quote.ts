@@ -18,13 +18,23 @@ import {
 } from '@0xagentio/sdk';
 
 /**
- * Prepares the proof-gated live Uniswap quote flow.
+ * Prepares the proof-gated live Uniswap approval and quote flow.
  *
- * This example is intentionally quote-only. Bob verifies Alice's AgentIO proof
- * before preparing or submitting the Uniswap API /quote request. The default
- * mode does not call the network, so developers can inspect the authorization
- * boundary before enabling a live API request with credentials.
+ * Bob verifies Alice's AgentIO proof before preparing or submitting Uniswap API
+ * requests. The default mode does not call the network, so developers can
+ * inspect the authorization boundary before enabling live API requests with
+ * credentials.
  */
+
+type UniswapCheckApprovalRequestBody = {
+  readonly walletAddress: string;
+  readonly token: string;
+  readonly amount: string;
+  readonly chainId: number;
+  readonly tokenOut?: string;
+  readonly tokenOutChainId?: number;
+  readonly includeGasInfo?: boolean;
+};
 
 type UniswapQuoteRequestBody = {
   readonly type: 'EXACT_INPUT';
@@ -46,12 +56,25 @@ type LiveQuoteOptions = {
   readonly erc20EthEnabled: boolean;
   readonly permit2Disabled: boolean;
   readonly runNetworkRequest: boolean;
+  readonly replyTimeoutMs: number;
+};
+
+type PreparedApprovalRequest = {
+  readonly method: 'POST';
+  readonly headers: Record<string, string>;
+  readonly body: UniswapCheckApprovalRequestBody;
 };
 
 type PreparedQuoteRequest = {
   readonly method: 'POST';
   readonly headers: Record<string, string>;
   readonly body: UniswapQuoteRequestBody;
+};
+
+type UniswapApprovalSummary = {
+  readonly hasApprovalTransaction: boolean;
+  readonly hasCancelTransaction: boolean;
+  readonly hasGasInfo: boolean;
 };
 
 type UniswapQuoteSummary = {
@@ -74,10 +97,19 @@ const quoteBody: UniswapQuoteRequestBody = {
   routingPreference: 'BEST_PRICE',
   protocols: ['V2', 'V3', 'V4'],
 };
+const approvalBody: UniswapCheckApprovalRequestBody = {
+  walletAddress: quoteBody.swapper,
+  token: quoteBody.tokenIn,
+  amount: quoteBody.amount,
+  chainId: quoteBody.tokenInChainId,
+  tokenOut: quoteBody.tokenOut,
+  tokenOutChainId: quoteBody.tokenOutChainId,
+  includeGasInfo: true,
+};
 
 const options = readOptions();
 
-logTitle('AgentIO Uniswap live quote');
+logTitle('AgentIO Uniswap live approval and quote');
 logStep('1. Create Alice and Bob');
 const aliceIdentity = createAgentIdentity({
   id: 'agent-alice-live-uniswap-quote',
@@ -87,30 +119,30 @@ const bobIdentity = createAgentIdentity({
   id: 'agent-bob-uniswap-api-gateway',
   publicKey: 'agent-public-key-bob-uniswap-api-gateway',
 });
-logDetail('Alice', 'agent that wants a real Uniswap API quote');
-logDetail('Bob', 'gateway that verifies proof before preparing /quote');
+logDetail('Alice', 'agent that wants Uniswap approval and quote work');
+logDetail('Bob', 'gateway that verifies proof before preparing Uniswap API requests');
 
-logStep('2. Delegate quote-only Uniswap authority');
+logStep('2. Delegate approval-check and quote-only Uniswap authority');
 const policy = createPolicy({
-  id: 'policy-uniswap-live-quote-only',
-  allowedActions: ['uniswap.quote'],
+  id: 'policy-uniswap-live-approval-and-quote',
+  allowedActions: ['uniswap.checkApproval', 'uniswap.quote'],
   constraints: [
     {
       type: 'max-amount',
       value: BigInt(quoteBody.amount),
-      actionTypes: ['uniswap.quote'],
+      actionTypes: ['uniswap.checkApproval', 'uniswap.quote'],
     },
     {
       type: 'allowed-metadata-value',
       key: 'venue',
       values: ['uniswap-api'],
-      actionTypes: ['uniswap.quote'],
+      actionTypes: ['uniswap.checkApproval', 'uniswap.quote'],
     },
     {
       type: 'allowed-metadata-value',
       key: 'assetPair',
       values: ['USDC/WETH'],
-      actionTypes: ['uniswap.quote'],
+      actionTypes: ['uniswap.checkApproval', 'uniswap.quote'],
     },
   ],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
@@ -123,7 +155,7 @@ const credential = await issueLocalCredential({
   issuedAt: now,
   signer: localDelegationSigner('principal-live-uniswap-demo'),
 });
-logDetail('Allowed action', 'uniswap.quote');
+logDetail('Allowed actions', 'uniswap.checkApproval, uniswap.quote');
 logDetail('Policy commitment', policyHash);
 
 logStep('3. Create local proof and transport adapters');
@@ -132,10 +164,52 @@ const transport = localAxlTransport('agentio/uniswap-live-quote');
 const alicePeer = createAgentPeer({ identity: aliceIdentity, transport });
 const bobPeer = createAgentPeer({ identity: bobIdentity, transport });
 installBobQuoteGateway(options);
-logDetail('Proof', 'local Noir-shaped proof tied to the quote action');
+logDetail('Proof', 'local Noir-shaped proof tied to each Uniswap action');
 logDetail('Transport', 'local AXL-shaped message delivery');
 
-logStep('4. Alice sends proof-backed quote request to Bob');
+logStep('4. Alice sends proof-backed approval check to Bob');
+const approvalRequest = await createProofBackedMessage({
+  id: 'uniswap-live-approval-request-1',
+  correlationId: 'uniswap-live-quote-session-1',
+  type: 'uniswap.checkApproval.request',
+  sender: aliceIdentity.id,
+  createdAt: now,
+  credential,
+  policy,
+  state: { cumulativeSpend: 0n, updatedAt: now },
+  action: createActionIntent({
+    type: 'uniswap.checkApproval',
+    amount: BigInt(approvalBody.amount),
+    metadata: {
+      venue: 'uniswap-api',
+      assetPair: 'USDC/WETH',
+      chainId: approvalBody.chainId,
+      tokenIn: approvalBody.token,
+      tokenOut: approvalBody.tokenOut,
+    },
+  }),
+  proof,
+  now,
+  payload: {
+    policyHash,
+    approval: approvalBody,
+  },
+});
+const pendingApprovalReply = alicePeer.request(bobIdentity.id, approvalRequest, {
+  expectedType: 'uniswap.checkApproval.prepared',
+  timeoutMs: options.replyTimeoutMs,
+});
+await alicePeer.send(bobIdentity.id, approvalRequest);
+await transport.receive(approvalRequest);
+const approvalReply = (await pendingApprovalReply) as CorrelatedAgentMessage;
+logDetail('Bob response', String(approvalReply.payload.status));
+logDetail('Endpoint', String(approvalReply.payload.endpoint));
+logDetail('Network call', String(approvalReply.payload.networkCall));
+if (approvalReply.payload.approvalSummary !== undefined) {
+  logDetail('Approval summary', JSON.stringify(approvalReply.payload.approvalSummary));
+}
+
+logStep('5. Alice sends proof-backed quote request to Bob');
 const quoteRequest = await createProofBackedMessage({
   id: 'uniswap-live-quote-request-1',
   correlationId: 'uniswap-live-quote-session-1',
@@ -166,7 +240,7 @@ const quoteRequest = await createProofBackedMessage({
 });
 const pendingReply = alicePeer.request(bobIdentity.id, quoteRequest, {
   expectedType: 'uniswap.quote.prepared',
-  timeoutMs: 1_000,
+  timeoutMs: options.replyTimeoutMs,
 });
 await alicePeer.send(bobIdentity.id, quoteRequest);
 await transport.receive(quoteRequest);
@@ -178,19 +252,73 @@ if (reply.payload.quoteSummary !== undefined) {
   logDetail('Quote summary', JSON.stringify(reply.payload.quoteSummary));
 }
 
-logStep('5. What this proves');
-logDetail('Trust boundary', 'Bob only prepares or calls /quote after verifying Alice proof');
+logStep('6. What this proves');
+logDetail('Trust boundary', 'Bob only prepares or calls Uniswap endpoints after verifying Alice proof');
 logDetail('Safety', 'this example never submits approval, swap, or order transactions');
 
-/** Installs Bob's proof gate before any Uniswap API quote work is prepared. */
+/** Installs Bob's proof gate before any Uniswap API work is prepared. */
 function installBobQuoteGateway(options: LiveQuoteOptions): void {
   bobPeer.onMessage(async (message) => {
-    if (message.type !== 'uniswap.quote.request') {
-      return;
+    if (message.type === 'uniswap.checkApproval.request') {
+      await handleApprovalRequest(message, options);
     }
 
-    await handleQuoteRequest(message, options);
+    if (message.type === 'uniswap.quote.request') {
+      await handleQuoteRequest(message, options);
+    }
   });
+}
+
+/** Verifies Alice's proof before approval work because approvals can authorize token spend. */
+async function handleApprovalRequest(
+  message: AgentMessage,
+  options: LiveQuoteOptions,
+): Promise<void> {
+  logDetail('Bob received approval request', String(message.id ?? message.type));
+  const verification = await verifyMessageAction(message, proof, {
+    agentId: aliceIdentity.id,
+    actionType: 'uniswap.checkApproval',
+    policyHash,
+  });
+
+  if (!verification.valid) {
+    throw new Error(`Bob rejected approval request: ${verification.reason}`);
+  }
+
+  logDetail('Bob verified approval proof', `${verification.action.type} ${String(verification.action.amount)}`);
+  const endpoint = `${trimTrailingSlash(options.baseUrl)}/check_approval`;
+  const prepared = createPreparedApprovalRequest(options, approvalBody);
+  const approvalResponse = options.runNetworkRequest
+    ? await requestUniswapApproval(endpoint, prepared, options)
+    : undefined;
+  const networkCall = options.runNetworkRequest ? 'submitted POST /check_approval' : 'disabled by default';
+
+  logDetail('Prepared POST', endpoint);
+  logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
+  logDetail('Body amount', prepared.body.amount);
+  logDetail('Approval target', 'Permit2 or proxy router, depending on x-permit2-disabled');
+  if (approvalResponse !== undefined) {
+    logDetail('Approval needed', String(approvalResponse.hasApprovalTransaction));
+    logDetail('Cancel needed', String(approvalResponse.hasCancelTransaction));
+  }
+
+  const reply = createAgentReply({
+    id: 'uniswap-live-approval-prepared-1',
+    type: 'uniswap.checkApproval.prepared',
+    sender: bobIdentity.id,
+    createdAt: new Date('2026-04-30T12:00:01.000Z'),
+    request: message as CorrelatedAgentMessage,
+    payload: {
+      status: 'prepared',
+      endpoint,
+      networkCall,
+      request: prepared,
+      approvalSummary: approvalResponse,
+    },
+  });
+
+  await bobPeer.send(aliceIdentity.id, reply);
+  await transport.receive(reply);
 }
 
 /** Verifies Alice's proof before quote work so API access is tied to delegated authority. */
@@ -245,6 +373,22 @@ async function handleQuoteRequest(
   await transport.receive(reply);
 }
 
+function createPreparedApprovalRequest(
+  options: LiveQuoteOptions,
+  body: UniswapCheckApprovalRequestBody,
+): PreparedApprovalRequest {
+  return {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json',
+      'x-api-key': options.apiKey ?? '<missing>',
+      'x-permit2-disabled': String(options.permit2Disabled),
+    },
+    body,
+  };
+}
+
 function createPreparedQuoteRequest(
   options: LiveQuoteOptions,
   body: UniswapQuoteRequestBody,
@@ -264,6 +408,24 @@ function createPreparedQuoteRequest(
 }
 
 /**
+ * Calls the Uniswap approval endpoint only after AgentIO verification has passed.
+ *
+ * Developers should inspect the returned transaction object and let the wallet
+ * sign it only if the current delegated action still matches the agent policy.
+ */
+async function requestUniswapApproval(
+  endpoint: string,
+  request: PreparedApprovalRequest,
+  options: LiveQuoteOptions,
+): Promise<UniswapApprovalSummary> {
+  assertApiKey(options);
+
+  logDetail('Live approval check', 'submitting POST /check_approval');
+  const response = await fetchJson(endpoint, request);
+  return summarizeApprovalResponse(response, '/check_approval');
+}
+
+/**
  * Calls the Uniswap quote endpoint only after AgentIO verification has passed.
  *
  * Developers can use the returned summary to decide whether the next step is a
@@ -274,11 +436,17 @@ async function requestUniswapQuote(
   request: PreparedQuoteRequest,
   options: LiveQuoteOptions,
 ): Promise<UniswapQuoteSummary> {
-  if (options.apiKey === undefined) {
-    throw new Error('AGENTIO_UNISWAP_API_KEY is required when AGENTIO_UNISWAP_RUN_LIVE_QUOTE=1.');
-  }
+  assertApiKey(options);
 
   logDetail('Live quote', 'submitting POST /quote');
+  const response = await fetchJson(endpoint, request);
+  return summarizeQuoteResponse(response);
+}
+
+async function fetchJson(
+  endpoint: string,
+  request: PreparedApprovalRequest | PreparedQuoteRequest,
+): Promise<unknown> {
   const response = await fetch(endpoint, {
     method: request.method,
     headers: request.headers,
@@ -289,11 +457,17 @@ async function requestUniswapQuote(
 
   if (!response.ok) {
     throw new Error(
-      `Uniswap /quote failed with ${response.status} ${response.statusText}: ${responseText}`,
+      `Uniswap ${endpoint} failed with ${response.status} ${response.statusText}: ${responseText}`,
     );
   }
 
-  return summarizeQuoteResponse(responseBody);
+  return responseBody;
+}
+
+function assertApiKey(options: LiveQuoteOptions): void {
+  if (options.apiKey === undefined) {
+    throw new Error('AGENTIO_UNISWAP_API_KEY is required when live Uniswap API calls are enabled.');
+  }
 }
 
 function parseJsonResponse(text: string): unknown {
@@ -320,6 +494,21 @@ function summarizeQuoteResponse(response: unknown): UniswapQuoteSummary {
   };
 }
 
+function summarizeApprovalResponse(
+  response: unknown,
+  endpointName: string,
+): UniswapApprovalSummary {
+  if (!isRecord(response)) {
+    throw new Error(`Uniswap ${endpointName} response was not a JSON object.`);
+  }
+
+  return {
+    hasApprovalTransaction: response.approval !== null && response.approval !== undefined,
+    hasCancelTransaction: response.cancel !== null && response.cancel !== undefined,
+    hasGasInfo: response.gasFee !== null && response.gasFee !== undefined,
+  };
+}
+
 function readOptions(): LiveQuoteOptions {
   loadEnvFile();
 
@@ -329,13 +518,25 @@ function readOptions(): LiveQuoteOptions {
     universalRouterVersion: process.env.AGENTIO_UNISWAP_UNIVERSAL_ROUTER_VERSION ?? '2.0',
     erc20EthEnabled: process.env.AGENTIO_UNISWAP_ERC20_ETH_ENABLED === '1',
     permit2Disabled: process.env.AGENTIO_UNISWAP_PERMIT2_DISABLED === '1',
-    runNetworkRequest: process.env.AGENTIO_UNISWAP_RUN_LIVE_QUOTE === '1',
+    runNetworkRequest: process.env.AGENTIO_UNISWAP_RUN_LIVE_API === '1' ||
+      process.env.AGENTIO_UNISWAP_RUN_LIVE_QUOTE === '1',
+    replyTimeoutMs: readPositiveIntegerEnv('AGENTIO_UNISWAP_REPLY_TIMEOUT_MS') ?? 15_000,
   };
 }
 
 function readOptionalEnv(key: string): string | undefined {
   const value = process.env[key];
   return value === undefined || value === '' ? undefined : value;
+}
+
+function readPositiveIntegerEnv(key: string): number | undefined {
+  const value = readOptionalEnv(key);
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 function trimTrailingSlash(value: string): string {
