@@ -52,7 +52,8 @@
     "example:live-stack": "npm run noir:compile && npm run build && node examples/basic/dist/live-stack.js",
     "example:live-stack:binary": "AGENTIO_AXL_NODE_BINARY=$HOME/Documents/GitHub/axl/node npm run example:live-stack",
     "example:0g-compute-run-until-complete": "npm run build && node examples/basic/dist/zero-g-compute-run-until-complete.js",
-    "example:mock-llm-run-until-complete": "node examples/basic/dist/mock-llm-run-until-complete.js"
+    "example:mock-llm-run-until-complete": "node examples/basic/dist/mock-llm-run-until-complete.js",
+    "example:uniswap:local": "node examples/basic/dist/uniswap-track-local.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
