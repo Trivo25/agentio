@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>0xAgentio Uniswap Agent Demo</title>
+    <meta
+      name="description"
+      content="A proof-gated Uniswap agent demo showing Alice, Bob, 0xAgentio authorization, and Uniswap API preparation."
+    />
+    <link rel="icon" type="image/png" href="assets/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --navy-950: #0b1220;
+        --navy-600: #475569;
+        --navy-400: #64748b;
+        --gray-50: #eef2f7;
+        --gray-100: #f8fafc;
+        --white: #ffffff;
+        --border: #e5e7eb;
+        --border-soft: #eef2f7;
+        --blue-500: #4f7dff;
+        --teal-500: #27c2b3;
+        --teal-deep: #0f766e;
+        --purple-400: #b58dff;
+        --shadow-card: 0 18px 60px rgba(15, 23, 42, 0.08);
+        --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04);
+        --gradient: linear-gradient(135deg, #4f7dff 0%, #27c2b3 50%, #b58dff 100%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--navy-950);
+        background: var(--white);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 12% 12%, rgba(79, 125, 255, 0.08), transparent 32%),
+          radial-gradient(circle at 84% 10%, rgba(39, 194, 179, 0.08), transparent 30%),
+          radial-gradient(circle at 76% 86%, rgba(181, 141, 255, 0.08), transparent 34%);
+      }
+
+      .page {
+        position: relative;
+        z-index: 1;
+        width: min(1180px, calc(100vw - 40px));
+        margin: 0 auto;
+        padding: 28px 0 64px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 72px;
+      }
+
+      .brand img {
+        display: block;
+        width: 154px;
+        height: auto;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .text-link {
+        color: var(--navy-600);
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .text-link:hover {
+        color: var(--blue-500);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--navy-600);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .pill::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--teal-500);
+        box-shadow: 0 0 0 5px rgba(39, 194, 179, 0.12);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+        gap: 32px;
+        align-items: stretch;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: 'Space Grotesk', Inter, sans-serif;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 18px 0 18px;
+        font-size: clamp(44px, 6vw, 76px);
+        line-height: 0.96;
+        letter-spacing: -0.055em;
+      }
+
+      .lead {
+        max-width: 680px;
+        margin: 0;
+        color: var(--navy-600);
+        font-size: 19px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 30px;
+      }
+
+      .hero-points {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 28px;
+        max-width: 760px;
+      }
+
+      .hero-point {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: var(--shadow-soft);
+        padding: 13px 14px;
+      }
+
+      .hero-point strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 13px;
+      }
+
+      .hero-point span {
+        display: block;
+        color: var(--navy-600);
+        font-size: 12px;
+      }
+
+      .button {
+        border: 0;
+        border-radius: 14px;
+        padding: 13px 18px;
+        background: var(--blue-500);
+        color: var(--white);
+        font-family: Inter, sans-serif;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 12px 30px rgba(79, 125, 255, 0.2);
+      }
+
+      .button.secondary {
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--navy-950);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .mesh-card {
+        position: relative;
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-card);
+        overflow: hidden;
+      }
+
+      .mesh-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(79, 125, 255, 0.08), rgba(39, 194, 179, 0.06), rgba(181, 141, 255, 0.08));
+        pointer-events: none;
+      }
+
+      .mesh-diagram,
+      .intent,
+      .terminal {
+        position: relative;
+        z-index: 1;
+      }
+
+      .mesh-diagram {
+        height: 180px;
+        margin-bottom: 14px;
+      }
+
+      .node {
+        position: absolute;
+        width: 88px;
+        min-height: 88px;
+        border-radius: 24px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        background: var(--white);
+        border: 1px solid var(--border);
+        color: var(--navy-950);
+        font-weight: 800;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.1);
+      }
+
+      .node small {
+        display: block;
+        margin-top: 4px;
+        color: var(--navy-400);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .node.alice {
+        left: 8px;
+        top: 12px;
+      }
+
+      .node.bob {
+        right: 8px;
+        top: 12px;
+      }
+
+      .node.uniswap {
+        left: calc(50% - 44px);
+        bottom: 4px;
+      }
+
+      .flow-line {
+        position: absolute;
+        inset: 24px 54px 42px;
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background:
+          linear-gradient(var(--white), var(--white)) padding-box,
+          var(--gradient) border-box;
+        opacity: 0.8;
+      }
+
+      .flow-dot {
+        position: absolute;
+        left: 52%;
+        top: 44%;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--teal-500);
+        box-shadow: 0 0 0 8px rgba(39, 194, 179, 0.13);
+        animation: pulse 2.2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.82;
+        }
+        50% {
+          transform: scale(1.35);
+          opacity: 1;
+        }
+      }
+
+      .label {
+        color: var(--navy-400);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .intent {
+        display: grid;
+        gap: 0;
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        background: var(--white);
+        overflow: hidden;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 13px 15px;
+        border-bottom: 1px solid var(--border-soft);
+        font-size: 14px;
+      }
+
+      .row:last-child {
+        border-bottom: 0;
+      }
+
+      .key {
+        color: var(--navy-400);
+        font-weight: 600;
+      }
+
+      .value {
+        color: var(--navy-950);
+        font-weight: 800;
+        text-align: right;
+      }
+
+      .terminal {
+        min-height: 210px;
+        margin-top: 16px;
+        padding: 16px;
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        background: var(--navy-950);
+        color: #d1fae5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+
+      .command-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 24px;
+      }
+
+      .command-card {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-soft);
+        padding: 18px;
+      }
+
+      .command-card h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .command-card p {
+        margin: 0 0 14px;
+        color: var(--navy-600);
+        font-size: 14px;
+      }
+
+      .command-block {
+        display: block;
+        overflow-x: auto;
+        white-space: pre;
+        margin: 0;
+        padding: 14px;
+        border-radius: 14px;
+        background: var(--navy-950);
+        color: #d1fae5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+
+      .trust-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .trust-item {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.86);
+        padding: 16px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .trust-item span {
+        display: block;
+        color: var(--navy-400);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .trust-item strong {
+        display: block;
+        font-family: 'Space Grotesk', Inter, sans-serif;
+        font-size: 17px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 24px;
+      }
+
+      .step,
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .step {
+        min-height: 196px;
+        padding: 18px;
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+
+      .step.is-active {
+        border-color: rgba(39, 194, 179, 0.76);
+        box-shadow: 0 16px 42px rgba(39, 194, 179, 0.16);
+        transform: translateY(-2px);
+      }
+
+      .number {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(79, 125, 255, 0.1);
+        color: var(--blue-500);
+        font-weight: 800;
+        margin-bottom: 16px;
+      }
+
+      .step h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+      }
+
+      .step p,
+      .card p,
+      .card li {
+        margin: 0;
+        color: var(--navy-600);
+        font-size: 14px;
+      }
+
+      .proof {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      .card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .footer-note {
+        margin-top: 28px;
+        color: var(--navy-600);
+        font-size: 14px;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--teal-deep);
+        background: rgba(39, 194, 179, 0.1);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+
+      @media (max-width: 920px) {
+        .hero,
+        .proof,
+        .command-panel {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-points,
+        .trust-strip,
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .page {
+          width: min(100vw - 28px, 1180px);
+        }
+
+        header {
+          margin-bottom: 48px;
+        }
+
+        .brand img {
+          width: 132px;
+        }
+
+        .hero-points,
+        .trust-strip,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .header-actions {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <a class="brand" href="./uniswap-demo.html" aria-label="0xAgentio">
+          <img src="assets/logo_label.png" alt="0xAgentio" />
+        </a>
+        <div class="header-actions">
+          <a class="text-link" href="#commands">Run demo</a>
+          <span class="pill">Uniswap agent demo</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div>
+            <span class="pill">Proof-gated agentic finance</span>
+            <h1>Uniswap work only after agent authority is verified.</h1>
+            <p class="lead">
+              Alice is an autonomous treasury agent. Bob is a Uniswap gateway agent.
+              Bob prepares approval, quote, swap, and order work only after 0xAgentio verifies
+              Alice's proof-backed request.
+            </p>
+            <div class="hero-points" aria-label="Demo highlights">
+              <div class="hero-point">
+                <strong>Proof first</strong>
+                <span>Bob rejects requests before API work if authority does not match.</span>
+              </div>
+              <div class="hero-point">
+                <strong>Live where safe</strong>
+                <span>Approval checks and quotes can call the real Uniswap API.</span>
+              </div>
+              <div class="hero-point">
+                <strong>No surprise execution</strong>
+                <span>Swap and order submission require explicit live flags and signatures.</span>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="button" id="playButton" type="button">Play demo flow</button>
+              <button class="button secondary" id="resetButton" type="button">Reset</button>
+            </div>
+          </div>
+
+          <aside class="mesh-card" aria-label="Agent intent">
+            <div class="mesh-diagram" aria-hidden="true">
+              <div class="flow-line"></div>
+              <div class="flow-dot"></div>
+              <div class="node alice">Alice<small>agent</small></div>
+              <div class="node bob">Bob<small>gateway</small></div>
+              <div class="node uniswap">Uniswap<small>API</small></div>
+            </div>
+
+            <div class="intent">
+              <div class="row">
+                <span class="key">Pair</span>
+                <span class="value">USDC/WETH</span>
+              </div>
+              <div class="row">
+                <span class="key">Amount</span>
+                <span class="value">1,250 USDC</span>
+              </div>
+              <div class="row">
+                <span class="key">Venue</span>
+                <span class="value">Uniswap API</span>
+              </div>
+              <div class="row">
+                <span class="key">Trust boundary</span>
+                <span class="value">Bob verifies first</span>
+              </div>
+            </div>
+            <div class="terminal" id="log">Ready. Press Play demo flow.</div>
+          </aside>
+        </section>
+
+        <section class="trust-strip" aria-label="Trust boundary summary">
+          <div class="trust-item">
+            <span>Requester</span>
+            <strong>Alice carries delegated authority</strong>
+          </div>
+          <div class="trust-item">
+            <span>Verifier</span>
+            <strong>Bob checks the proof before work</strong>
+          </div>
+          <div class="trust-item">
+            <span>Execution</span>
+            <strong>Uniswap requests stay policy-gated</strong>
+          </div>
+        </section>
+
+        <section class="command-panel" id="commands" aria-label="Run the executable demo">
+          <article class="command-card">
+            <h2>Run the safe judge demo</h2>
+            <p>Executes the TypeScript flow locally. It verifies proofs and prepares Uniswap request shapes without submitting transactions.</p>
+            <code class="command-block">npm run example:uniswap:judge-demo</code>
+          </article>
+          <article class="command-card">
+            <h2>Enable live approval and quote</h2>
+            <p>Calls real Uniswap approval-check and quote endpoints. Swap and order submission remain disabled by default.</p>
+            <code class="command-block">AGENTIO_UNISWAP_API_KEY=your_key \
+AGENTIO_UNISWAP_RUN_LIVE_API=1 \
+npm run example:uniswap:judge-demo</code>
+          </article>
+        </section>
+
+        <section class="grid" aria-label="Proof gated flow">
+          <article class="step" data-step="0">
+            <div class="number">1</div>
+            <h2>Alice requests work</h2>
+            <p>Alice sends Bob a proof-backed request for Uniswap approval and quote work.</p>
+          </article>
+          <article class="step" data-step="1">
+            <div class="number">2</div>
+            <h2>Bob verifies first</h2>
+            <p>Bob checks the policy hash, action type, amount, and proof public inputs.</p>
+          </article>
+          <article class="step" data-step="2">
+            <div class="number">3</div>
+            <h2>Uniswap API is called</h2>
+            <p>Only after verification, Bob prepares or calls check approval and quote.</p>
+          </article>
+          <article class="step" data-step="3">
+            <div class="number">4</div>
+            <h2>Execution stays gated</h2>
+            <p>Swap and order submission remain disabled unless signatures and live flags exist.</p>
+          </article>
+        </section>
+
+        <section class="proof">
+          <article class="card">
+            <h3>What 0xAgentio adds</h3>
+            <ul>
+              <li>Delegated policy for autonomous agents.</li>
+              <li>Proof-backed messages between agents.</li>
+              <li>Verification before API work or execution preparation.</li>
+              <li>Audit-friendly boundaries for quote, swap, and order flows.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>What Uniswap provides</h3>
+            <ul>
+              <li><code>POST /check_approval</code> for token spend readiness.</li>
+              <li><code>POST /quote</code> for real route discovery.</li>
+              <li><code>POST /swap</code> for transaction preparation.</li>
+              <li><code>POST /order</code> for UniswapX order preparation.</li>
+            </ul>
+          </article>
+        </section>
+
+        <p class="footer-note">
+          This UI mirrors the local TypeScript example. The console demo is the source of truth for the executable flow;
+          the UI is a judge-facing walkthrough of the same trust boundary.
+        </p>
+      </main>
+    </div>
+
+    <script>
+      (function () {
+        var steps = Array.prototype.slice.call(document.querySelectorAll('[data-step]'));
+        var log = document.getElementById('log');
+        var play = document.getElementById('playButton');
+        var reset = document.getElementById('resetButton');
+        var lines = [
+          '1. Alice creates a proof-backed uniswap.checkApproval request.',
+          '2. Bob verifies Alice policy hash, action type, amount, and proof inputs.',
+          '3. Bob prepares or calls POST /check_approval and POST /quote for USDC/WETH.',
+          '4. Bob prepares /swap and /order shapes, but does not submit transactions.',
+          '5. Final result: Uniswap API work is gated by verifiable agent authority.'
+        ];
+        var timers = [];
+
+        function clearTimers() {
+          while (timers.length > 0) clearTimeout(timers.pop());
+        }
+
+        function resetDemo() {
+          clearTimers();
+          steps.forEach(function (step) {
+            step.classList.remove('is-active');
+          });
+          log.textContent = 'Ready. Press Play demo flow.';
+        }
+
+        function playDemo() {
+          resetDemo();
+          log.textContent = '';
+          lines.forEach(function (line, index) {
+            timers.push(setTimeout(function () {
+              if (steps[index]) steps[index].classList.add('is-active');
+              log.textContent += line + '\n';
+            }, index * 650));
+          });
+        }
+
+        play.addEventListener('click', playDemo);
+        reset.addEventListener('click', resetDemo);
+      })();
+    </script>
+  </body>
+</html>

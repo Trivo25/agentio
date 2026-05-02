@@ -45,7 +45,11 @@ const policy = createPolicy({
   allowedActions: ['swap'],
   constraints: [
     { type: 'max-amount', value: stepAmount, actionTypes: ['swap'] },
-    { type: 'max-cumulative-amount', value: targetSpend, actionTypes: ['swap'] },
+    {
+      type: 'max-cumulative-amount',
+      value: targetSpend,
+      actionTypes: ['swap'],
+    },
     {
       type: 'allowed-metadata-value',
       key: 'assetPair',
@@ -90,7 +94,8 @@ const reasoning = llmReasoningEngine({
   instructions:
     'Return one swap action at a time with metadata assetPair="ETH/USDC" and venue="uniswap-demo".',
   allowedActionTypes: ['swap'],
-  guard: ({ decision, context }) => guardRebalanceDecision(decision, context.state.cumulativeSpend),
+  guard: ({ decision, context }) =>
+    guardRebalanceDecision(decision, context.state.cumulativeSpend),
   onDecision: ({ rawDecision, decision }) => {
     logDecisionTrace(rawDecision, decision);
   },
@@ -139,13 +144,21 @@ const result = await alice.runUntilComplete({
 logStep('5. Inspect the completed run');
 logDetail('Run status', result.status);
 logDetail('Steps completed', String(result.steps.length));
-logDetail('Accepted actions', String(result.steps.filter((step) => step.status === 'accepted').length));
+logDetail(
+  'Accepted actions',
+  String(result.steps.filter((step) => step.status === 'accepted').length),
+);
 logDetail('Final cumulative spend', String(result.finalState.cumulativeSpend));
 logDetail('0G-shaped state records', String(storage.getRecords().length));
 logDetail('Audit events', String(storage.getAuditEvents().length));
 
-if (result.status !== 'stopped' || result.finalState.cumulativeSpend !== targetSpend) {
-  throw new Error(`Expected stopped at ${targetSpend}, got ${result.status} at ${result.finalState.cumulativeSpend}.`);
+if (
+  result.status !== 'stopped' ||
+  result.finalState.cumulativeSpend !== targetSpend
+) {
+  throw new Error(
+    `Expected stopped at ${targetSpend}, got ${result.status} at ${result.finalState.cumulativeSpend}.`,
+  );
 }
 
 logStep('Outcome');
@@ -260,7 +273,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {

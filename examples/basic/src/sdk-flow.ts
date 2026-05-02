@@ -14,7 +14,6 @@ import {
   type AgentStepResult,
 } from '@0xagentio/sdk';
 
-
 /**
  * Demonstrates the lower-level trusted-agent API.
  *
@@ -39,7 +38,12 @@ const policy = createPolicy({
   allowedActions: ['swap'],
   constraints: [
     { type: 'max-amount', value: 500n, actionTypes: ['swap'] },
-    { type: 'allowed-metadata-value', key: 'assetPair', values: ['ETH/USDC'], actionTypes: ['swap'] },
+    {
+      type: 'allowed-metadata-value',
+      key: 'assetPair',
+      values: ['ETH/USDC'],
+      actionTypes: ['swap'],
+    },
   ],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
 });
@@ -62,7 +66,10 @@ const action = createActionIntent({
   amount: 250n,
   metadata: { assetPair: 'ETH/USDC' },
 });
-logDetail('Action', `${action.type} ${String(action.amount)} ${String(action.metadata?.assetPair)}`);
+logDetail(
+  'Action',
+  `${action.type} ${String(action.amount)} ${String(action.metadata?.assetPair)}`,
+);
 
 logStep('Creating lower-level trusted agent');
 const storage = localMemoryStorage();
@@ -111,7 +118,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {

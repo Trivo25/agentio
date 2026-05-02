@@ -36,7 +36,6 @@ type RebalanceGoal = {
   readonly minimumAcceptableOutputPerInput: number;
 };
 
-
 type ScenarioStats = {
   readonly bobQuoteResponses: unknown[];
   readonly bobQuoteProofChecks: unknown[];
@@ -91,7 +90,10 @@ const goal: RebalanceGoal = {
   targetOutputPerInput: 2,
   minimumAcceptableOutputPerInput: 2,
 };
-logDetail('Goal', `swap ${String(goal.amount)} ${goal.assetPair} on ${goal.venue}`);
+logDetail(
+  'Goal',
+  `swap ${String(goal.amount)} ${goal.assetPair} on ${goal.venue}`,
+);
 logDetail('Target', `1:${goal.targetOutputPerInput} or better`);
 
 logStep('Creating local adapters');
@@ -100,7 +102,10 @@ const storage = localOgStorage();
 const transport = localAxlTransport('agentio/rebalance-signals');
 logDetail('Proof adapter', 'local Noir-shaped proofs');
 logDetail('Storage adapter', 'local 0G-shaped storage');
-logDetail('Transport adapter', 'local AXL-shaped topic agentio/rebalance-signals');
+logDetail(
+  'Transport adapter',
+  'local AXL-shaped topic agentio/rebalance-signals',
+);
 
 logStep('Creating peer listeners');
 const alicePeer = createAgentPeer({ identity: alice, transport });
@@ -114,28 +119,52 @@ logDetail('Carol listens for', 'proof-backed execution announcements');
 
 logStep('Alice prepares a proof-backed quote request');
 const quoteRequest = await createProofBackedQuoteRequest(goal);
-logDetail('Sending quote request', `${quoteRequest.id} (${quoteRequest.correlationId})`);
+logDetail(
+  'Sending quote request',
+  `${quoteRequest.id} (${quoteRequest.correlationId})`,
+);
 
 logStep('Alice asks Bob for market/execution context');
 const pendingQuoteReply = alicePeer.request(bob.id, quoteRequest, {
   expectedType: 'swap-quote-reply',
   timeoutMs: 1_000,
 });
-logDetail('Waiting for Bob response', 'request(...) is listening for the correlated reply');
+logDetail(
+  'Waiting for Bob response',
+  'request(...) is listening for the correlated reply',
+);
 await transport.receive(quoteRequest);
 const quoteReply = (await pendingQuoteReply) as CorrelatedAgentMessage;
-logDetail('Alice received quote reply', `${quoteReply.id} replying to ${quoteReply.replyTo}`);
+logDetail(
+  'Alice received quote reply',
+  `${quoteReply.id} replying to ${quoteReply.replyTo}`,
+);
 
 logStep('Alice reasons over Bob quote');
-const offeredOutputPerInput = readNumberPayload(quoteReply, 'offeredOutputPerInput');
-const aliceAcceptsQuote = offeredOutputPerInput >= goal.minimumAcceptableOutputPerInput;
+const offeredOutputPerInput = readNumberPayload(
+  quoteReply,
+  'offeredOutputPerInput',
+);
+const aliceAcceptsQuote =
+  offeredOutputPerInput >= goal.minimumAcceptableOutputPerInput;
 logDetail('Bob offered', `1:${offeredOutputPerInput}`);
-logDetail('Alice decision', aliceAcceptsQuote ? 'quote is acceptable' : 'quote is outside acceptable range');
+logDetail(
+  'Alice decision',
+  aliceAcceptsQuote
+    ? 'quote is acceptable'
+    : 'quote is outside acceptable range',
+);
 if (!aliceAcceptsQuote) {
-  throw new Error('Alice rejected Bob quote because it was outside her acceptable range.');
+  throw new Error(
+    'Alice rejected Bob quote because it was outside her acceptable range.',
+  );
 }
 
-const rebalanceAction = createSwapActionFromQuote(goal, quoteReply, offeredOutputPerInput);
+const rebalanceAction = createSwapActionFromQuote(
+  goal,
+  quoteReply,
+  offeredOutputPerInput,
+);
 
 logStep('Carol starts verified result listener');
 installCarolVerifiedResultListener(stats);
@@ -166,7 +195,10 @@ if (aliceResult.status === 'accepted') {
     },
   });
 
-  logDetail('Sending proof-backed result', `${resultMessage.id} -> ${carol.identity.id}`);
+  logDetail(
+    'Sending proof-backed result',
+    `${resultMessage.id} -> ${carol.identity.id}`,
+  );
   await alicePeer.send(carol.identity.id, resultMessage);
   await transport.receive(resultMessage);
 }
@@ -183,16 +215,27 @@ const spoofedMessage = createAgentMessage({
     policyHash,
   },
 });
-logDetail('Sending spoof without proof', `${spoofedMessage.id} -> ${carol.identity.id}`);
+logDetail(
+  'Sending spoof without proof',
+  `${spoofedMessage.id} -> ${carol.identity.id}`,
+);
 await alicePeer.send(carol.identity.id, spoofedMessage);
 await transport.receive(spoofedMessage);
 
 logStep('Final outcome');
 logDetail('Alice status', aliceResult.status);
-logDetail('Execution receipt', aliceResult.status === 'accepted' ? aliceResult.execution?.reference ?? 'none' : 'none');
+logDetail(
+  'Execution receipt',
+  aliceResult.status === 'accepted'
+    ? (aliceResult.execution?.reference ?? 'none')
+    : 'none',
+);
 logDetail('0G-shaped records written', String(storage.getRecords().length));
 logDetail('AXL-shaped messages sent', String(transport.getEnvelopes().length));
-logDetail('Carol trusted/rejected', `${stats.carolTrustedMessages.length}/${stats.carolRejectedMessages.length}`);
+logDetail(
+  'Carol trusted/rejected',
+  `${stats.carolTrustedMessages.length}/${stats.carolRejectedMessages.length}`,
+);
 
 /** Creates the policy that constrains both quote requests and final execution. */
 function createRebalancePolicy() {
@@ -200,7 +243,11 @@ function createRebalancePolicy() {
     id: 'policy-treasury-rebalance',
     allowedActions: ['request-quote', 'swap'],
     constraints: [
-      { type: 'max-amount', value: 500n, actionTypes: ['request-quote', 'swap'] },
+      {
+        type: 'max-amount',
+        value: 500n,
+        actionTypes: ['request-quote', 'swap'],
+      },
       {
         type: 'allowed-metadata-value',
         key: 'assetPair',
@@ -251,7 +298,12 @@ function installBobQuoteListener(stats: ScenarioStats): void {
       action: verification.valid ? verification.action.type : undefined,
     });
 
-    logDetail('Bob verified quote proof', verification.valid ? 'accepted request-quote proof' : 'rejected quote request');
+    logDetail(
+      'Bob verified quote proof',
+      verification.valid
+        ? 'accepted request-quote proof'
+        : 'rejected quote request',
+    );
 
     if (!verification.valid) {
       stats.bobRejectedQuoteRequests.push({
@@ -261,7 +313,10 @@ function installBobQuoteListener(stats: ScenarioStats): void {
       return;
     }
 
-    logDetail('Bob reads verified action', `${verification.action.type} ${String(verification.action.amount)}`);
+    logDetail(
+      'Bob reads verified action',
+      `${verification.action.type} ${String(verification.action.amount)}`,
+    );
 
     const offeredOutputPerInput = 3;
     const reply = createAgentReply({
@@ -290,7 +345,9 @@ function installBobQuoteListener(stats: ScenarioStats): void {
  * This mirrors the production flow where read-only quote requests may still
  * need authorization because they can consume resources or reveal market data.
  */
-async function createProofBackedQuoteRequest(goal: RebalanceGoal): Promise<CorrelatedAgentMessage> {
+async function createProofBackedQuoteRequest(
+  goal: RebalanceGoal,
+): Promise<CorrelatedAgentMessage> {
   const quoteAction = createActionIntent({
     type: 'request-quote',
     amount: goal.amount,
@@ -321,7 +378,10 @@ async function createProofBackedQuoteRequest(goal: RebalanceGoal): Promise<Corre
   });
 
   const messageProof = message.payload.proof as { format?: unknown };
-  logDetail('Generated quote proof', typeof messageProof.format === 'string' ? messageProof.format : 'unknown');
+  logDetail(
+    'Generated quote proof',
+    typeof messageProof.format === 'string' ? messageProof.format : 'unknown',
+  );
   return message;
 }
 
@@ -348,7 +408,10 @@ function createSwapActionFromQuote(
 function installCarolVerifiedResultListener(stats: ScenarioStats): void {
   carol.onVerifiedMessage(proof, {
     onTrusted(result) {
-      logDetail('Carol trusted message', `${result.message.type} from ${result.message.sender}`);
+      logDetail(
+        'Carol trusted message',
+        `${result.message.type} from ${result.message.sender}`,
+      );
       stats.carolTrustedMessages.push({
         verifier: carol.identity.id,
         acceptedFrom: result.message.sender,
@@ -358,7 +421,10 @@ function installCarolVerifiedResultListener(stats: ScenarioStats): void {
       });
     },
     onRejected(result) {
-      logDetail('Carol rejected message', `${result.message.type} from ${result.message.sender}: ${result.reason}`);
+      logDetail(
+        'Carol rejected message',
+        `${result.message.type} from ${result.message.sender}: ${result.reason}`,
+      );
       stats.carolRejectedMessages.push({
         verifier: carol.identity.id,
         rejectedFrom: result.message.sender,
@@ -374,7 +440,10 @@ function installCarolVerifiedResultListener(stats: ScenarioStats): void {
  * The runtime keeps Alice's decision, proof generation, state update, and audit
  * write in one place while Bob still acts as an external verifying executor.
  */
-function createAliceRuntime(rebalanceAction: ReturnType<typeof createActionIntent>, stats: ScenarioStats) {
+function createAliceRuntime(
+  rebalanceAction: ReturnType<typeof createActionIntent>,
+  stats: ScenarioStats,
+) {
   return createAgentRuntime({
     identity: alice,
     credential,
@@ -392,18 +461,32 @@ function createAliceRuntime(rebalanceAction: ReturnType<typeof createActionInten
     execution: localVerifyingExecution(
       proof,
       async ({ identity, action, proof }) => {
-        logDetail('Bob received execution request', `${action.type} ${String(action.amount)}`);
+        logDetail(
+          'Bob received execution request',
+          `${action.type} ${String(action.amount)}`,
+        );
 
         const review = {
           executor: bob.id,
           requester: identity.id,
           quoteId: action.metadata?.quoteId,
-          checked: ['proof-verification', 'agentId', 'policyHash', 'actionType'],
+          checked: [
+            'proof-verification',
+            'agentId',
+            'policyHash',
+            'actionType',
+          ],
           decision: 'execute-mock-uniswap-order',
         };
         stats.bobExecutionReviews.push(review);
-        logDetail('Bob verified execution proof', 'agentId, policyHash, actionType');
-        logDetail('Bob executes mock swap', `${String(action.metadata?.assetPair)} amount ${String(action.amount)}`);
+        logDetail(
+          'Bob verified execution proof',
+          'agentId, policyHash, actionType',
+        );
+        logDetail(
+          'Bob executes mock swap',
+          `${String(action.metadata?.assetPair)} amount ${String(action.amount)}`,
+        );
 
         return {
           success: true,
@@ -430,14 +513,17 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {
   console.log(`  - ${label}: ${value}`);
 }
 
-function readNumberPayload(message: CorrelatedAgentMessage, key: string): number {
+function readNumberPayload(
+  message: CorrelatedAgentMessage,
+  key: string,
+): number {
   const value = message.payload[key];
   if (typeof value !== 'number') {
     throw new TypeError(`Expected numeric payload field ${key}.`);

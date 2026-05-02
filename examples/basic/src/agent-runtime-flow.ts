@@ -100,7 +100,10 @@ const alice = createAgentRuntime({
   storage: aliceStorage,
   transport,
   execution: localVerifyingExecution(proof, async ({ action, proof }) => {
-    logDetail('Executor checked proof', `${proof.publicInputs.actionType} for ${proof.publicInputs.agentId}`);
+    logDetail(
+      'Executor checked proof',
+      `${proof.publicInputs.actionType} for ${proof.publicInputs.agentId}`,
+    );
     return {
       success: true,
       reference: `local-swap-receipt:${action.type}:${action.metadata?.assetPair}`,
@@ -130,7 +133,10 @@ const bob = createAgentRuntime({
 });
 const bobInbox: AgentMessage[] = [];
 bob.onMessage((message) => {
-  if (message.type !== 'runtime-execution-summary' || message.sender !== alice.identity.id) {
+  if (
+    message.type !== 'runtime-execution-summary' ||
+    message.sender !== alice.identity.id
+  ) {
     return;
   }
 
@@ -174,7 +180,10 @@ async function deliverLatestLocalEnvelope(): Promise<void> {
     throw new Error('No local transport envelope was available to deliver.');
   }
 
-  logDetail('Local transport delivered', `${latest.message.type} -> ${latest.recipient}`);
+  logDetail(
+    'Local transport delivered',
+    `${latest.message.type} -> ${latest.recipient}`,
+  );
   await transport.receive(latest.message);
 }
 
@@ -198,7 +207,9 @@ function describeResult(result: AgentStepResult): string {
  * small summary keeps peer messages stable while audit storage preserves the
  * full local record for debugging and compliance.
  */
-function createSummaryPayload(result: AgentStepResult): Readonly<Record<string, unknown>> {
+function createSummaryPayload(
+  result: AgentStepResult,
+): Readonly<Record<string, unknown>> {
   if (result.status !== 'accepted') {
     return { status: result.status };
   }
@@ -218,7 +229,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {
