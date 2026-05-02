@@ -148,6 +148,34 @@
         margin-top: 30px;
       }
 
+      .hero-points {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 28px;
+        max-width: 760px;
+      }
+
+      .hero-point {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: var(--shadow-soft);
+        padding: 13px 14px;
+      }
+
+      .hero-point strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 13px;
+      }
+
+      .hero-point span {
+        display: block;
+        color: var(--navy-600);
+        font-size: 12px;
+      }
+
       .button {
         border: 0;
         border-radius: 14px;
@@ -323,6 +351,45 @@
         white-space: pre-wrap;
       }
 
+      .command-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 24px;
+      }
+
+      .command-card {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-soft);
+        padding: 18px;
+      }
+
+      .command-card h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .command-card p {
+        margin: 0 0 14px;
+        color: var(--navy-600);
+        font-size: 14px;
+      }
+
+      .command-block {
+        display: block;
+        overflow-x: auto;
+        white-space: pre;
+        margin: 0;
+        padding: 14px;
+        border-radius: 14px;
+        background: var(--navy-950);
+        color: #d1fae5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -416,10 +483,12 @@
 
       @media (max-width: 920px) {
         .hero,
-        .proof {
+        .proof,
+        .command-panel {
           grid-template-columns: 1fr;
         }
 
+        .hero-points,
         .grid {
           grid-template-columns: 1fr 1fr;
         }
@@ -438,6 +507,7 @@
           width: 132px;
         }
 
+        .hero-points,
         .grid {
           grid-template-columns: 1fr;
         }
@@ -463,6 +533,20 @@
               Bob prepares approval, quote, swap, and order work only after 0xAgentio verifies
               Alice's proof-backed request.
             </p>
+            <div class="hero-points" aria-label="Demo highlights">
+              <div class="hero-point">
+                <strong>Proof first</strong>
+                <span>Bob rejects requests before API work if authority does not match.</span>
+              </div>
+              <div class="hero-point">
+                <strong>Live where safe</strong>
+                <span>Approval checks and quotes can call the real Uniswap API.</span>
+              </div>
+              <div class="hero-point">
+                <strong>No surprise execution</strong>
+                <span>Swap and order submission require explicit live flags and signatures.</span>
+              </div>
+            </div>
             <div class="actions">
               <button class="button" id="playButton" type="button">Play demo flow</button>
               <button class="button secondary" id="resetButton" type="button">Reset</button>
@@ -498,6 +582,21 @@
             </div>
             <div class="terminal" id="log">Ready. Press Play demo flow.</div>
           </aside>
+        </section>
+
+        <section class="command-panel" aria-label="Run the executable demo">
+          <article class="command-card">
+            <h2>Run the safe judge demo</h2>
+            <p>Executes the TypeScript flow locally. It verifies proofs and prepares Uniswap request shapes without submitting transactions.</p>
+            <code class="command-block">npm run example:uniswap:judge-demo</code>
+          </article>
+          <article class="command-card">
+            <h2>Enable live approval and quote</h2>
+            <p>Calls real Uniswap approval-check and quote endpoints. Swap and order submission remain disabled by default.</p>
+            <code class="command-block">AGENTIO_UNISWAP_API_KEY=your_key \
+AGENTIO_UNISWAP_RUN_LIVE_API=1 \
+npm run example:uniswap:judge-demo</code>
+          </article>
         </section>
 
         <section class="grid" aria-label="Proof gated flow">
@@ -545,8 +644,8 @@
         </section>
 
         <p class="footer-note">
-          This UI mirrors the local TypeScript example. Run
-          <code>npm run example:uniswap:judge-demo</code> for the executable proof-gated flow.
+          This UI mirrors the local TypeScript example. The console demo is the source of truth for the executable flow;
+          the UI is a judge-facing walkthrough of the same trust boundary.
         </p>
       </main>
     </div>
@@ -559,10 +658,10 @@
         var reset = document.getElementById('resetButton');
         var lines = [
           '1. Alice creates a proof-backed uniswap.checkApproval request.',
-          '2. Bob verifies Alice proof before doing any Uniswap work.',
-          '3. Bob prepares POST /check_approval and POST /quote for USDC/WETH.',
+          '2. Bob verifies Alice policy hash, action type, amount, and proof inputs.',
+          '3. Bob prepares or calls POST /check_approval and POST /quote for USDC/WETH.',
           '4. Bob prepares /swap and /order shapes, but does not submit transactions.',
-          '5. Final result: Uniswap work is gated by verifiable agent authority.'
+          '5. Final result: Uniswap API work is gated by verifiable agent authority.'
         ];
         var timers = [];
 
