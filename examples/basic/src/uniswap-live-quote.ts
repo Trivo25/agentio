@@ -107,7 +107,7 @@ installBobQuoteGateway(options);
 await runUniswapPreparationDemo();
 
 async function runUniswapPreparationDemo(): Promise<void> {
-  logTitle('AgentIO Uniswap live approval, quote, swap, and order preparation');
+  logTitle('AgentIO Uniswap judge demo: proof-gated approval, quote, swap, and order preparation');
 
   logStep('1. Create Alice and Bob');
   logDetail('Alice', 'agent that wants Uniswap approval and quote work');

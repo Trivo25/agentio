@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
-    "test": "npm run build && AGENTIO_0G_SKIP_LIVE=1 node --test packages/*/dist/*.test.js",
+    "test": "npm run build && AGENTIO_0G_SKIP_LIVE=1 node --test packages/*/dist/*.test.js examples/basic/dist/uniswap/*.test.js",
     "example:getting-started": "node examples/basic/dist/getting-started.js",
     "example:llm-reasoning": "node examples/basic/dist/llm-reasoning-flow.js",
     "example:guarded-llm-reasoning": "node examples/basic/dist/guarded-llm-reasoning.js",
@@ -54,7 +54,8 @@
     "example:0g-compute-run-until-complete": "npm run build && node examples/basic/dist/zero-g-compute-run-until-complete.js",
     "example:mock-llm-run-until-complete": "node examples/basic/dist/mock-llm-run-until-complete.js",
     "example:uniswap:local": "node examples/basic/dist/uniswap-track-local.js",
-    "example:uniswap:quote-live": "npm run build && node examples/basic/dist/uniswap-live-quote.js"
+    "example:uniswap:quote-live": "npm run build && node examples/basic/dist/uniswap-live-quote.js",
+    "example:uniswap:judge-demo": "npm run example:uniswap:quote-live"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
