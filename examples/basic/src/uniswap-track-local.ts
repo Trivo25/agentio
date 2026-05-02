@@ -63,6 +63,7 @@ type UniswapStats = {
   quoteProofsVerified: number;
   quoteRequestsRejected: number;
   swapProofsVerified: number;
+  swapRequestsRejected: number;
   swapsExecuted: number;
 };
 
@@ -82,6 +83,7 @@ const stats: UniswapStats = {
   quoteProofsVerified: 0,
   quoteRequestsRejected: 0,
   swapProofsVerified: 0,
+  swapRequestsRejected: 0,
   swapsExecuted: 0,
 };
 
@@ -226,11 +228,16 @@ if (result.status !== 'accepted') {
 logDetail('Runtime result', result.status);
 logDetail('Execution receipt', result.execution?.reference ?? 'none');
 
-logStep('8. Inspect state, audit, and trust-boundary checks');
+logStep('8. Show proof binding: Bob rejects a tampered swap request');
+await sendTamperedSwapRequest(result.action, result.proof);
+logDetail('Rejected swap requests', String(stats.swapRequestsRejected));
+
+logStep('9. Inspect state, audit, and trust-boundary checks');
 const state = await alice.loadState();
 assertScenario(state.cumulativeSpend === goal.amountIn, 'Alice state did not consume the swap amount.');
 assertScenario(stats.quoteProofsVerified === 1, 'Bob did not verify exactly one quote proof.');
 assertScenario(stats.swapProofsVerified === 1, 'Bob did not verify exactly one swap proof.');
+assertScenario(stats.swapRequestsRejected === 1, 'Bob did not reject the tampered swap request.');
 assertScenario(stats.swapsExecuted === 1, 'Bob did not execute exactly one mock Uniswap swap.');
 logDetail('Cumulative spend', String(state.cumulativeSpend));
 logDetail('Audit events', String(storage.getAuditEvents().length));
@@ -303,6 +310,7 @@ async function handleSwapRequest(message: AgentMessage): Promise<void> {
   });
 
   if (!verification.valid) {
+    stats.swapRequestsRejected += 1;
     logDetail('Bob rejected swap request', verification.reason);
     return;
   }
@@ -350,6 +358,40 @@ async function sendUnprovedMalloryQuoteRequest(): Promise<void> {
     },
   });
 
+  await transport.receive(message);
+}
+
+/**
+ * Reuses Alice's valid proof with a modified swap action.
+ *
+ * Bob should reject this because AgentIO proofs are bound to the exact action
+ * hash. This is the core difference between proof-carrying requests and a
+ * bearer auth token that can be copied onto a different payload.
+ */
+async function sendTamperedSwapRequest(
+  originalAction: ReturnType<typeof createActionIntent>,
+  proofResult: CredentialProof,
+): Promise<void> {
+  const tamperedAction = createActionIntent({
+    type: originalAction.type,
+    amount: goal.amountIn + 100n,
+    metadata: originalAction.metadata,
+  });
+  const message = createAgentMessage({
+    id: 'mallory-tampered-swap-1',
+    correlationId: 'uniswap-rebalance-session-1',
+    type: 'uniswap.swap.request',
+    sender: aliceIdentity.id,
+    createdAt: new Date('2026-04-30T12:00:04.000Z'),
+    payload: {
+      policyHash,
+      action: tamperedAction,
+      proof: proofResult,
+      quote,
+    },
+  });
+
+  logDetail('Tampered request', `reused valid proof but changed amount to ${String(tamperedAction.amount)}`);
   await transport.receive(message);
 }
 
