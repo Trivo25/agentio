@@ -645,9 +645,94 @@
         background-repeat: no-repeat;
         background-position: center;
       }
+
+      .top-banner {
+        position: relative;
+        z-index: 2;
+        background: linear-gradient(
+          90deg,
+          rgba(79, 125, 255, 0.08),
+          rgba(39, 194, 179, 0.08),
+          rgba(181, 141, 255, 0.08)
+        );
+        border-bottom: 1px solid rgba(79, 125, 255, 0.18);
+      }
+
+      .top-banner-inner {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 10px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--navy-700);
+        flex-wrap: wrap;
+        text-align: center;
+      }
+
+      .top-banner-inner strong {
+        color: var(--navy-950);
+        font-weight: 600;
+      }
+
+      .top-banner-inner a {
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .top-banner-inner a::after {
+        content: '→';
+        transition: transform 120ms ease;
+      }
+
+      .top-banner-inner a:hover::after {
+        transform: translateX(2px);
+      }
+
+      .top-banner-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--teal-deep);
+      }
+
+      .top-banner-tag .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--teal);
+        box-shadow: 0 0 0 0 rgba(39, 194, 179, 0.6);
+        animation: pulse-dot 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      @keyframes pulse-dot {
+        0% {
+          box-shadow: 0 0 0 0 rgba(39, 194, 179, 0.6);
+        }
+        100% {
+          box-shadow: 0 0 0 8px rgba(39, 194, 179, 0);
+        }
+      }
     </style>
   </head>
   <body>
+    <div class="top-banner">
+      <div class="top-banner-inner">
+        <span class="top-banner-tag"><span class="pulse-dot"></span> Public infra</span>
+        <span>
+          Looking for the <strong>0G KV node</strong>? Public RPC endpoint, live status and tracked stream IDs are on a dedicated page.
+        </span>
+        <a href="kv-node.html">Open KV node page</a>
+      </div>
+    </div>
     <div class="page">
       <header>
         <div class="brand">
