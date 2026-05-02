@@ -16,6 +16,12 @@ import {
 } from '@0xagentio/sdk';
 
 import { readLiveQuoteOptions, type LiveQuoteOptions } from './uniswap/config.js';
+import {
+  createUniswapGateway,
+  readString,
+  type UniswapCheckApprovalRequestBody,
+  type UniswapQuoteRequestBody,
+} from './uniswap/gateway.js';
 import { logDetail, logStep, logTitle } from './uniswap/logging.js';
 
 /**
@@ -26,104 +32,6 @@ import { logDetail, logStep, logTitle } from './uniswap/logging.js';
  * inspect the authorization boundary before enabling live API requests with
  * credentials.
  */
-
-type UniswapCheckApprovalRequestBody = {
-  readonly walletAddress: string;
-  readonly token: string;
-  readonly amount: string;
-  readonly chainId: number;
-  readonly tokenOut?: string;
-  readonly tokenOutChainId?: number;
-  readonly includeGasInfo?: boolean;
-};
-
-type UniswapQuoteRequestBody = {
-  readonly type: 'EXACT_INPUT';
-  readonly amount: string;
-  readonly tokenInChainId: number;
-  readonly tokenOutChainId: number;
-  readonly tokenIn: string;
-  readonly tokenOut: string;
-  readonly swapper: string;
-  readonly slippageTolerance: number;
-  readonly routingPreference: 'BEST_PRICE' | 'FASTEST';
-  readonly protocols?: readonly ('V2' | 'V3' | 'V4' | 'UNISWAPX_V2' | 'UNISWAPX_V3')[];
-};
-
-type UniswapSwapRequestBody = {
-  readonly quote: unknown;
-  readonly signature?: string;
-  readonly permitData?: unknown;
-  readonly includeGasInfo?: boolean;
-  readonly refreshGasPrice?: boolean;
-  readonly simulateTransaction?: boolean;
-  readonly safetyMode?: 'SAFE';
-  readonly deadline?: number;
-};
-
-type UniswapOrderRequestBody = {
-  readonly quote: unknown;
-  readonly signature: string;
-  readonly routing?: string;
-};
-
-type PreparedApprovalRequest = {
-  readonly method: 'POST';
-  readonly headers: Record<string, string>;
-  readonly body: UniswapCheckApprovalRequestBody;
-};
-
-type PreparedQuoteRequest = {
-  readonly method: 'POST';
-  readonly headers: Record<string, string>;
-  readonly body: UniswapQuoteRequestBody;
-};
-
-type PreparedSwapRequest = {
-  readonly method: 'POST';
-  readonly headers: Record<string, string>;
-  readonly body: UniswapSwapRequestBody;
-};
-
-type PreparedOrderRequest = {
-  readonly method: 'POST';
-  readonly headers: Record<string, string>;
-  readonly body: UniswapOrderRequestBody;
-};
-
-type UniswapApprovalSummary = {
-  readonly hasApprovalTransaction: boolean;
-  readonly hasCancelTransaction: boolean;
-  readonly hasGasInfo: boolean;
-};
-
-type UniswapQuoteSummary = {
-  readonly requestId?: string;
-  readonly routing?: string;
-  readonly hasPermitData?: boolean;
-  readonly hasPermitTransaction?: boolean;
-};
-
-type UniswapQuoteResult = {
-  readonly summary: UniswapQuoteSummary;
-  readonly quoteForSwap: unknown;
-  readonly permitData?: unknown;
-};
-
-type UniswapSwapSummary = {
-  readonly requestId?: string;
-  readonly hasSwapTransaction: boolean;
-  readonly transactionValid: boolean;
-};
-
-type UniswapOrderSummary = {
-  readonly requestId?: string;
-  readonly orderId?: string;
-  readonly orderStatus?: string;
-  readonly hasSignature: boolean;
-};
-
-type UniswapExecutionEndpoint = 'order' | 'swap' | 'unsupported';
 
 const now = new Date('2026-04-30T12:00:00.000Z');
 const quoteBody: UniswapQuoteRequestBody = {
@@ -193,6 +101,7 @@ const proof = localNoirProofs();
 const transport = localAxlTransport('agentio/uniswap-live-quote');
 const alicePeer = createAgentPeer({ identity: aliceIdentity, transport });
 const bobPeer = createAgentPeer({ identity: bobIdentity, transport });
+const uniswapGateway = createUniswapGateway(options, now);
 installBobQuoteGateway(options);
 
 await runUniswapPreparationDemo();
@@ -425,20 +334,15 @@ async function handleApprovalRequest(
   }
 
   logDetail('Bob verified approval proof', `${verification.action.type} ${String(verification.action.amount)}`);
-  const endpoint = `${trimTrailingSlash(options.baseUrl)}/check_approval`;
-  const prepared = createPreparedApprovalRequest(options, approvalBody);
-  const approvalResponse = options.runNetworkRequest
-    ? await requestUniswapApproval(endpoint, prepared, options)
-    : undefined;
-  const networkCall = options.runNetworkRequest ? 'submitted POST /check_approval' : 'disabled by default';
+  const approval = await uniswapGateway.checkApproval(approvalBody);
 
-  logDetail('Prepared POST', endpoint);
+  logDetail('Prepared POST', approval.endpoint);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
-  logDetail('Body amount', prepared.body.amount);
+  logDetail('Body amount', approval.request.body.amount);
   logDetail('Approval target', 'Permit2 or proxy router, depending on x-permit2-disabled');
-  if (approvalResponse !== undefined) {
-    logDetail('Approval needed', String(approvalResponse.hasApprovalTransaction));
-    logDetail('Cancel needed', String(approvalResponse.hasCancelTransaction));
+  if (approval.summary !== undefined) {
+    logDetail('Approval needed', String(approval.summary.hasApprovalTransaction));
+    logDetail('Cancel needed', String(approval.summary.hasCancelTransaction));
   }
 
   const reply = createAgentReply({
@@ -449,10 +353,10 @@ async function handleApprovalRequest(
     request: message as CorrelatedAgentMessage,
     payload: {
       status: 'prepared',
-      endpoint,
-      networkCall,
-      request: prepared,
-      approvalSummary: approvalResponse,
+      endpoint: approval.endpoint,
+      networkCall: approval.networkCall,
+      request: approval.request,
+      approvalSummary: approval.summary,
     },
   });
 
@@ -477,20 +381,15 @@ async function handleQuoteRequest(
   }
 
   logDetail('Bob verified quote proof', `${verification.action.type} ${String(verification.action.amount)}`);
-  const endpoint = `${trimTrailingSlash(options.baseUrl)}/quote`;
-  const prepared = createPreparedQuoteRequest(options, quoteBody);
-  const quoteResponse = options.runNetworkRequest
-    ? await requestUniswapQuote(endpoint, prepared, options)
-    : undefined;
-  const networkCall = options.runNetworkRequest ? 'submitted POST /quote' : 'disabled by default';
+  const quote = await uniswapGateway.quote(quoteBody);
 
-  logDetail('Prepared POST', endpoint);
+  logDetail('Prepared POST', quote.endpoint);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
-  logDetail('Body amount', prepared.body.amount);
+  logDetail('Body amount', quote.request.body.amount);
   logDetail('Body pair', 'USDC/WETH');
-  if (quoteResponse !== undefined) {
-    logDetail('Uniswap request id', quoteResponse.summary.requestId ?? '<missing>');
-    logDetail('Uniswap routing', quoteResponse.summary.routing ?? '<missing>');
+  if (quote.result !== undefined) {
+    logDetail('Uniswap request id', quote.result.summary.requestId ?? '<missing>');
+    logDetail('Uniswap routing', quote.result.summary.routing ?? '<missing>');
   }
 
   const reply = createAgentReply({
@@ -501,12 +400,12 @@ async function handleQuoteRequest(
     request: message as CorrelatedAgentMessage,
     payload: {
       status: 'prepared',
-      endpoint,
-      networkCall,
-      request: prepared,
-      quoteSummary: quoteResponse?.summary,
-      quoteForSwap: quoteResponse?.quoteForSwap ?? createLocalClassicQuoteForSwap(),
-      permitData: quoteResponse?.permitData,
+      endpoint: quote.endpoint,
+      networkCall: quote.networkCall,
+      request: quote.request,
+      quoteSummary: quote.result?.summary,
+      quoteForSwap: quote.result?.quoteForSwap ?? createLocalClassicQuoteForSwap(),
+      permitData: quote.result?.permitData,
     },
   });
 
@@ -531,21 +430,14 @@ async function handleSwapPrepareRequest(
   }
 
   logDetail('Bob verified swap proof', `${verification.action.type} ${String(verification.action.amount)}`);
-  const endpoint = `${trimTrailingSlash(options.baseUrl)}/swap`;
-  const prepared = createPreparedSwapRequest(
-    options,
+  const swap = await uniswapGateway.prepareSwap(
     isRecord(message.payload.quoteForSwap) ? message.payload.quoteForSwap : createLocalClassicQuoteForSwap(),
     message.payload.permitData,
   );
-  const swapResponse = options.runSwapNetworkRequest
-    ? await requestUniswapSwap(endpoint, prepared, options)
-    : undefined;
-  const preparedValidation = validatePreparedSwapRequest(prepared);
-  const networkCall = options.runSwapNetworkRequest ? 'submitted POST /swap' : 'disabled by default';
 
-  logDetail('Prepared POST', endpoint);
+  logDetail('Prepared POST', swap.endpoint);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
-  logDetail('Swap request valid', String(preparedValidation.transactionValid));
+  logDetail('Swap request valid', String(swap.summary.transactionValid));
   logDetail('Broadcast', 'not performed by this example');
 
   const reply = createAgentReply({
@@ -556,10 +448,10 @@ async function handleSwapPrepareRequest(
     request: message as CorrelatedAgentMessage,
     payload: {
       status: 'prepared',
-      endpoint,
-      networkCall,
-      request: prepared,
-      swapSummary: swapResponse ?? preparedValidation,
+      endpoint: swap.endpoint,
+      networkCall: swap.networkCall,
+      request: swap.request,
+      swapSummary: swap.summary,
     },
   });
 
@@ -587,23 +479,12 @@ async function handleOrderPrepareRequest(
   const quote = isRecord(message.payload.quoteForOrder)
     ? message.payload.quoteForOrder
     : createLocalUniswapXQuoteForOrder();
-  const endpointName = routeToExecutionEndpoint(readString(quote.routing));
-  if (endpointName !== 'order') {
-    throw new Error(`Bob expected a UniswapX order route but received ${endpointName}.`);
-  }
+  const order = await uniswapGateway.prepareOrder(quote);
 
-  const endpoint = `${trimTrailingSlash(options.baseUrl)}/order`;
-  const prepared = createPreparedOrderRequest(options, quote);
-  const orderResponse = options.runOrderNetworkRequest
-    ? await requestUniswapOrder(endpoint, prepared, options)
-    : undefined;
-  const preparedValidation = validatePreparedOrderRequest(prepared);
-  const networkCall = options.runOrderNetworkRequest ? 'submitted POST /order' : 'disabled by default';
-
-  logDetail('Prepared POST', endpoint);
+  logDetail('Prepared POST', order.endpoint);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
   logDetail('Order route', readString(quote.routing) ?? '<missing>');
-  logDetail('Order signature', preparedValidation.hasSignature ? 'configured' : 'required before live submit');
+  logDetail('Order signature', order.summary.hasSignature ? 'configured' : 'required before live submit');
   logDetail('Broadcast', 'not performed by this example');
 
   const reply = createAgentReply({
@@ -614,329 +495,15 @@ async function handleOrderPrepareRequest(
     request: message as CorrelatedAgentMessage,
     payload: {
       status: 'prepared',
-      endpoint,
-      networkCall,
-      request: prepared,
-      orderSummary: orderResponse ?? preparedValidation,
+      endpoint: order.endpoint,
+      networkCall: order.networkCall,
+      request: order.request,
+      orderSummary: order.summary,
     },
   });
 
   await bobPeer.send(aliceIdentity.id, reply);
   await transport.receive(reply);
-}
-
-function createPreparedApprovalRequest(
-  options: LiveQuoteOptions,
-  body: UniswapCheckApprovalRequestBody,
-): PreparedApprovalRequest {
-  return {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      accept: 'application/json',
-      'x-api-key': options.apiKey ?? '<missing>',
-      'x-permit2-disabled': String(options.permit2Disabled),
-    },
-    body,
-  };
-}
-
-function createPreparedQuoteRequest(
-  options: LiveQuoteOptions,
-  body: UniswapQuoteRequestBody,
-): PreparedQuoteRequest {
-  return {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      accept: 'application/json',
-      'x-api-key': options.apiKey ?? '<missing>',
-      'x-universal-router-version': options.universalRouterVersion,
-      'x-erc20eth-enabled': String(options.erc20EthEnabled),
-      'x-permit2-disabled': String(options.permit2Disabled),
-    },
-    body,
-  };
-}
-
-function createPreparedSwapRequest(
-  options: LiveQuoteOptions,
-  quote: unknown,
-  permitData: unknown,
-): PreparedSwapRequest {
-  const signature = permitData === undefined || permitData === null
-    ? undefined
-    : options.permitSignature;
-  if (options.runSwapNetworkRequest && permitData !== undefined && permitData !== null && signature === undefined) {
-    throw new Error('AGENTIO_UNISWAP_PERMIT_SIGNATURE is required to submit /swap when quote permitData is present.');
-  }
-
-  return {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      accept: 'application/json',
-      'x-api-key': options.apiKey ?? '<missing>',
-      'x-universal-router-version': options.universalRouterVersion,
-      'x-permit2-disabled': String(options.permit2Disabled),
-    },
-    body: {
-      quote,
-      ...(signature === undefined ? {} : { signature }),
-      ...(signature === undefined ? {} : { permitData }),
-      refreshGasPrice: true,
-      simulateTransaction: false,
-      safetyMode: 'SAFE',
-      deadline: Math.floor(now.getTime() / 1_000) + 300,
-    },
-  };
-}
-
-function createPreparedOrderRequest(
-  options: LiveQuoteOptions,
-  quote: Record<string, unknown>,
-): PreparedOrderRequest {
-  if (options.runOrderNetworkRequest && options.orderSignature === undefined) {
-    throw new Error('AGENTIO_UNISWAP_ORDER_SIGNATURE is required to submit /order.');
-  }
-
-  return {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      accept: 'application/json',
-      'x-api-key': options.apiKey ?? '<missing>',
-      'x-erc20eth-enabled': String(options.erc20EthEnabled),
-    },
-    body: {
-      quote,
-      signature: options.orderSignature ?? '<signature-required>',
-      routing: readString(quote.routing),
-    },
-  };
-}
-
-/**
- * Calls the Uniswap approval endpoint only after AgentIO verification has passed.
- *
- * Developers should inspect the returned transaction object and let the wallet
- * sign it only if the current delegated action still matches the agent policy.
- */
-async function requestUniswapApproval(
-  endpoint: string,
-  request: PreparedApprovalRequest,
-  options: LiveQuoteOptions,
-): Promise<UniswapApprovalSummary> {
-  assertApiKey(options);
-
-  logDetail('Live approval check', 'submitting POST /check_approval');
-  const response = await fetchJson(endpoint, request);
-  return summarizeApprovalResponse(response, '/check_approval');
-}
-
-/**
- * Calls the Uniswap swap endpoint only after AgentIO verification has passed.
- *
- * The response is still only unsigned calldata. Applications must validate the
- * transaction shape, collect a wallet signature, and broadcast through their
- * own RPC path if the user still wants to execute.
- */
-async function requestUniswapSwap(
-  endpoint: string,
-  request: PreparedSwapRequest,
-  options: LiveQuoteOptions,
-): Promise<UniswapSwapSummary> {
-  assertApiKey(options);
-
-  logDetail('Live swap preparation', 'submitting POST /swap');
-  const response = await fetchJson(endpoint, request);
-  return summarizeSwapResponse(response);
-}
-
-/**
- * Calls the UniswapX order endpoint only after AgentIO verification has passed.
- *
- * The endpoint submits a signed intent to the filler network. This example keeps
- * it behind a separate opt-in flag because an order can become executable once
- * signed and accepted by UniswapX.
- */
-async function requestUniswapOrder(
-  endpoint: string,
-  request: PreparedOrderRequest,
-  options: LiveQuoteOptions,
-): Promise<UniswapOrderSummary> {
-  assertApiKey(options);
-
-  logDetail('Live order preparation', 'submitting POST /order');
-  const response = await fetchJson(endpoint, request);
-  return summarizeOrderResponse(response, request);
-}
-
-/**
- * Calls the Uniswap quote endpoint only after AgentIO verification has passed.
- *
- * Developers can use the returned summary to decide whether the next step is a
- * Permit2 signature, a classic /swap request, or a UniswapX /order request.
- */
-async function requestUniswapQuote(
-  endpoint: string,
-  request: PreparedQuoteRequest,
-  options: LiveQuoteOptions,
-): Promise<UniswapQuoteResult> {
-  assertApiKey(options);
-
-  logDetail('Live quote', 'submitting POST /quote');
-  const response = await fetchJson(endpoint, request);
-  return {
-    summary: summarizeQuoteResponse(response),
-    quoteForSwap: extractQuoteForSwap(response),
-    permitData: isRecord(response) ? response.permitData : undefined,
-  };
-}
-
-async function fetchJson(
-  endpoint: string,
-  request: PreparedApprovalRequest | PreparedQuoteRequest | PreparedSwapRequest | PreparedOrderRequest,
-): Promise<unknown> {
-  const response = await fetch(endpoint, {
-    method: request.method,
-    headers: request.headers,
-    body: JSON.stringify(request.body),
-  });
-  const responseText = await response.text();
-  const responseBody = parseJsonResponse(responseText);
-
-  if (!response.ok) {
-    throw new Error(
-      `Uniswap ${endpoint} failed with ${response.status} ${response.statusText}: ${responseText}`,
-    );
-  }
-
-  return responseBody;
-}
-
-function assertApiKey(options: LiveQuoteOptions): void {
-  if (options.apiKey === undefined) {
-    throw new Error('AGENTIO_UNISWAP_API_KEY is required when live Uniswap API calls are enabled.');
-  }
-}
-
-function parseJsonResponse(text: string): unknown {
-  if (text.trim() === '') {
-    return undefined;
-  }
-
-  return JSON.parse(text) as unknown;
-}
-
-function summarizeQuoteResponse(response: unknown): UniswapQuoteSummary {
-  if (!isRecord(response)) {
-    throw new Error('Uniswap /quote response was not a JSON object.');
-  }
-
-  const requestId = readString(response.requestId);
-  const routing = readString(response.routing);
-
-  return {
-    requestId,
-    routing,
-    hasPermitData: response.permitData !== null && response.permitData !== undefined,
-    hasPermitTransaction: response.permitTransaction !== null && response.permitTransaction !== undefined,
-  };
-}
-
-function summarizeApprovalResponse(
-  response: unknown,
-  endpointName: string,
-): UniswapApprovalSummary {
-  if (!isRecord(response)) {
-    throw new Error(`Uniswap ${endpointName} response was not a JSON object.`);
-  }
-
-  return {
-    hasApprovalTransaction: response.approval !== null && response.approval !== undefined,
-    hasCancelTransaction: response.cancel !== null && response.cancel !== undefined,
-    hasGasInfo: response.gasFee !== null && response.gasFee !== undefined,
-  };
-}
-
-function summarizeSwapResponse(response: unknown): UniswapSwapSummary {
-  if (!isRecord(response)) {
-    throw new Error('Uniswap /swap response was not a JSON object.');
-  }
-
-  const requestId = readString(response.requestId);
-  const swap = response.swap;
-  const transactionValid = validateTransactionRequest(swap);
-
-  if (!transactionValid) {
-    throw new Error('Uniswap /swap response did not include valid transaction calldata.');
-  }
-
-  return {
-    requestId,
-    hasSwapTransaction: true,
-    transactionValid,
-  };
-}
-
-function summarizeOrderResponse(
-  response: unknown,
-  request: PreparedOrderRequest,
-): UniswapOrderSummary {
-  if (!isRecord(response)) {
-    throw new Error('Uniswap /order response was not a JSON object.');
-  }
-
-  return {
-    requestId: readString(response.requestId),
-    orderId: readString(response.orderId),
-    orderStatus: readString(response.orderStatus),
-    hasSignature: hasRealSignature(request.body.signature),
-  };
-}
-
-function validatePreparedSwapRequest(request: PreparedSwapRequest): UniswapSwapSummary {
-  return {
-    hasSwapTransaction: false,
-    transactionValid: isRecord(request.body.quote),
-  };
-}
-
-function validatePreparedOrderRequest(request: PreparedOrderRequest): UniswapOrderSummary {
-  return {
-    hasSignature: hasRealSignature(request.body.signature),
-  };
-}
-
-function validateTransactionRequest(value: unknown): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return isNonEmptyHex(readString(value.data)) &&
-    isAddressLike(readString(value.to)) &&
-    isAddressLike(readString(value.from));
-}
-
-function extractQuoteForSwap(response: unknown): unknown {
-  if (!isRecord(response)) {
-    throw new Error('Uniswap /quote response was not a JSON object.');
-  }
-
-  return response.quote ?? response;
-}
-
-function routeToExecutionEndpoint(routing: string | undefined): UniswapExecutionEndpoint {
-  if (routing === 'CLASSIC' || routing === 'WRAP' || routing === 'UNWRAP' || routing === 'BRIDGE') {
-    return 'swap';
-  }
-
-  if (routing === 'DUTCH_V2' || routing === 'DUTCH_V3' || routing === 'LIMIT_ORDER' || routing === 'PRIORITY') {
-    return 'order';
-  }
-
-  return 'unsupported';
 }
 
 function createLocalClassicQuoteForSwap(): Record<string, unknown> {
@@ -966,26 +533,6 @@ function createLocalUniswapXQuoteForOrder(): Record<string, unknown> {
     amount: quoteBody.amount,
     swapper: quoteBody.swapper,
   };
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/g, '');
-}
-
-function isNonEmptyHex(value: string | undefined): boolean {
-  return value !== undefined && /^0x[0-9a-fA-F]+$/.test(value) && value !== '0x';
-}
-
-function isAddressLike(value: string | undefined): boolean {
-  return value !== undefined && /^0x[0-9a-fA-F]{40}$/.test(value);
-}
-
-function hasRealSignature(value: string): boolean {
-  return value !== '<signature-required>' && isNonEmptyHex(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
