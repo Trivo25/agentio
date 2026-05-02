@@ -132,6 +132,33 @@ nodes, use:
 npm run example:live-stack
 ```
 
+
+### Uniswap Track Demo
+
+The Uniswap demo shows 0xAgentio as a proof-gated gateway for agentic finance. Alice is an autonomous treasury agent, Bob is a Uniswap gateway agent, and Bob only prepares or calls Uniswap API work after verifying Alice's proof-backed request.
+
+Run the safe judge walkthrough:
+
+```sh
+npm run example:uniswap:judge-demo
+```
+
+Run the static web UI:
+
+```sh
+npm run example:uniswap:web-ui
+```
+
+Enable live Uniswap approval-check and quote calls with:
+
+```sh
+AGENTIO_UNISWAP_API_KEY=your_key \
+AGENTIO_UNISWAP_RUN_LIVE_API=1 \
+npm run example:uniswap:judge-demo
+```
+
+The live mode calls `POST /check_approval` and `POST /quote`. Swap and UniswapX order submission remain disabled unless explicit live flags and signatures are configured. See `docs/UNISWAP-EXAMPLE.md` for the full flow and `FEEDBACK.md` for the required Uniswap builder feedback.
+
 ### The Demo App: 0xAgentio-Trade
 
 The first application built on 0xAgentio. A multi-agent DCA trading system where agents autonomously trade on Uniswap within credential-enforced budget envelopes and share Sybil-resistant market signals over AXL. It demonstrates the framework in action - provable delegation, bounded execution and peer-to-peer coordination in a real trading scenario.
