@@ -18,7 +18,7 @@ import {
 } from '@0xagentio/sdk';
 
 /**
- * Prepares the proof-gated live Uniswap approval and quote flow.
+ * Prepares the proof-gated live Uniswap approval, quote, and swap flow.
  *
  * Bob verifies Alice's AgentIO proof before preparing or submitting Uniswap API
  * requests. The default mode does not call the network, so developers can
@@ -49,13 +49,26 @@ type UniswapQuoteRequestBody = {
   readonly protocols?: readonly ('V2' | 'V3' | 'V4' | 'UNISWAPX_V2' | 'UNISWAPX_V3')[];
 };
 
+type UniswapSwapRequestBody = {
+  readonly quote: unknown;
+  readonly signature?: string;
+  readonly permitData?: unknown;
+  readonly includeGasInfo?: boolean;
+  readonly refreshGasPrice?: boolean;
+  readonly simulateTransaction?: boolean;
+  readonly safetyMode?: 'SAFE';
+  readonly deadline?: number;
+};
+
 type LiveQuoteOptions = {
   readonly apiKey?: string;
+  readonly permitSignature?: string;
   readonly baseUrl: string;
   readonly universalRouterVersion: string;
   readonly erc20EthEnabled: boolean;
   readonly permit2Disabled: boolean;
   readonly runNetworkRequest: boolean;
+  readonly runSwapNetworkRequest: boolean;
   readonly replyTimeoutMs: number;
 };
 
@@ -71,6 +84,12 @@ type PreparedQuoteRequest = {
   readonly body: UniswapQuoteRequestBody;
 };
 
+type PreparedSwapRequest = {
+  readonly method: 'POST';
+  readonly headers: Record<string, string>;
+  readonly body: UniswapSwapRequestBody;
+};
+
 type UniswapApprovalSummary = {
   readonly hasApprovalTransaction: boolean;
   readonly hasCancelTransaction: boolean;
@@ -82,6 +101,18 @@ type UniswapQuoteSummary = {
   readonly routing?: string;
   readonly hasPermitData?: boolean;
   readonly hasPermitTransaction?: boolean;
+};
+
+type UniswapQuoteResult = {
+  readonly summary: UniswapQuoteSummary;
+  readonly quoteForSwap: unknown;
+  readonly permitData?: unknown;
+};
+
+type UniswapSwapSummary = {
+  readonly requestId?: string;
+  readonly hasSwapTransaction: boolean;
+  readonly transactionValid: boolean;
 };
 
 const now = new Date('2026-04-30T12:00:00.000Z');
@@ -109,7 +140,7 @@ const approvalBody: UniswapCheckApprovalRequestBody = {
 
 const options = readOptions();
 
-logTitle('AgentIO Uniswap live approval and quote');
+logTitle('AgentIO Uniswap live approval, quote, and swap preparation');
 logStep('1. Create Alice and Bob');
 const aliceIdentity = createAgentIdentity({
   id: 'agent-alice-live-uniswap-quote',
@@ -122,27 +153,27 @@ const bobIdentity = createAgentIdentity({
 logDetail('Alice', 'agent that wants Uniswap approval and quote work');
 logDetail('Bob', 'gateway that verifies proof before preparing Uniswap API requests');
 
-logStep('2. Delegate approval-check and quote-only Uniswap authority');
+logStep('2. Delegate approval-check, quote, and swap-preparation authority');
 const policy = createPolicy({
   id: 'policy-uniswap-live-approval-and-quote',
-  allowedActions: ['uniswap.checkApproval', 'uniswap.quote'],
+  allowedActions: ['uniswap.checkApproval', 'uniswap.quote', 'uniswap.swap.prepare'],
   constraints: [
     {
       type: 'max-amount',
       value: BigInt(quoteBody.amount),
-      actionTypes: ['uniswap.checkApproval', 'uniswap.quote'],
+      actionTypes: ['uniswap.checkApproval', 'uniswap.quote', 'uniswap.swap.prepare'],
     },
     {
       type: 'allowed-metadata-value',
       key: 'venue',
       values: ['uniswap-api'],
-      actionTypes: ['uniswap.checkApproval', 'uniswap.quote'],
+      actionTypes: ['uniswap.checkApproval', 'uniswap.quote', 'uniswap.swap.prepare'],
     },
     {
       type: 'allowed-metadata-value',
       key: 'assetPair',
       values: ['USDC/WETH'],
-      actionTypes: ['uniswap.checkApproval', 'uniswap.quote'],
+      actionTypes: ['uniswap.checkApproval', 'uniswap.quote', 'uniswap.swap.prepare'],
     },
   ],
   expiresAt: new Date('2026-05-01T00:00:00.000Z'),
@@ -155,7 +186,7 @@ const credential = await issueLocalCredential({
   issuedAt: now,
   signer: localDelegationSigner('principal-live-uniswap-demo'),
 });
-logDetail('Allowed actions', 'uniswap.checkApproval, uniswap.quote');
+logDetail('Allowed actions', 'uniswap.checkApproval, uniswap.quote, uniswap.swap.prepare');
 logDetail('Policy commitment', policyHash);
 
 logStep('3. Create local proof and transport adapters');
@@ -252,7 +283,51 @@ if (reply.payload.quoteSummary !== undefined) {
   logDetail('Quote summary', JSON.stringify(reply.payload.quoteSummary));
 }
 
-logStep('6. What this proves');
+logStep('6. Alice sends proof-backed swap preparation request to Bob');
+const quoteForSwap = reply.payload.quoteForSwap ?? createLocalClassicQuoteForSwap();
+const swapRequest = await createProofBackedMessage({
+  id: 'uniswap-live-swap-prepare-request-1',
+  correlationId: 'uniswap-live-quote-session-1',
+  type: 'uniswap.swap.prepare.request',
+  sender: aliceIdentity.id,
+  createdAt: now,
+  credential,
+  policy,
+  state: { cumulativeSpend: 0n, updatedAt: now },
+  action: createActionIntent({
+    type: 'uniswap.swap.prepare',
+    amount: BigInt(quoteBody.amount),
+    metadata: {
+      venue: 'uniswap-api',
+      assetPair: 'USDC/WETH',
+      chainId: quoteBody.tokenInChainId,
+      route: 'CLASSIC',
+      tokenIn: quoteBody.tokenIn,
+      tokenOut: quoteBody.tokenOut,
+    },
+  }),
+  proof,
+  now,
+  payload: {
+    policyHash,
+    quoteForSwap,
+  },
+});
+const pendingSwapReply = alicePeer.request(bobIdentity.id, swapRequest, {
+  expectedType: 'uniswap.swap.prepared',
+  timeoutMs: options.replyTimeoutMs,
+});
+await alicePeer.send(bobIdentity.id, swapRequest);
+await transport.receive(swapRequest);
+const swapReply = (await pendingSwapReply) as CorrelatedAgentMessage;
+logDetail('Bob response', String(swapReply.payload.status));
+logDetail('Endpoint', String(swapReply.payload.endpoint));
+logDetail('Network call', String(swapReply.payload.networkCall));
+if (swapReply.payload.swapSummary !== undefined) {
+  logDetail('Swap summary', JSON.stringify(swapReply.payload.swapSummary));
+}
+
+logStep('7. What this proves');
 logDetail('Trust boundary', 'Bob only prepares or calls Uniswap endpoints after verifying Alice proof');
 logDetail('Safety', 'this example never submits approval, swap, or order transactions');
 
@@ -265,6 +340,10 @@ function installBobQuoteGateway(options: LiveQuoteOptions): void {
 
     if (message.type === 'uniswap.quote.request') {
       await handleQuoteRequest(message, options);
+    }
+
+    if (message.type === 'uniswap.swap.prepare.request') {
+      await handleSwapPrepareRequest(message, options);
     }
   });
 }
@@ -350,8 +429,8 @@ async function handleQuoteRequest(
   logDetail('Body amount', prepared.body.amount);
   logDetail('Body pair', 'USDC/WETH');
   if (quoteResponse !== undefined) {
-    logDetail('Uniswap request id', quoteResponse.requestId ?? '<missing>');
-    logDetail('Uniswap routing', quoteResponse.routing ?? '<missing>');
+    logDetail('Uniswap request id', quoteResponse.summary.requestId ?? '<missing>');
+    logDetail('Uniswap routing', quoteResponse.summary.routing ?? '<missing>');
   }
 
   const reply = createAgentReply({
@@ -365,7 +444,62 @@ async function handleQuoteRequest(
       endpoint,
       networkCall,
       request: prepared,
-      quoteSummary: quoteResponse,
+      quoteSummary: quoteResponse?.summary,
+      quoteForSwap: quoteResponse?.quoteForSwap ?? createLocalClassicQuoteForSwap(),
+      permitData: quoteResponse?.permitData,
+    },
+  });
+
+  await bobPeer.send(aliceIdentity.id, reply);
+  await transport.receive(reply);
+}
+
+/** Verifies Alice's proof before turning a quote into unsigned swap calldata. */
+async function handleSwapPrepareRequest(
+  message: AgentMessage,
+  options: LiveQuoteOptions,
+): Promise<void> {
+  logDetail('Bob received swap preparation request', String(message.id ?? message.type));
+  const verification = await verifyMessageAction(message, proof, {
+    agentId: aliceIdentity.id,
+    actionType: 'uniswap.swap.prepare',
+    policyHash,
+  });
+
+  if (!verification.valid) {
+    throw new Error(`Bob rejected swap preparation request: ${verification.reason}`);
+  }
+
+  logDetail('Bob verified swap proof', `${verification.action.type} ${String(verification.action.amount)}`);
+  const endpoint = `${trimTrailingSlash(options.baseUrl)}/swap`;
+  const prepared = createPreparedSwapRequest(
+    options,
+    isRecord(message.payload.quoteForSwap) ? message.payload.quoteForSwap : createLocalClassicQuoteForSwap(),
+    message.payload.permitData,
+  );
+  const swapResponse = options.runSwapNetworkRequest
+    ? await requestUniswapSwap(endpoint, prepared, options)
+    : undefined;
+  const preparedValidation = validatePreparedSwapRequest(prepared);
+  const networkCall = options.runSwapNetworkRequest ? 'submitted POST /swap' : 'disabled by default';
+
+  logDetail('Prepared POST', endpoint);
+  logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
+  logDetail('Swap request valid', String(preparedValidation.transactionValid));
+  logDetail('Broadcast', 'not performed by this example');
+
+  const reply = createAgentReply({
+    id: 'uniswap-live-swap-prepared-1',
+    type: 'uniswap.swap.prepared',
+    sender: bobIdentity.id,
+    createdAt: new Date('2026-04-30T12:00:02.000Z'),
+    request: message as CorrelatedAgentMessage,
+    payload: {
+      status: 'prepared',
+      endpoint,
+      networkCall,
+      request: prepared,
+      swapSummary: swapResponse ?? preparedValidation,
     },
   });
 
@@ -407,6 +541,39 @@ function createPreparedQuoteRequest(
   };
 }
 
+function createPreparedSwapRequest(
+  options: LiveQuoteOptions,
+  quote: unknown,
+  permitData: unknown,
+): PreparedSwapRequest {
+  const signature = permitData === undefined || permitData === null
+    ? undefined
+    : options.permitSignature;
+  if (options.runSwapNetworkRequest && permitData !== undefined && permitData !== null && signature === undefined) {
+    throw new Error('AGENTIO_UNISWAP_PERMIT_SIGNATURE is required to submit /swap when quote permitData is present.');
+  }
+
+  return {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json',
+      'x-api-key': options.apiKey ?? '<missing>',
+      'x-universal-router-version': options.universalRouterVersion,
+      'x-permit2-disabled': String(options.permit2Disabled),
+    },
+    body: {
+      quote,
+      ...(signature === undefined ? {} : { signature }),
+      ...(signature === undefined ? {} : { permitData }),
+      refreshGasPrice: true,
+      simulateTransaction: false,
+      safetyMode: 'SAFE',
+      deadline: Math.floor(now.getTime() / 1_000) + 300,
+    },
+  };
+}
+
 /**
  * Calls the Uniswap approval endpoint only after AgentIO verification has passed.
  *
@@ -426,6 +593,25 @@ async function requestUniswapApproval(
 }
 
 /**
+ * Calls the Uniswap swap endpoint only after AgentIO verification has passed.
+ *
+ * The response is still only unsigned calldata. Applications must validate the
+ * transaction shape, collect a wallet signature, and broadcast through their
+ * own RPC path if the user still wants to execute.
+ */
+async function requestUniswapSwap(
+  endpoint: string,
+  request: PreparedSwapRequest,
+  options: LiveQuoteOptions,
+): Promise<UniswapSwapSummary> {
+  assertApiKey(options);
+
+  logDetail('Live swap preparation', 'submitting POST /swap');
+  const response = await fetchJson(endpoint, request);
+  return summarizeSwapResponse(response);
+}
+
+/**
  * Calls the Uniswap quote endpoint only after AgentIO verification has passed.
  *
  * Developers can use the returned summary to decide whether the next step is a
@@ -435,17 +621,21 @@ async function requestUniswapQuote(
   endpoint: string,
   request: PreparedQuoteRequest,
   options: LiveQuoteOptions,
-): Promise<UniswapQuoteSummary> {
+): Promise<UniswapQuoteResult> {
   assertApiKey(options);
 
   logDetail('Live quote', 'submitting POST /quote');
   const response = await fetchJson(endpoint, request);
-  return summarizeQuoteResponse(response);
+  return {
+    summary: summarizeQuoteResponse(response),
+    quoteForSwap: extractQuoteForSwap(response),
+    permitData: isRecord(response) ? response.permitData : undefined,
+  };
 }
 
 async function fetchJson(
   endpoint: string,
-  request: PreparedApprovalRequest | PreparedQuoteRequest,
+  request: PreparedApprovalRequest | PreparedQuoteRequest | PreparedSwapRequest,
 ): Promise<unknown> {
   const response = await fetch(endpoint, {
     method: request.method,
@@ -509,17 +699,78 @@ function summarizeApprovalResponse(
   };
 }
 
+function summarizeSwapResponse(response: unknown): UniswapSwapSummary {
+  if (!isRecord(response)) {
+    throw new Error('Uniswap /swap response was not a JSON object.');
+  }
+
+  const requestId = readString(response.requestId);
+  const swap = response.swap;
+  const transactionValid = validateTransactionRequest(swap);
+
+  if (!transactionValid) {
+    throw new Error('Uniswap /swap response did not include valid transaction calldata.');
+  }
+
+  return {
+    requestId,
+    hasSwapTransaction: true,
+    transactionValid,
+  };
+}
+
+function validatePreparedSwapRequest(request: PreparedSwapRequest): UniswapSwapSummary {
+  return {
+    hasSwapTransaction: false,
+    transactionValid: isRecord(request.body.quote),
+  };
+}
+
+function validateTransactionRequest(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return isNonEmptyHex(readString(value.data)) &&
+    isAddressLike(readString(value.to)) &&
+    isAddressLike(readString(value.from));
+}
+
+function extractQuoteForSwap(response: unknown): unknown {
+  if (!isRecord(response)) {
+    throw new Error('Uniswap /quote response was not a JSON object.');
+  }
+
+  return response.quote ?? response;
+}
+
+function createLocalClassicQuoteForSwap(): Record<string, unknown> {
+  return {
+    routing: 'CLASSIC',
+    request: quoteBody,
+    quoteId: 'local-uniswap-classic-quote',
+    tokenIn: quoteBody.tokenIn,
+    tokenOut: quoteBody.tokenOut,
+    tokenInChainId: quoteBody.tokenInChainId,
+    tokenOutChainId: quoteBody.tokenOutChainId,
+    amount: quoteBody.amount,
+    swapper: quoteBody.swapper,
+  };
+}
+
 function readOptions(): LiveQuoteOptions {
   loadEnvFile();
 
   return {
     apiKey: readOptionalEnv('AGENTIO_UNISWAP_API_KEY'),
+    permitSignature: readOptionalEnv('AGENTIO_UNISWAP_PERMIT_SIGNATURE'),
     baseUrl: process.env.AGENTIO_UNISWAP_API_BASE_URL ?? 'https://trade-api.gateway.uniswap.org/v1',
     universalRouterVersion: process.env.AGENTIO_UNISWAP_UNIVERSAL_ROUTER_VERSION ?? '2.0',
     erc20EthEnabled: process.env.AGENTIO_UNISWAP_ERC20_ETH_ENABLED === '1',
     permit2Disabled: process.env.AGENTIO_UNISWAP_PERMIT2_DISABLED === '1',
     runNetworkRequest: process.env.AGENTIO_UNISWAP_RUN_LIVE_API === '1' ||
       process.env.AGENTIO_UNISWAP_RUN_LIVE_QUOTE === '1',
+    runSwapNetworkRequest: process.env.AGENTIO_UNISWAP_RUN_LIVE_SWAP === '1',
     replyTimeoutMs: readPositiveIntegerEnv('AGENTIO_UNISWAP_REPLY_TIMEOUT_MS') ?? 15_000,
   };
 }
@@ -590,6 +841,14 @@ function unquoteEnvValue(value: string): string {
 
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+function isNonEmptyHex(value: string | undefined): boolean {
+  return value !== undefined && /^0x[0-9a-fA-F]+$/.test(value) && value !== '0x';
+}
+
+function isAddressLike(value: string | undefined): boolean {
+  return value !== undefined && /^0x[0-9a-fA-F]{40}$/.test(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
