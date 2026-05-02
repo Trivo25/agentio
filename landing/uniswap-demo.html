@@ -88,6 +88,25 @@
         height: auto;
       }
 
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .text-link {
+        color: var(--navy-600);
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .text-link:hover {
+        color: var(--blue-500);
+      }
+
       .pill {
         display: inline-flex;
         align-items: center;
@@ -390,11 +409,42 @@
         font-size: 12px;
       }
 
+      .trust-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .trust-item {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.86);
+        padding: 16px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .trust-item span {
+        display: block;
+        color: var(--navy-400);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .trust-item strong {
+        display: block;
+        font-family: 'Space Grotesk', Inter, sans-serif;
+        font-size: 17px;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 14px;
-        margin-top: 32px;
+        margin-top: 24px;
       }
 
       .step,
@@ -489,6 +539,7 @@
         }
 
         .hero-points,
+        .trust-strip,
         .grid {
           grid-template-columns: 1fr 1fr;
         }
@@ -508,8 +559,13 @@
         }
 
         .hero-points,
+        .trust-strip,
         .grid {
           grid-template-columns: 1fr;
+        }
+
+        .header-actions {
+          justify-content: flex-start;
         }
       }
     </style>
@@ -520,7 +576,10 @@
         <a class="brand" href="./uniswap-demo.html" aria-label="0xAgentio">
           <img src="assets/logo_label.png" alt="0xAgentio" />
         </a>
-        <span class="pill">Uniswap agent demo</span>
+        <div class="header-actions">
+          <a class="text-link" href="#commands">Run demo</a>
+          <span class="pill">Uniswap agent demo</span>
+        </div>
       </header>
 
       <main>
@@ -584,7 +643,22 @@
           </aside>
         </section>
 
-        <section class="command-panel" aria-label="Run the executable demo">
+        <section class="trust-strip" aria-label="Trust boundary summary">
+          <div class="trust-item">
+            <span>Requester</span>
+            <strong>Alice carries delegated authority</strong>
+          </div>
+          <div class="trust-item">
+            <span>Verifier</span>
+            <strong>Bob checks the proof before work</strong>
+          </div>
+          <div class="trust-item">
+            <span>Execution</span>
+            <strong>Uniswap requests stay policy-gated</strong>
+          </div>
+        </section>
+
+        <section class="command-panel" id="commands" aria-label="Run the executable demo">
           <article class="command-card">
             <h2>Run the safe judge demo</h2>
             <p>Executes the TypeScript flow locally. It verifies proofs and prepares Uniswap request shapes without submitting transactions.</p>
