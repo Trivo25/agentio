@@ -87,7 +87,7 @@ const stats: UniswapStats = {
   swapsExecuted: 0,
 };
 
-logTitle('0xAgentio × Uniswap local track demo');
+logTitle('0xAgentio x Uniswap local track demo');
 logStep('1. Create Alice and Bob');
 const aliceIdentity = createAgentIdentity({
   id: 'agent-alice-treasury-rebalancer',
@@ -144,7 +144,7 @@ const credential = await issueLocalCredential({
 });
 logDetail(
   'Policy',
-  'Alice may quote/swap USDC→ETH through Uniswap up to 1,500 units',
+  'Alice may quote/swap USDC to ETH through Uniswap up to 1,500 units',
 );
 logDetail('Venue', goal.venue);
 logDetail('Max slippage', `${goal.maxSlippageBips} bps`);
@@ -159,7 +159,7 @@ const bobPeer = createAgentPeer({ identity: bobIdentity, transport });
 installBobUniswapGateway();
 logDetail('Proof', 'local Noir-shaped proof adapter');
 logDetail('Storage', 'local 0G-shaped state and audit storage');
-logDetail('Transport', 'local AXL-shaped Alice ↔ Bob messages');
+logDetail('Transport', 'local AXL-shaped Alice and Bob messages');
 
 logStep('4. Show the defense: Bob rejects unproved Uniswap work');
 await sendUnprovedMalloryQuoteRequest();
@@ -204,9 +204,9 @@ const quoteReply = (await pendingQuote) as CorrelatedAgentMessage;
 const quote = readQuote(quoteReply);
 logDetail(
   'Bob returned quote',
-  `${quote.amountIn} ${quote.tokenIn} → ${quote.amountOut} ${quote.tokenOut}`,
+  `${quote.amountIn} ${quote.tokenIn} to ${quote.amountOut} ${quote.tokenOut}`,
 );
-logDetail('Route', quote.route.join(' → '));
+logDetail('Route', quote.route.join(' to '));
 logDetail('Permit2 required', String(quote.permit2Required));
 logDetail(
   'AgentIO vs Permit2',
@@ -295,7 +295,7 @@ logDetail(
 );
 logDetail(
   'Composable path',
-  'AgentIO intent proof → Permit2 token spend authorization → Uniswap swap execution',
+  'AgentIO intent proof to Permit2 token spend authorization to Uniswap swap execution',
 );
 
 /** Installs Bob's local Uniswap gateway behavior for quote and swap requests. */
@@ -624,7 +624,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n-> ${message}`);
+  console.log(`\n${message}`);
 }
 
 function logDetail(label: string, value: string): void {
