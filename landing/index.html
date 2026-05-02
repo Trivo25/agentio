@@ -3,28 +3,31 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>0xAgentio — 0G KV Storage Node</title>
+    <title>0xAgentio — ZK framework for autonomous agents</title>
     <meta
       name="description"
-      content="Public RPC endpoint for the 0G KV Storage Node hosted by 0xAgentio."
+      content="A ZK framework for agent delegation, bounded execution and trust-minimized coordination. Built on Noir, 0G and Gensyn AXL."
     />
     <link rel="icon" type="image/png" href="assets/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
         --navy-950: #0b1220;
+        --navy-700: #334155;
         --navy-600: #475569;
-        --navy-400: #64748b;
-        --gray-50: #eef2f7;
-        --gray-100: #f8fafc;
+        --navy-500: #64748b;
+        --navy-400: #94a3b8;
+        --gray-50: #f8fafc;
+        --gray-100: #eef2f7;
         --border: #e5e7eb;
         --border-soft: #eef2f7;
         --blue: #4f7dff;
+        --blue-deep: #3f6cee;
         --teal: #27c2b3;
         --teal-deep: #0f766e;
         --purple: #b58dff;
@@ -58,7 +61,6 @@
         background: #ffffff;
         -webkit-font-smoothing: antialiased;
         line-height: 1.5;
-        min-height: 100vh;
         position: relative;
         overflow-x: hidden;
       }
@@ -69,42 +71,61 @@
         inset: 0;
         background:
           radial-gradient(
-            circle at 15% 10%,
-            rgba(79, 125, 255, 0.06),
-            transparent 40%
+            circle at 12% 8%,
+            rgba(79, 125, 255, 0.07),
+            transparent 42%
           ),
           radial-gradient(
-            circle at 85% 90%,
-            rgba(181, 141, 255, 0.05),
-            transparent 40%
+            circle at 88% 92%,
+            rgba(181, 141, 255, 0.06),
+            transparent 42%
           ),
           radial-gradient(
-            circle at 90% 15%,
-            rgba(39, 194, 179, 0.05),
-            transparent 35%
+            circle at 92% 12%,
+            rgba(39, 194, 179, 0.06),
+            transparent 38%
           );
         pointer-events: none;
         z-index: 0;
       }
 
+      a {
+        color: var(--blue);
+        text-decoration: none;
+        transition: color 120ms ease;
+      }
+
+      a:hover {
+        color: var(--blue-deep);
+      }
+
+      code,
+      pre {
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      }
+
       .page {
         position: relative;
         z-index: 1;
-        max-width: 720px;
+        max-width: 980px;
         margin: 0 auto;
-        padding: 48px 24px 64px;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
+        padding: 32px 24px 64px;
       }
 
       header {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 12px;
       }
 
-      header img {
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand img {
         width: 32px;
         height: 32px;
       }
@@ -117,9 +138,24 @@
         color: var(--navy-950);
       }
 
-      main {
-        margin-top: 80px;
-        flex: 1;
+      .nav {
+        display: flex;
+        gap: 18px;
+        font-size: 14px;
+      }
+
+      .nav a {
+        color: var(--navy-600);
+      }
+
+      .nav a:hover {
+        color: var(--navy-950);
+      }
+
+      @media (max-width: 640px) {
+        .nav {
+          display: none;
+        }
       }
 
       .badge {
@@ -143,710 +179,788 @@
         background: var(--blue);
       }
 
+      .hero {
+        margin-top: 64px;
+        max-width: 760px;
+      }
+
       h1 {
         font-family: 'Space Grotesk', sans-serif;
         font-weight: 600;
-        font-size: 40px;
-        line-height: 1.15;
-        letter-spacing: -0.02em;
-        margin: 20px 0 16px;
+        font-size: 52px;
+        line-height: 1.08;
+        letter-spacing: -0.025em;
+        margin: 20px 0 20px;
       }
 
-      .subtitle {
+      h1 .accent {
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      @media (max-width: 640px) {
+        h1 {
+          font-size: 36px;
+        }
+      }
+
+      .lede {
         color: var(--navy-600);
-        font-size: 17px;
-        max-width: 560px;
+        font-size: 18px;
+        max-width: 640px;
         margin: 0;
       }
 
+      .ctas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 32px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 18px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background 120ms ease,
+          color 120ms ease,
+          border-color 120ms ease;
+        border: 0;
+      }
+
+      .btn-primary {
+        background: var(--blue);
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background: var(--blue-deep);
+        color: #ffffff;
+      }
+
+      .btn-secondary {
+        background: #ffffff;
+        color: var(--navy-950);
+        border: 1px solid #cbd5e1;
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--navy-700);
+        color: var(--navy-950);
+      }
+
+      .btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      section {
+        margin-top: 88px;
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--blue);
+        margin-bottom: 12px;
+      }
+
+      h2 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 32px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 16px;
+      }
+
+      h3 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 18px;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+        margin: 0 0 8px;
+      }
+
+      .section-lede {
+        color: var(--navy-600);
+        font-size: 16px;
+        max-width: 680px;
+        margin: 0 0 32px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+
+      @media (max-width: 760px) {
+        .grid-3,
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .card {
-        margin-top: 40px;
         background: #ffffff;
         border: 1px solid var(--border);
         border-radius: 16px;
         box-shadow: var(--shadow-card);
-        overflow: hidden;
+        padding: 24px;
       }
 
-      .card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--border-soft);
+      .card.compact {
+        padding: 20px;
       }
 
-      .card-label {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
-        font-weight: 600;
+      .card p {
         color: var(--navy-600);
-      }
-
-      .card-label svg {
-        width: 16px;
-        height: 16px;
-        color: var(--blue);
-      }
-
-      .badge-verified {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 600;
-        background: rgba(39, 194, 179, 0.12);
-        color: var(--teal-deep);
-      }
-
-      .badge-verified.is-offline {
-        background: rgba(239, 68, 68, 0.1);
-        color: #b91c1c;
-      }
-
-      .badge-verified.is-offline .pulse::before,
-      .badge-verified.is-offline .pulse::after {
-        background: #ef4444;
-      }
-
-      .badge-verified.is-loading {
-        background: var(--gray-50);
-        color: var(--navy-400);
-      }
-
-      .badge-verified.is-loading .pulse::before,
-      .badge-verified.is-loading .pulse::after {
-        background: var(--navy-400);
-      }
-
-      .pulse {
-        position: relative;
-        width: 8px;
-        height: 8px;
-      }
-
-      .pulse::before,
-      .pulse::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-        background: var(--teal);
-      }
-
-      .pulse::after {
-        animation: pulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        opacity: 0.6;
-      }
-
-      @keyframes pulse {
-        0% {
-          transform: scale(1);
-          opacity: 0.6;
-        }
-        100% {
-          transform: scale(2.6);
-          opacity: 0;
-        }
-      }
-
-      .endpoint-row {
-        display: flex;
-        align-items: stretch;
-        gap: 0;
-      }
-
-      .endpoint {
-        flex: 1;
-        padding: 18px 20px;
-        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-        font-size: 15px;
-        color: var(--navy-950);
-        background: var(--gray-100);
-        white-space: nowrap;
-        overflow-x: auto;
-        scrollbar-width: thin;
-      }
-
-      .copy-btn {
-        flex-shrink: 0;
-        padding: 0 18px;
-        background: var(--blue);
-        color: #ffffff;
-        border: 0;
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 120ms ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .copy-btn:hover {
-        background: #3f6cee;
-      }
-
-      .copy-btn.copied {
-        background: var(--teal);
-      }
-
-      .copy-btn svg {
-        width: 14px;
-        height: 14px;
-      }
-
-      .meta {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0;
-        border-top: 1px solid var(--border-soft);
-      }
-
-      .meta-item {
-        padding: 14px 20px;
-        font-size: 13px;
-      }
-
-      .meta-item + .meta-item {
-        border-left: 1px solid var(--border-soft);
-      }
-
-      .meta-key {
-        color: var(--navy-400);
-        font-weight: 500;
-      }
-
-      .meta-val {
-        color: var(--navy-950);
-        font-weight: 600;
-        margin-top: 2px;
-      }
-
-      .card + .card {
-        margin-top: 20px;
-      }
-
-      .stream-list {
-        display: flex;
-        flex-direction: column;
-        max-height: 320px;
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: var(--navy-400) transparent;
-      }
-
-      .stream-list::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      .stream-list::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: 4px;
-      }
-
-      .stream-list::-webkit-scrollbar-thumb:hover {
-        background: var(--navy-400);
-      }
-
-      .stream-disclaimer {
-        padding: 12px 20px;
-        font-size: 12px;
-        color: var(--navy-600);
-        background: rgba(251, 191, 36, 0.08);
-        border-top: 1px solid var(--border-soft);
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        line-height: 1.5;
-      }
-
-      .stream-disclaimer svg {
-        width: 14px;
-        height: 14px;
-        color: #d97706;
-        flex-shrink: 0;
-        margin-top: 2px;
-      }
-
-      .stream-row {
-        display: flex;
-        align-items: stretch;
-        gap: 0;
-      }
-
-      .stream-row + .stream-row {
-        border-top: 1px solid var(--border-soft);
-      }
-
-      .stream-id {
-        flex: 1;
-        padding: 16px 20px;
-        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-        font-size: 13px;
-        color: var(--navy-950);
-        background: var(--gray-100);
-        white-space: nowrap;
-        overflow-x: auto;
-        scrollbar-width: thin;
-      }
-
-      .stream-row .copy-btn {
-        background: #ffffff;
-        color: var(--navy-600);
-        border-left: 1px solid var(--border-soft);
-      }
-
-      .stream-row .copy-btn:hover {
-        background: var(--gray-50);
-        color: var(--blue);
-      }
-
-      .stream-row .copy-btn.copied {
-        background: rgba(39, 194, 179, 0.12);
-        color: var(--teal-deep);
-      }
-
-      .note {
-        margin-top: 24px;
-        font-size: 13px;
-        color: var(--navy-400);
+        font-size: 14px;
+        margin: 0;
         line-height: 1.6;
       }
 
-      .toast {
-        position: fixed;
-        left: 50%;
-        bottom: 32px;
-        transform: translate(-50%, 24px);
-        opacity: 0;
-        pointer-events: none;
-        background: var(--navy-950);
-        color: #ffffff;
-        padding: 12px 16px;
-        border-radius: 12px;
-        box-shadow: 0 16px 48px rgba(15, 23, 42, 0.24);
-        font-size: 13px;
-        display: flex;
+      .card .icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(79, 125, 255, 0.08);
+        color: var(--blue);
+        display: inline-flex;
         align-items: center;
-        gap: 12px;
-        max-width: calc(100vw - 32px);
-        transition:
-          transform 240ms cubic-bezier(0.4, 0, 0.2, 1),
-          opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 10;
+        justify-content: center;
+        margin-bottom: 16px;
       }
 
-      .toast.is-visible {
-        opacity: 1;
-        transform: translate(-50%, 0);
-        pointer-events: auto;
-      }
-
-      .toast-icon {
+      .card .icon svg {
         width: 18px;
         height: 18px;
-        color: #fbbf24;
+      }
+
+      .card.teal .icon {
+        background: rgba(39, 194, 179, 0.1);
+        color: var(--teal-deep);
+      }
+
+      .card.purple .icon {
+        background: rgba(181, 141, 255, 0.12);
+        color: #6b46c1;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .pkg-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 18px 20px;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+
+      .pkg-name {
         flex-shrink: 0;
-      }
-
-      .toast-text {
-        line-height: 1.5;
-      }
-
-      .toast a {
-        color: #ffffff;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-
-      .toast a:hover {
-        color: var(--teal);
-      }
-
-      .toast-close {
-        background: transparent;
-        border: 0;
-        color: rgba(255, 255, 255, 0.6);
-        cursor: pointer;
-        padding: 4px;
-        font-size: 16px;
-        line-height: 1;
-        flex-shrink: 0;
-      }
-
-      .toast-close:hover {
-        color: #ffffff;
-      }
-
-      .note code {
         font-family: 'JetBrains Mono', ui-monospace, monospace;
-        font-size: 12px;
-        background: var(--gray-50);
-        padding: 2px 6px;
-        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--navy-950);
+        background: var(--gray-100);
+        padding: 4px 10px;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+
+      .pkg-desc {
+        font-size: 14px;
         color: var(--navy-600);
+        line-height: 1.55;
+      }
+
+      @media (max-width: 640px) {
+        .pkg-row {
+          flex-direction: column;
+          gap: 8px;
+        }
+      }
+
+      .flow {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow-card);
+        padding: 28px;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 14px;
+        color: var(--navy-700);
+        line-height: 1.7;
+        white-space: pre;
+        overflow-x: auto;
+      }
+
+      @media (max-width: 640px) {
+        .flow {
+          font-size: 12px;
+          padding: 20px;
+        }
+      }
+
+      .track-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .track-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+
+      .track-card.zerog::before {
+        background: linear-gradient(90deg, #4f7dff, #27c2b3);
+      }
+      .track-card.gensyn::before {
+        background: linear-gradient(90deg, #27c2b3, #b58dff);
+      }
+      .track-card.uniswap::before {
+        background: linear-gradient(90deg, #b58dff, #4f7dff);
+      }
+
+      .track-name {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: -0.005em;
+      }
+
+      .track-tag {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--navy-400);
+      }
+
+      .track-card p {
+        color: var(--navy-600);
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 0;
+        flex: 1;
+      }
+
+      .track-card a {
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .track-card a::after {
+        content: '→';
+        transition: transform 120ms ease;
+      }
+
+      .track-card a:hover::after {
+        transform: translateX(2px);
+      }
+
+      .infra-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      @media (max-width: 760px) {
+        .infra-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .infra-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+      }
+
+      .infra-stat {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 12px 0 12px;
+      }
+
+      .infra-stat .num {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 36px;
+        font-weight: 600;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        letter-spacing: -0.02em;
+      }
+
+      .infra-stat .num-label {
+        color: var(--navy-600);
+        font-size: 14px;
+      }
+
+      .infra-card p {
+        color: var(--navy-600);
+        font-size: 14px;
+        margin: 0;
+        line-height: 1.6;
+      }
+
+      .infra-card .links {
+        margin-top: 16px;
+        display: flex;
+        gap: 14px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      pre.code-block {
+        background: var(--navy-950);
+        color: #e2e8f0;
+        border-radius: 14px;
+        padding: 20px 24px;
+        font-size: 13px;
+        line-height: 1.7;
+        overflow-x: auto;
+        margin: 0;
+      }
+
+      pre.code-block .c {
+        color: #64748b;
+      }
+      pre.code-block .k {
+        color: #b58dff;
+      }
+      pre.code-block .s {
+        color: #27c2b3;
+      }
+      pre.code-block .v {
+        color: #93c5fd;
+      }
+
+      .quote {
+        margin: 32px 0 0;
+        padding: 20px 24px;
+        background: linear-gradient(
+          135deg,
+          rgba(79, 125, 255, 0.04),
+          rgba(39, 194, 179, 0.04),
+          rgba(181, 141, 255, 0.04)
+        );
+        border: 1px solid rgba(79, 125, 255, 0.18);
+        border-radius: 14px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 500;
+        font-size: 18px;
+        line-height: 1.4;
+        color: var(--navy-950);
+        letter-spacing: -0.01em;
       }
 
       footer {
-        margin-top: 48px;
-        padding-top: 24px;
+        margin-top: 96px;
+        padding-top: 32px;
         border-top: 1px solid var(--border-soft);
-        font-size: 13px;
-        color: var(--navy-400);
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
         flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--navy-500);
+        font-size: 13px;
       }
 
-      footer a {
-        color: var(--navy-600);
-        text-decoration: none;
-        transition: color 120ms ease;
+      footer .links {
+        display: flex;
+        gap: 16px;
       }
 
-      footer a:hover {
-        color: var(--blue);
+      ul.checks {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
 
-      @media (max-width: 560px) {
-        h1 {
-          font-size: 32px;
-        }
+      ul.checks li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 14px;
+        color: var(--navy-700);
+        line-height: 1.55;
+      }
 
-        .endpoint {
-          font-size: 13px;
-        }
-
-        .meta {
-          grid-template-columns: 1fr;
-        }
-
-        .meta-item + .meta-item {
-          border-left: 0;
-          border-top: 1px solid var(--border-soft);
-        }
+      ul.checks li::before {
+        content: '';
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+        margin-top: 3px;
+        border-radius: 50%;
+        background: rgba(39, 194, 179, 0.14);
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%230f766e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='3.5 8.5 6.5 11 12.5 5'/></svg>");
+        background-repeat: no-repeat;
+        background-position: center;
       }
     </style>
   </head>
   <body>
     <div class="page">
       <header>
-        <img src="assets/logo.png" alt="0xAgentio" />
-        <span class="wordmark">0xAgentio</span>
+        <div class="brand">
+          <img src="assets/logo.png" alt="0xAgentio" />
+          <span class="wordmark">0xAgentio</span>
+        </div>
+        <nav class="nav">
+          <a href="#thesis">Thesis</a>
+          <a href="#stack">Stack</a>
+          <a href="#tracks">Tracks</a>
+          <a href="#infra">Public infra</a>
+          <a href="https://github.com/0xagentio">GitHub</a>
+        </nav>
       </header>
 
-      <main>
-        <span class="badge"
-          ><span class="dot"></span>Public Infrastructure</span
-        >
-        <h1>0G KV Storage Node</h1>
-        <p class="subtitle">
-          Open RPC endpoint for hackers building on 0G. Hosted by 0xAgentio
-          while the public indexer doesn't expose a KV node.
+      <section class="hero">
+        <span class="badge"><span class="dot"></span> Trust layer for autonomous agents</span>
+        <h1>
+          Reason freely. <br />
+          Execute only with <span class="accent">verified authority.</span>
+        </h1>
+        <p class="lede">
+          0xAgentio is a ZK framework for agent delegation, bounded execution and
+          trust-minimized coordination. A principal delegates a bounded policy.
+          The agent generates ZK proofs that a specific action is authorized
+          under that policy. Counterparties verify the proof before doing work.
         </p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="https://github.com/0xagentio">
+            View on GitHub
+          </a>
+          <a class="btn btn-secondary" href="#tracks">Judge entry points</a>
+          <a class="btn btn-secondary" href="uniswap-demo.html">Uniswap demo</a>
+        </div>
+        <div class="quote">
+          Identity tells you <em>who</em> an agent is. 0xAgentio answers
+          <em>what</em>, <em>how much</em> and <em>with whom</em> — the operational
+          trust layer agents actually need to act autonomously.
+        </div>
+      </section>
 
-        <section class="card" aria-label="RPC endpoint">
-          <div class="card-header">
-            <span class="card-label">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
-                <path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
-                <path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"></path>
-              </svg>
-              RPC endpoint
-            </span>
-            <span class="badge-verified is-loading" id="statusBadge">
-              <span class="pulse"></span>
-              <span id="statusLabel">Checking</span>
-            </span>
-          </div>
-
-          <div class="endpoint-row">
-            <code class="endpoint" data-copy-source
-              >http://178.238.236.119:6789</code
-            >
-            <button class="copy-btn" data-copy data-toast="star" type="button">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path
-                  d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                ></path>
-              </svg>
-              <span class="copy-label">Copy</span>
-            </button>
-          </div>
-
-          <div class="meta">
-            <div class="meta-item">
-              <div class="meta-key">Network</div>
-              <div class="meta-val">0G Galileo Testnet</div>
+      <section id="thesis">
+        <div class="eyebrow">Thesis</div>
+        <h2>Identity is half the problem.</h2>
+        <p class="section-lede">
+          AI agents are starting to act as economic actors: they request quotes,
+          spend budgets, call APIs, buy compute, trade assets and coordinate
+          with other agents. Today every counterparty either blindly trusts an
+          API key or wraps the agent in a centralized broker. Neither scales.
+        </p>
+        <div class="grid-3">
+          <div class="card">
+            <div class="icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 6v5c0 4.5 3 7 8 7s8-2.5 8-7V6l-8-4Z"/></svg>
             </div>
-            <div class="meta-item">
-              <div class="meta-key">Service</div>
-              <div class="meta-val">KV Storage Node JSON-RPC</div>
+            <h3>Provable delegation</h3>
+            <p>
+              A principal defines a policy: allowed actions, per-action limits,
+              cumulative limits, expiry. The agent can only generate proofs for
+              actions inside that envelope.
+            </p>
+          </div>
+          <div class="card teal">
+            <div class="icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h14M10 3l7 7-7 7"/></svg>
+            </div>
+            <h3>Bounded execution</h3>
+            <p>
+              Reasoning proposes. Policy validates. Noir proves. Execution
+              adapters verify before doing work. A long-lived agent never gets
+              one broad approval — every cycle proves itself.
+            </p>
+          </div>
+          <div class="card purple">
+            <div class="icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="15" cy="6" r="2"/><circle cx="10" cy="14" r="2"/><path d="M6.5 7.5 8.5 12.5M11.5 12.5 13.5 7.5M7 6h6"/></svg>
+            </div>
+            <h3>Trust-minimized coordination</h3>
+            <p>
+              Agents send proof-backed messages over Gensyn AXL. Receivers
+              verify the proof/action/policy binding before spending API
+              capacity, revealing data or trusting the result.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="stack">
+        <div class="eyebrow">How it's built</div>
+        <h2>Adapter-based runtime.</h2>
+        <p class="section-lede">
+          The same application shape runs locally in CI and against the live
+          stack. Every external system sits behind a clean adapter so local
+          stubs can be swapped for real infrastructure without changing the
+          app code.
+        </p>
+
+        <pre class="flow">reason  →  validate  →  prove  →  execute  →  persist  →  audit
+                                          ↘  (optional)  ↗
+                                       AXL peer messaging</pre>
+
+        <div class="stack" style="margin-top: 24px">
+          <div class="pkg-row">
+            <span class="pkg-name">@0xagentio/core</span>
+            <span class="pkg-desc">Pure types and helpers — identity, policy, credential, action intent, state, audit, validation, hashes. Zero external SDK deps.</span>
+          </div>
+          <div class="pkg-row">
+            <span class="pkg-name">@0xagentio/sdk</span>
+            <span class="pkg-desc">Developer-facing API: <code>createAgentRuntime</code>, <code>createTrustedAgent</code>, reasoning engines, local adapters, message helpers.</span>
+          </div>
+          <div class="pkg-row">
+            <span class="pkg-name">@0xagentio/noir</span>
+            <span class="pkg-desc">Noir authorization circuit + Barretenberg proof adapter. Binds policy hash, action hash, agent id and cumulative state — a valid old proof cannot authorize a different request.</span>
+          </div>
+          <div class="pkg-row">
+            <span class="pkg-name">@0xagentio/og</span>
+            <span class="pkg-desc">0G Storage adapters. KV-backed (<code>ogKvObjectClient</code> selects nodes through the 0G indexer), file-backed and in-memory variants behind one interface.</span>
+          </div>
+          <div class="pkg-row">
+            <span class="pkg-name">@0xagentio/compute</span>
+            <span class="pkg-desc">0G Compute Router LLM client behind the generic <code>LlmClient</code> interface. Same reasoning code runs with mock or OpenAI-compatible providers too.</span>
+          </div>
+          <div class="pkg-row">
+            <span class="pkg-name">@0xagentio/axl-client</span>
+            <span class="pkg-desc">TypeScript SDK for the Gensyn AXL HTTP bridge. Released as a standalone package — there was no official TS SDK.</span>
+          </div>
+          <div class="pkg-row">
+            <span class="pkg-name">@0xagentio/axl-local</span>
+            <span class="pkg-desc">Local process harness that boots and supervises real Gensyn AXL node binaries. Used by the live stack to run two real AXL nodes side-by-side.</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="tracks">
+        <div class="eyebrow">Hackathon tracks</div>
+        <h2>Three tracks. One framework.</h2>
+        <p class="section-lede">
+          0xAgentio is intentionally multi-domain. The same delegation +
+          coordination stack applies across compute, data marketplaces, API
+          access, multi-agent task swarms — and finance. Each track exercises
+          a different surface of the framework.
+        </p>
+
+        <div class="grid-3">
+          <div class="track-card zerog">
+            <span class="track-tag">Track · 0G</span>
+            <span class="track-name">Modular agent brain on 0G</span>
+            <p>
+              0G Compute Router for LLM-backed reasoning, 0G Storage (KV) for
+              durable state and audit trails. Memory and reasoning are
+              swappable behind one interface — the framework is built around
+              pluggable backends, not glued to one provider.
+            </p>
+            <a href="https://github.com/0xagentio">Repo &amp; live examples</a>
+          </div>
+
+          <div class="track-card gensyn">
+            <span class="track-tag">Track · Gensyn AXL</span>
+            <span class="track-name">Proof-carrying P2P agent messaging</span>
+            <p>
+              Two real AXL node processes exchanging Noir-proof-backed
+              messages. Bob verifies Alice's proof/action/policy binding
+              before doing any work. I also released a standalone TypeScript
+              SDK for AXL — there was no official one.
+            </p>
+            <a href="https://github.com/0xagentio">SDK &amp; live stack demo</a>
+          </div>
+
+          <div class="track-card uniswap">
+            <span class="track-tag">Track · Uniswap</span>
+            <span class="track-name">Proof-gated agentic finance</span>
+            <p>
+              Alice is an autonomous treasury agent. Bob is a Uniswap gateway.
+              Bob only calls <code>/check_approval</code>, <code>/quote</code>,
+              <code>/swap</code> or <code>/order</code> after verifying that
+              Alice's proof-backed request matches her delegated policy.
+            </p>
+            <a href="uniswap-demo.html">Open Uniswap demo</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="infra">
+        <div class="eyebrow">Public infrastructure</div>
+        <h2>This isn't a one-off demo.</h2>
+        <p class="section-lede">
+          Two pieces of public infrastructure shipped alongside the framework
+          and now serve other projects in the ecosystem.
+        </p>
+
+        <div class="infra-row">
+          <div class="infra-card">
+            <h3>Public-good 0G KV node</h3>
+            <div class="infra-stat">
+              <span class="num">4+</span>
+              <span class="num-label">projects rely on it today</span>
+            </div>
+            <p>
+              I run a 0G KV storage node as community infrastructure. The
+              landing page exposes the public RPC endpoint, live online status
+              and tracked stream IDs. At least four other hackathon projects
+              currently rely on it.
+            </p>
+            <div class="links">
+              <a href="kv-node.html">Open KV node page</a>
             </div>
           </div>
-        </section>
 
-        <section class="card" aria-label="Supported stream IDs">
-          <div class="card-header">
-            <span class="card-label">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M4 7c4-3 12-3 16 0"></path>
-                <path d="M4 12c4-3 12-3 16 0"></path>
-                <path d="M4 17c4-3 12-3 16 0"></path>
-              </svg>
-              Supported stream IDs
-            </span>
-            <span class="badge-verified" id="streamsBadge">
-              <span class="pulse"></span>
-              <span id="streamsCountLabel">Indexed</span>
-            </span>
+          <div class="infra-card">
+            <h3>TypeScript SDK for Gensyn AXL</h3>
+            <div class="infra-stat">
+              <span class="num">2</span>
+              <span class="num-label">npm packages, MIT-licensed</span>
+            </div>
+            <p>
+              <code>@0xagentio/axl-client</code> is a small TypeScript client
+              for the AXL HTTP bridge. <code>@0xagentio/axl-local</code> is a
+              process harness that spawns and supervises real AXL node
+              binaries. Released as a standalone side project so any TS
+              project can talk to AXL — not just 0xAgentio.
+            </p>
+            <div class="links">
+              <a href="https://www.npmjs.com/package/@0xagentio/axl-client">npm: axl-client</a>
+              <a href="https://www.npmjs.com/package/@0xagentio/axl-local">npm: axl-local</a>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <div class="stream-list" id="streamList"></div>
-
-          <div class="stream-disclaimer">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path
-                d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-              ></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            <span
-              >Stream IDs are first-come, first-served on 0G. If a stream ID is
-              already claimed by another user, pick a different one from the
-              list until you find a free slot.</span
-            >
-          </div>
-        </section>
-
-        <p class="note">
-          Set <code>AGENTIO_0G_KV_RPC</code> to the endpoint and
-          <code>AGENTIO_0G_STREAM_ID</code> to one of the indexed streams above.
-          No auth, no rate limits today — please be kind.
+      <section id="quickstart">
+        <div class="eyebrow">Quickstart</div>
+        <h2>Run it in two commands.</h2>
+        <p class="section-lede">
+          The canonical local walkthrough requires no API keys, no testnet
+          funds, no AXL binary. It shows the full proof-gated flow end-to-end.
         </p>
 
-        <p class="note" id="checkedNote" hidden>
-          <span id="checkedText"></span>
+        <pre class="code-block"><span class="c"># the canonical local walkthrough</span>
+<span class="k">npm</span> install
+<span class="k">npm</span> run build
+<span class="k">npm</span> run example:getting-started
+
+<span class="c"># Uniswap track demo (judge-safe, no API key required)</span>
+<span class="k">npm</span> run example:uniswap:judge-demo
+
+<span class="c"># full live stack — real Noir proving, live 0G KV, real local AXL nodes</span>
+<span class="k">npm</span> run example:live-stack:binary
+
+<span class="c"># 0G Compute Router as the reasoning engine</span>
+<span class="v">AGENTIO_0G_COMPUTE_API_KEY</span>=<span class="s">"sk-..."</span> <span class="k">npm</span> run example:0g-compute-run-until-complete</pre>
+
+        <ul class="checks" style="margin-top: 28px">
+          <li>137 / 140 tests pass (3 skipped because they require live credentials)</li>
+          <li>Real Noir proof generation via Barretenberg, with action/policy/state binding</li>
+          <li>Live 0G KV state persistence and read-back across runs</li>
+          <li>Two real Gensyn AXL node processes exchanging proof-backed messages</li>
+          <li>0G Compute Router as a first-class live LLM provider for reasoning</li>
+          <li>Uniswap Trading API: live <code>/check_approval</code> + <code>/quote</code>, swap and UniswapX order behind explicit live flags</li>
+        </ul>
+      </section>
+
+      <section>
+        <div class="eyebrow">Beyond the demo</div>
+        <h2>Domain-agnostic by design.</h2>
+        <p class="section-lede">
+          Uniswap is the first concrete demo because the actions are real and
+          financially meaningful. The same shape applies anywhere agents need
+          to prove what they're allowed to do before a counterparty acts on it.
         </p>
-      </main>
+        <div class="grid-2">
+          <div class="card compact">
+            <h3>Compute delegation</h3>
+            <p>
+              A principal authorizes an agent to spend up to $X on GPU
+              inference. The agent presents its budget credential to providers
+              on the mesh; providers verify before accepting jobs.
+            </p>
+          </div>
+          <div class="card compact">
+            <h3>Data marketplace via mesh</h3>
+            <p>
+              A research agent announces a scoped procurement budget. Data
+              providers discover it on AXL, verify the credential and offer
+              datasets. The mesh is the marketplace.
+            </p>
+          </div>
+          <div class="card compact">
+            <h3>Multi-agent task swarms</h3>
+            <p>
+              Planner, researcher, executor, auditor — each agent's
+              credential proves its role and scope. Agents verify each other
+              before sharing work artifacts.
+            </p>
+          </div>
+          <div class="card compact">
+            <h3>API access gating</h3>
+            <p>
+              An agent consumes third-party APIs on behalf of a principal.
+              The credential proves it's rate-limited and scoped, without
+              issuing long-lived API keys to anonymous bots.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <footer>
-        <span>0xAgentio · Trust layer for autonomous agents</span>
-        <a href="https://github.com/trivo25/agentio" id="repo"
-          >github.com/trivo25/agentio</a
-        >
+        <div>© 0xAgentio · MIT-licensed framework</div>
+        <div class="links">
+          <a href="https://github.com/0xagentio">GitHub</a>
+          <a href="kv-node.html">0G KV node</a>
+          <a href="uniswap-demo.html">Uniswap demo</a>
+        </div>
       </footer>
     </div>
-
-    <div class="toast" id="toast" role="status" aria-live="polite">
-      <svg
-        class="toast-icon"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          d="M12 2.5l2.9 5.88 6.5.94-4.7 4.58 1.11 6.46L12 17.27l-5.81 3.05 1.11-6.45-4.7-4.58 6.5-.94L12 2.5z"
-        ></path>
-      </svg>
-      <span class="toast-text">
-        Copied. If this saves you time,
-        <a
-          href="https://github.com/trivo25/agentio"
-          target="_blank"
-          rel="noopener"
-          >drop a star on GitHub</a
-        >.
-      </span>
-      <button
-        class="toast-close"
-        type="button"
-        aria-label="Dismiss"
-        id="toastClose"
-      >
-        ×
-      </button>
-    </div>
-
-    <script>
-      (function () {
-        let fallbackStreamIds = [
-          '0x35dd3e73dd3d8474f286fb6f5af5a1e953662d2d5d176994520390e14bad083d',
-          '0x000000000000000000000000000000000000000000000000000000000000f2bd',
-          '0x000000000000000000000000000000000000000000000000000000000000f009',
-          '0x0000000000000000000000000000000000000000000000000000000000016879',
-          '0x0000000000000000000000000000000000000000000000000000000000002e3d',
-          '0xa540cfe0abd10b375988aa11fb47e680847822cebf99adecb9e6ec0e1b863a1a',
-          '0x203338b4cbc0dcda63e2dfef9b7869ceff23c8afa25a618aa81ea8a39930973c',
-          '0x2ea9052bae2463fb752827e067804146d4f919cb6ee0b1447fbc53a2b5bb3078',
-          '0x6c2a9f7112a3699ee706d919dbee7200b4875176d78528a525aab336288c4b08',
-          '0xddac296a8ea4fc5ce8646f0b7d12879ac8d0aa713f579c5a03f72a8e739f0310',
-          '0x6c7648f937c4d3b461b88661c64ed9756183b543d165a6f3cf55ec5fef69f342',
-          '0x737c1bfc1730a391959184480f23275f8a67cf72fe0554417f4553a61fb3c4f4',
-          '0xabbed37b1b11b0d77715aaa9e82bbc295528b1b707bb6e0b07194a349ca70b86',
-          '0xda0ccb2f5edde73cb32b7039324f214646014132e789db1a168efb4748d1493b',
-          '0xbd44b5e5ee818fe1d3378ef455e53ee8d5641e3f8c6c2b5f0025f2a6d762e4e4',
-          '0x6a36c6a13112e4a51583007b712250b5685d1039fa0f6c49d7aae39609a44a64',
-          '0xa453eccc1729c0eaeb06623b499a2a3f34969d6ea6262dfd410fe2ba1a01ec6a',
-          '0xcd3720dfae28ed3b8af53bddf8f5fa73f0d894881ae22108dc3b0ad35723602f',
-          '0xc2c86c5b7a8d82cd40128ce069f699c8827c56f93df5f8b097de03c015d30c5f',
-          '0xa7a2397e71293822f684f61b81f7ef39eecac10546a31d51b5f7923877b39a23',
-          '0x492d925e444063449868443fc4824bcad556d58c6b82d098958f7db909e5694a',
-          '0xe543dbdc94e2ae8a93a54f9e9eab4e633a87bfcc3160110991e353ee2d9cef5c',
-          '0xede2ea37c37396995bad6da415763455386410a02c9f53b2f6600d4843b600be',
-          '0x8a6a818b3b7800eee82a2fc80545c0103c35868349472be3d33149f778883c0f',
-          '0xf10aa2b22668b89a0ed10388cdbe15dc2cacdd9ce5a318a0bb51612400055f6f',
-          '0xb6b84e5d82cb9881e20040b0e22f68603805f0daf6cf72813b2cc1666e37d1b4',
-        ];
-
-        let copyIcon =
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-
-        function renderStreams(ids) {
-          let list = document.getElementById('streamList');
-          list.innerHTML = '';
-          for (let i = 0; i < ids.length; i++) {
-            let row = document.createElement('div');
-            row.className = 'stream-row';
-            row.innerHTML =
-              '<code class="stream-id" data-copy-source>' +
-              ids[i] +
-              '</code>' +
-              '<button class="copy-btn" data-copy type="button" aria-label="Copy stream id">' +
-              copyIcon +
-              '<span class="copy-label">Copy</span></button>';
-            list.appendChild(row);
-          }
-          bindCopy();
-        }
-
-        let toast = document.getElementById('toast');
-        let toastTimer = null;
-        function showToast() {
-          if (!toast) return;
-          toast.classList.add('is-visible');
-          if (toastTimer) clearTimeout(toastTimer);
-          toastTimer = setTimeout(hideToast, 6000);
-        }
-        function hideToast() {
-          if (toast) toast.classList.remove('is-visible');
-        }
-        let toastClose = document.getElementById('toastClose');
-        if (toastClose) toastClose.addEventListener('click', hideToast);
-
-        function bindCopy() {
-          let buttons = document.querySelectorAll('[data-copy]');
-          for (let i = 0; i < buttons.length; i++) {
-            let btn = buttons[i];
-            if (btn.dataset.bound) continue;
-            btn.dataset.bound = '1';
-            let row = btn.parentElement;
-            let source = row.querySelector('[data-copy-source]');
-            let label = btn.querySelector('.copy-label');
-            if (!source || !label) continue;
-            btn.addEventListener('click', function () {
-              navigator.clipboard
-                .writeText(source.textContent.trim())
-                .then(function () {
-                  btn.classList.add('copied');
-                  label.textContent = 'Copied';
-                  if (btn.dataset.toast === 'star') showToast();
-                  setTimeout(function () {
-                    btn.classList.remove('copied');
-                    label.textContent = 'Copy';
-                  }, 1600);
-                });
-            });
-          }
-        }
-
-        function relativeTime(iso) {
-          let then = new Date(iso).getTime();
-          if (!Number.isFinite(then)) return '';
-          let secs = Math.max(0, Math.round((Date.now() - then) / 1000));
-          if (secs < 60) return secs + 's ago';
-          let mins = Math.round(secs / 60);
-          if (mins < 60) return mins + 'm ago';
-          let hours = Math.round(mins / 60);
-          if (hours < 48) return hours + 'h ago';
-          return Math.round(hours / 24) + 'd ago';
-        }
-
-        function setStatus(state, label, checkedAt) {
-          let badge = document.getElementById('statusBadge');
-          let labelEl = document.getElementById('statusLabel');
-          badge.classList.remove('is-loading', 'is-offline');
-          if (state === 'offline') badge.classList.add('is-offline');
-          labelEl.textContent = label;
-
-          if (checkedAt) {
-            let note = document.getElementById('checkedNote');
-            document.getElementById('checkedText').textContent =
-              'Last checked ' + relativeTime(checkedAt) + '.';
-            note.hidden = false;
-          }
-        }
-
-        renderStreams(fallbackStreamIds);
-        document.getElementById('streamsCountLabel').textContent =
-          fallbackStreamIds.length + ' indexed';
-
-        fetch('status.json', { cache: 'no-store' })
-          .then(function (r) {
-            if (!r.ok) throw new Error('no status');
-            return r.json();
-          })
-          .then(function (s) {
-            setStatus(
-              s.online ? 'online' : 'offline',
-              s.online ? 'Online' : 'Offline',
-              s.checkedAt,
-            );
-          })
-          .catch(function () {
-            setStatus('online', 'Active', null);
-          });
-      })();
-    </script>
   </body>
 </html>
