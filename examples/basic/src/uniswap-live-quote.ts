@@ -27,7 +27,7 @@ import { logDetail, logStep, logTitle } from './uniswap/logging.js';
 /**
  * Prepares the proof-gated live Uniswap approval, quote, swap, and order flow.
  *
- * Bob verifies Alice's AgentIO proof before preparing or submitting Uniswap API
+ * Bob verifies Alice's 0xAgentio proof before preparing or submitting Uniswap API
  * requests. The default mode does not call the network, so developers can
  * inspect the authorization boundary before enabling live API requests with
  * credentials.
@@ -107,7 +107,7 @@ installBobQuoteGateway(options);
 await runUniswapPreparationDemo();
 
 async function runUniswapPreparationDemo(): Promise<void> {
-  logTitle('AgentIO Uniswap judge demo: proof-gated approval, quote, swap, and order preparation');
+  logTitle('0xAgentio Uniswap judge demo: proof-gated approval, quote, swap, and order preparation');
 
   logStep('1. Create Alice and Bob');
   logDetail('Alice', 'agent that wants Uniswap approval and quote work');
@@ -120,6 +120,9 @@ async function runUniswapPreparationDemo(): Promise<void> {
   logStep('3. Create local proof and transport adapters');
   logDetail('Proof', 'local Noir-shaped proof tied to each Uniswap action');
   logDetail('Transport', 'local AXL-shaped message delivery');
+  logDetail('Live approval and quote calls', options.runNetworkRequest ? 'enabled through Uniswap API' : 'disabled; request shapes only');
+  logDetail('Live swap submission', options.runSwapNetworkRequest ? 'enabled; requires permit signature when needed' : 'disabled by default');
+  logDetail('Live order submission', options.runOrderNetworkRequest ? 'enabled; requires order signature' : 'disabled by default');
 
   await requestApprovalCheck();
   const quoteReply = await requestQuote();
@@ -128,7 +131,9 @@ async function runUniswapPreparationDemo(): Promise<void> {
 
   logStep('8. What this proves');
   logDetail('Trust boundary', 'Bob only prepares or calls Uniswap endpoints after verifying Alice proof');
-  logDetail('Safety', 'this example never submits approval, swap, or order transactions');
+  logDetail('Uniswap integration', 'approval check, quote, swap preparation, and UniswapX order preparation are modeled');
+  logDetail('Safety', 'approval, swap, and order transactions are never signed or broadcast by this example');
+  logDetail('Judge command', 'npm run example:uniswap:judge-demo');
 }
 
 async function requestApprovalCheck(): Promise<CorrelatedAgentMessage> {
@@ -290,7 +295,6 @@ function logGatewayReply(
 ): void {
   logDetail('Bob response', String(reply.payload.status));
   logDetail('Endpoint', String(reply.payload.endpoint));
-  logDetail('Network call', String(reply.payload.networkCall));
   if (summary !== undefined) {
     logDetail(summaryLabel, JSON.stringify(summary));
   }
@@ -333,10 +337,11 @@ async function handleApprovalRequest(
     throw new Error(`Bob rejected approval request: ${verification.reason}`);
   }
 
-  logDetail('Bob verified approval proof', `${verification.action.type} ${String(verification.action.amount)}`);
+  logDetail('Bob proof gate', `accepted ${verification.action.type} for amount ${String(verification.action.amount)}`);
   const approval = await uniswapGateway.checkApproval(approvalBody);
 
   logDetail('Prepared POST', approval.endpoint);
+  logDetail('Uniswap work', approval.networkCall);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
   logDetail('Body amount', approval.request.body.amount);
   logDetail('Approval target', 'Permit2 or proxy router, depending on x-permit2-disabled');
@@ -380,10 +385,11 @@ async function handleQuoteRequest(
     throw new Error(`Bob rejected live quote request: ${verification.reason}`);
   }
 
-  logDetail('Bob verified quote proof', `${verification.action.type} ${String(verification.action.amount)}`);
+  logDetail('Bob proof gate', `accepted ${verification.action.type} for amount ${String(verification.action.amount)}`);
   const quote = await uniswapGateway.quote(quoteBody);
 
   logDetail('Prepared POST', quote.endpoint);
+  logDetail('Uniswap work', quote.networkCall);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
   logDetail('Body amount', quote.request.body.amount);
   logDetail('Body pair', 'USDC/WETH');
@@ -429,13 +435,14 @@ async function handleSwapPrepareRequest(
     throw new Error(`Bob rejected swap preparation request: ${verification.reason}`);
   }
 
-  logDetail('Bob verified swap proof', `${verification.action.type} ${String(verification.action.amount)}`);
+  logDetail('Bob proof gate', `accepted ${verification.action.type} for amount ${String(verification.action.amount)}`);
   const swap = await uniswapGateway.prepareSwap(
     isRecord(message.payload.quoteForSwap) ? message.payload.quoteForSwap : createLocalClassicQuoteForSwap(),
     message.payload.permitData,
   );
 
   logDetail('Prepared POST', swap.endpoint);
+  logDetail('Uniswap work', swap.networkCall);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
   logDetail('Swap request valid', String(swap.summary.transactionValid));
   logDetail('Broadcast', 'not performed by this example');
@@ -475,13 +482,14 @@ async function handleOrderPrepareRequest(
     throw new Error(`Bob rejected order preparation request: ${verification.reason}`);
   }
 
-  logDetail('Bob verified order proof', `${verification.action.type} ${String(verification.action.amount)}`);
+  logDetail('Bob proof gate', `accepted ${verification.action.type} for amount ${String(verification.action.amount)}`);
   const quote = isRecord(message.payload.quoteForOrder)
     ? message.payload.quoteForOrder
     : createLocalUniswapXQuoteForOrder();
   const order = await uniswapGateway.prepareOrder(quote);
 
   logDetail('Prepared POST', order.endpoint);
+  logDetail('Uniswap work', order.networkCall);
   logDetail('Auth header', options.apiKey === undefined ? 'missing API key' : 'x-api-key configured');
   logDetail('Order route', readString(quote.routing) ?? '<missing>');
   logDetail('Order signature', order.summary.hasSignature ? 'configured' : 'required before live submit');
