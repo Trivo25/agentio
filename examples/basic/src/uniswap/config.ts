@@ -14,6 +14,8 @@ export type LiveQuoteOptions = {
   readonly replyTimeoutMs: number;
 };
 
+const supportedUniversalRouterVersions = new Set(['2.0', '2.1.1']);
+
 /**
  * Reads Uniswap example configuration from environment variables.
  *
@@ -30,7 +32,7 @@ export function readLiveQuoteOptions(): LiveQuoteOptions {
     orderSignature: readOptionalEnv('AGENTIO_UNISWAP_ORDER_SIGNATURE') ??
       readOptionalEnv('AGENTIO_UNISWAP_PERMIT_SIGNATURE'),
     baseUrl: process.env.AGENTIO_UNISWAP_API_BASE_URL ?? 'https://trade-api.gateway.uniswap.org/v1',
-    universalRouterVersion: process.env.AGENTIO_UNISWAP_UNIVERSAL_ROUTER_VERSION ?? '2.0',
+    universalRouterVersion: readUniversalRouterVersion(),
     erc20EthEnabled: process.env.AGENTIO_UNISWAP_ERC20_ETH_ENABLED === '1',
     permit2Disabled: process.env.AGENTIO_UNISWAP_PERMIT2_DISABLED === '1',
     runNetworkRequest: process.env.AGENTIO_UNISWAP_RUN_LIVE_API === '1' ||
@@ -39,6 +41,18 @@ export function readLiveQuoteOptions(): LiveQuoteOptions {
     runOrderNetworkRequest: process.env.AGENTIO_UNISWAP_RUN_LIVE_ORDER === '1',
     replyTimeoutMs: readPositiveIntegerEnv('AGENTIO_UNISWAP_REPLY_TIMEOUT_MS') ?? 15_000,
   };
+}
+
+function readUniversalRouterVersion(): string {
+  const value = readOptionalEnv('AGENTIO_UNISWAP_UNIVERSAL_ROUTER_VERSION') ?? '2.0';
+  if (supportedUniversalRouterVersions.has(value)) {
+    return value;
+  }
+
+  console.warn(
+    `[uniswap] Ignoring unsupported AGENTIO_UNISWAP_UNIVERSAL_ROUTER_VERSION=${value}; using 2.0.`,
+  );
+  return '2.0';
 }
 
 function readOptionalEnv(key: string): string | undefined {
