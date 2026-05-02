@@ -52,7 +52,11 @@ const policy = createPolicy({
   allowedActions: ['swap'],
   constraints: [
     { type: 'max-amount', value: stepAmount, actionTypes: ['swap'] },
-    { type: 'max-cumulative-amount', value: targetSpend, actionTypes: ['swap'] },
+    {
+      type: 'max-cumulative-amount',
+      value: targetSpend,
+      actionTypes: ['swap'],
+    },
     {
       type: 'allowed-metadata-value',
       key: 'assetPair',
@@ -99,7 +103,8 @@ const reasoning = llmReasoningEngine({
   instructions:
     'Return strict JSON only. Use decimal strings for amounts. Do not propose actions other than swap.',
   allowedActionTypes: ['swap'],
-  guard: ({ decision, context }) => guardRebalanceDecision(decision, context.state.cumulativeSpend),
+  guard: ({ decision, context }) =>
+    guardRebalanceDecision(decision, context.state.cumulativeSpend),
   onDecision: ({ rawDecision, decision }) => {
     logDecisionTrace(rawDecision, decision);
   },
@@ -149,7 +154,10 @@ const result = await alice.runUntilComplete({
 logStep('4. Inspect the completed run');
 logDetail('Run status', result.status);
 logDetail('Steps completed', String(result.steps.length));
-logDetail('Accepted actions', String(result.steps.filter((step) => step.status === 'accepted').length));
+logDetail(
+  'Accepted actions',
+  String(result.steps.filter((step) => step.status === 'accepted').length),
+);
 logDetail('Final cumulative spend', String(result.finalState.cumulativeSpend));
 logDetail('0G-shaped state records', String(storage.getRecords().length));
 logDetail('Audit events', String(storage.getAuditEvents().length));
@@ -290,7 +298,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {

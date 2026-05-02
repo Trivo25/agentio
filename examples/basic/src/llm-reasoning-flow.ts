@@ -144,7 +144,9 @@ const reasoning = llmReasoningEngine({
   allowedActionTypes: ['swap'],
 });
 
-logStep('5. Alice runtime uses LLM reasoning but keeps deterministic enforcement');
+logStep(
+  '5. Alice runtime uses LLM reasoning but keeps deterministic enforcement',
+);
 const alice = createAgentRuntime({
   identity: aliceIdentity,
   credential,
@@ -179,7 +181,10 @@ if (result.status !== 'accepted') {
   throw new Error(`Expected accepted action, got ${result.status}.`);
 }
 logDetail('Runtime result', result.status);
-logDetail('LLM proposed action', `${result.action.type} ${String(result.action.amount)}`);
+logDetail(
+  'LLM proposed action',
+  `${result.action.type} ${String(result.action.amount)}`,
+);
 logDetail('Execution receipt', result.execution?.reference ?? 'none');
 
 logStep('6. Inspect persisted state and audit trail');
@@ -203,7 +208,10 @@ logDetail(
  */
 function installBobQuoteEndpoint(): void {
   bobPeer.onMessage(async (message) => {
-    if (message.type !== 'quote.request' || message.sender !== aliceIdentity.id) {
+    if (
+      message.type !== 'quote.request' ||
+      message.sender !== aliceIdentity.id
+    ) {
       return;
     }
 
@@ -265,7 +273,8 @@ function decideFromPromptAndQuote(
         venue: 'uniswap-demo',
         quoteId: quoteReply.id,
         offeredOutputPerInput,
-        reason: 'LLM accepted Bob quote because it meets the rebalance threshold.',
+        reason:
+          'LLM accepted Bob quote because it meets the rebalance threshold.',
       },
     },
     reason: 'Quote meets the minimum threshold.',
@@ -273,7 +282,10 @@ function decideFromPromptAndQuote(
 }
 
 /** Reads a numeric field from a message payload and fails loudly if it is absent. */
-function readNumberPayload(message: CorrelatedAgentMessage, key: string): number {
+function readNumberPayload(
+  message: CorrelatedAgentMessage,
+  key: string,
+): number {
   const value = message.payload[key];
   if (typeof value !== 'number') {
     throw new Error(`Expected numeric payload field ${key}.`);
@@ -316,7 +328,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {

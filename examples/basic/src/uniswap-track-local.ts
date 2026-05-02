@@ -99,6 +99,10 @@ const bobIdentity = createAgentIdentity({
 });
 logDetail('Alice', 'treasury agent that can act only within delegated policy');
 logDetail('Bob', 'Uniswap gateway agent that verifies proofs before API work');
+logDetail(
+  'Demo thesis',
+  'AgentIO authorizes autonomous intent before Uniswap quote/swap work',
+);
 
 logStep('2. Delegate narrow Uniswap authority to Alice');
 const policy = createPolicy({
@@ -138,7 +142,12 @@ const credential = await issueLocalCredential({
   issuedAt: now,
   signer: localDelegationSigner(principalId),
 });
-logDetail('Policy', 'Alice may quote/swap USDC→ETH through Uniswap up to 1,500 units');
+logDetail(
+  'Policy',
+  'Alice may quote/swap USDC→ETH through Uniswap up to 1,500 units',
+);
+logDetail('Venue', goal.venue);
+logDetail('Max slippage', `${goal.maxSlippageBips} bps`);
 logDetail('Policy commitment', policyHash);
 
 logStep('3. Create local adapters that mirror the live stack');
@@ -193,15 +202,27 @@ const pendingQuote = alicePeer.request(bobIdentity.id, quoteRequest, {
 await transport.receive(quoteRequest);
 const quoteReply = (await pendingQuote) as CorrelatedAgentMessage;
 const quote = readQuote(quoteReply);
-logDetail('Bob returned quote', `${quote.amountIn} ${quote.tokenIn} → ${quote.amountOut} ${quote.tokenOut}`);
+logDetail(
+  'Bob returned quote',
+  `${quote.amountIn} ${quote.tokenIn} → ${quote.amountOut} ${quote.tokenOut}`,
+);
 logDetail('Route', quote.route.join(' → '));
 logDetail('Permit2 required', String(quote.permit2Required));
+logDetail(
+  'AgentIO vs Permit2',
+  'AgentIO proves intent; Permit2 authorizes token spend',
+);
 
 logStep('6. Alice reasons over the Uniswap quote');
 const decision = decideFromQuote(goal, quote);
-logDetail('Decision', decision.accept ? 'accept quote and request swap' : decision.reason);
+logDetail(
+  'Decision',
+  decision.accept ? 'accept quote and request swap' : decision.reason,
+);
 if (!decision.accept) {
-  throw new Error(`Expected Alice to accept the local quote: ${decision.reason}`);
+  throw new Error(
+    `Expected Alice to accept the local quote: ${decision.reason}`,
+  );
 }
 
 logStep('7. Alice runtime proves, persists, and asks Bob to execute');
@@ -234,11 +255,26 @@ logDetail('Rejected swap requests', String(stats.swapRequestsRejected));
 
 logStep('9. Inspect state, audit, and trust-boundary checks');
 const state = await alice.loadState();
-assertScenario(state.cumulativeSpend === goal.amountIn, 'Alice state did not consume the swap amount.');
-assertScenario(stats.quoteProofsVerified === 1, 'Bob did not verify exactly one quote proof.');
-assertScenario(stats.swapProofsVerified === 1, 'Bob did not verify exactly one swap proof.');
-assertScenario(stats.swapRequestsRejected === 1, 'Bob did not reject the tampered swap request.');
-assertScenario(stats.swapsExecuted === 1, 'Bob did not execute exactly one mock Uniswap swap.');
+assertScenario(
+  state.cumulativeSpend === goal.amountIn,
+  'Alice state did not consume the swap amount.',
+);
+assertScenario(
+  stats.quoteProofsVerified === 1,
+  'Bob did not verify exactly one quote proof.',
+);
+assertScenario(
+  stats.swapProofsVerified === 1,
+  'Bob did not verify exactly one swap proof.',
+);
+assertScenario(
+  stats.swapRequestsRejected === 1,
+  'Bob did not reject the tampered swap request.',
+);
+assertScenario(
+  stats.swapsExecuted === 1,
+  'Bob did not execute exactly one mock Uniswap swap.',
+);
 logDetail('Cumulative spend', String(state.cumulativeSpend));
 logDetail('Audit events', String(storage.getAuditEvents().length));
 logDetail('Quote proofs verified', String(stats.quoteProofsVerified));
@@ -246,8 +282,20 @@ logDetail('Swap proofs verified', String(stats.swapProofsVerified));
 
 logStep('Track demo takeaway');
 logDetail(
-  'Why this is Uniswap-specific',
-  'the gateway can protect quote access, Permit2/swap preparation, and execution with proof-carrying agent requests',
+  'Uniswap value',
+  'proof-gated agents can use the Trading API without gateways trusting raw agent claims',
+);
+logDetail(
+  'Protected surfaces',
+  'quote access, Permit2/swap preparation, execution, and auditability',
+);
+logDetail(
+  'Verifier checks',
+  'agent id, policy hash, action type, amount, and exact action hash',
+);
+logDetail(
+  'Composable path',
+  'AgentIO intent proof → Permit2 token spend authorization → Uniswap swap execution',
 );
 
 /** Installs Bob's local Uniswap gateway behavior for quote and swap requests. */
@@ -266,7 +314,10 @@ function installBobUniswapGateway(): void {
 
 /** Verifies Alice's quote authority before returning a Uniswap-shaped quote. */
 async function handleQuoteRequest(message: AgentMessage): Promise<void> {
-  logDetail('Bob received quote request', `${message.id ?? message.type} from ${message.sender}`);
+  logDetail(
+    'Bob received quote request',
+    `${message.id ?? message.type} from ${message.sender}`,
+  );
   const verification = await verifyMessageAction(message, proof, {
     agentId: aliceIdentity.id,
     actionType: 'uniswap.quote',
@@ -280,7 +331,10 @@ async function handleQuoteRequest(message: AgentMessage): Promise<void> {
   }
 
   stats.quoteProofsVerified += 1;
-  logDetail('Bob verified quote proof', `${verification.action.type} for ${verification.action.metadata?.assetPair}`);
+  logDetail(
+    'Bob verified quote proof',
+    `${verification.action.type} for ${verification.action.metadata?.assetPair}`,
+  );
 
   const quote = createMockUniswapQuote(goal);
   const reply = createAgentReply({
@@ -295,14 +349,20 @@ async function handleQuoteRequest(message: AgentMessage): Promise<void> {
     },
   });
 
-  logDetail('Bob simulated Uniswap quote', `${quote.routing} route, gas ${quote.gasEstimateUsd}`);
+  logDetail(
+    'Bob simulated Uniswap quote',
+    `${quote.routing} route, gas ${quote.gasEstimateUsd}`,
+  );
   await bobPeer.send(aliceIdentity.id, reply);
   await transport.receive(reply);
 }
 
 /** Verifies Alice's final swap proof before returning a mock Uniswap receipt. */
 async function handleSwapRequest(message: AgentMessage): Promise<void> {
-  logDetail('Bob received swap request', `${message.id ?? message.type} from ${message.sender}`);
+  logDetail(
+    'Bob received swap request',
+    `${message.id ?? message.type} from ${message.sender}`,
+  );
   const verification = await verifyMessageAction(message, proof, {
     agentId: aliceIdentity.id,
     actionType: 'uniswap.swap',
@@ -317,8 +377,14 @@ async function handleSwapRequest(message: AgentMessage): Promise<void> {
 
   stats.swapProofsVerified += 1;
   stats.swapsExecuted += 1;
-  logDetail('Bob verified swap proof', `${verification.action.type} ${String(verification.action.amount)}`);
-  logDetail('Bob executes mock Uniswap swap', String(verification.action.metadata?.quoteId));
+  logDetail(
+    'Bob verified swap proof',
+    `${verification.action.type} ${String(verification.action.amount)}`,
+  );
+  logDetail(
+    'Bob executes mock Uniswap swap',
+    String(verification.action.metadata?.quoteId),
+  );
 
   const reply = createAgentReply({
     id: 'uniswap-swap-reply-1',
@@ -391,7 +457,10 @@ async function sendTamperedSwapRequest(
     },
   });
 
-  logDetail('Tampered request', `reused valid proof but changed amount to ${String(tamperedAction.amount)}`);
+  logDetail(
+    'Tampered request',
+    `reused valid proof but changed amount to ${String(tamperedAction.amount)}`,
+  );
   await transport.receive(message);
 }
 
@@ -425,7 +494,10 @@ async function requestBobSwapExecution(
 
   return {
     success: true,
-    reference: isRecord(receipt) && typeof receipt.txHash === 'string' ? receipt.txHash : 'mock-uniswap-receipt',
+    reference:
+      isRecord(receipt) && typeof receipt.txHash === 'string'
+        ? receipt.txHash
+        : 'mock-uniswap-receipt',
     details: {
       gateway: bobIdentity.id,
       quoteId: action.metadata?.quoteId,
@@ -457,7 +529,9 @@ function createMockUniswapQuote(goal: UniswapGoal): UniswapQuote {
 function decideFromQuote(
   goal: UniswapGoal,
   quote: UniswapQuote,
-): { readonly accept: true } | { readonly accept: false; readonly reason: string } {
+):
+  | { readonly accept: true }
+  | { readonly accept: false; readonly reason: string } {
   if (!quote.simulated) {
     return { accept: false, reason: 'quote simulation failed' };
   }
@@ -550,7 +624,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {

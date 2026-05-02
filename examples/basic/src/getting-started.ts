@@ -189,9 +189,18 @@ logDetail('Execution receipt', result.execution?.reference ?? 'none');
 
 logStep('6. The app can inspect stored state and audit records');
 const latestState = await alice.loadState();
-assertScenario(scenarioChecks.bobVerifiedQuoteRequest, 'Bob did not verify Alice quote request.');
-assertScenario(scenarioChecks.executionAdapterVerifiedSwap, 'The execution adapter did not verify Alice final swap.');
-assertScenario(latestState.cumulativeSpend === 250n, 'Alice state was not persisted after the accepted action.');
+assertScenario(
+  scenarioChecks.bobVerifiedQuoteRequest,
+  'Bob did not verify Alice quote request.',
+);
+assertScenario(
+  scenarioChecks.executionAdapterVerifiedSwap,
+  'The execution adapter did not verify Alice final swap.',
+);
+assertScenario(
+  latestState.cumulativeSpend === 250n,
+  'Alice state was not persisted after the accepted action.',
+);
 logDetail('Cumulative spend', String(latestState.cumulativeSpend));
 logDetail('0G-shaped records', String(storage.getRecords().length));
 logDetail('Audit events', String(storage.getAuditEvents().length));
@@ -211,7 +220,10 @@ logDetail(
  */
 function installBobQuoteEndpoint(): void {
   bobPeer.onMessage(async (message) => {
-    if (message.type !== 'quote.request' || message.sender !== aliceIdentity.id) {
+    if (
+      message.type !== 'quote.request' ||
+      message.sender !== aliceIdentity.id
+    ) {
       return;
     }
 
@@ -245,7 +257,10 @@ function installBobQuoteEndpoint(): void {
 }
 
 /** Reads a numeric field from a message payload and fails loudly if it is absent. */
-function readNumberPayload(message: CorrelatedAgentMessage, key: string): number {
+function readNumberPayload(
+  message: CorrelatedAgentMessage,
+  key: string,
+): number {
   const value = message.payload[key];
   if (typeof value !== 'number') {
     throw new Error(`Expected numeric payload field ${key}.`);
@@ -267,7 +282,7 @@ function logTitle(title: string): void {
 }
 
 function logStep(message: string): void {
-  console.log(`\n▶ ${message}`);
+  console.log(`\n-> ${message}`);
 }
 
 function logDetail(label: string, value: string): void {

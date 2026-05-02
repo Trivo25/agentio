@@ -25,7 +25,7 @@ import {
 console.log('\n0xAgentio real Noir proof example');
 console.log('================================');
 
-console.log('\n▶ Creating agent identity and policy');
+console.log('\n-> Creating agent identity and policy');
 const identity = createAgentIdentity({
   id: 'agent-alice-real-noir',
   publicKey: 'agent-public-key-alice-real-noir',
@@ -45,7 +45,7 @@ console.log(`  - Agent: ${identity.id}`);
 console.log(`  - Policy hash: ${policyHash}`);
 console.log('  - Allowed action: swap up to 500 units');
 
-console.log('\n▶ Issuing local delegated credential');
+console.log('\n-> Issuing local delegated credential');
 const credential = await issueLocalCredential({
   identity,
   policy,
@@ -56,7 +56,7 @@ const credential = await issueLocalCredential({
 console.log(`  - Credential: ${credential.id}`);
 console.log(`  - Delegated by: ${credential.delegation?.principalId}`);
 
-console.log('\n▶ Defining action and runtime');
+console.log('\n-> Defining action and runtime');
 const action = createActionIntent({
   type: 'swap',
   amount: 250n,
@@ -92,12 +92,16 @@ const agent = createTrustedAgent({
   createEventId: () => 'event-real-noir-proof-1',
 });
 
-console.log('\n▶ Running agent once');
-console.log('  - NoirJS will execute the circuit and Barretenberg will generate the proof');
+console.log('\n-> Running agent once');
+console.log(
+  '  - NoirJS will execute the circuit and Barretenberg will generate the proof',
+);
 const result = await agent.startOnce();
 
-console.log('\n▶ Final outcome');
+console.log('\n-> Final outcome');
 console.log(`  - Status: ${result.status}`);
-console.log(`  - Execution reference: ${result.status === 'accepted' ? (result.execution?.reference ?? 'none') : 'none'}`);
+console.log(
+  `  - Execution reference: ${result.status === 'accepted' ? (result.execution?.reference ?? 'none') : 'none'}`,
+);
 console.log(`  - Audit events: ${storage.getAuditEvents().length}`);
 console.log('  - Real proving: completed locally');
