@@ -8,7 +8,7 @@ I am building a proof-carrying autonomous agent flow for Uniswap:
 
 ```txt
 Alice agent proposes quote/swap intent
--> AgentIO validates delegated policy->
+-> AgentIO validates delegated policy
 -> AgentIO generates an authorization proof
 -> Bob Uniswap gateway verifies the proof
 -> Bob calls the Uniswap API for quote/swap work
@@ -22,6 +22,8 @@ The goal is to make Uniswap API usage safer for agentic finance by proving that 
 - Uniswap Developer docs https://developers.uniswap.org/docs
 - Trading overview https://developers.uniswap.org/docs/trading/overview
 - Swapping via the Uniswap API https://developers.uniswap.org/docs/trading/swapping-api/getting-started
+- Swapping API integration guide https://developers.uniswap.org/docs/trading/swapping-api/integration-guide
+- Quote API reference https://developers.uniswap.org/docs/api-reference/aggregator_quote
 - Uniswap AI overview https://developers.uniswap.org/docs/uniswap-ai/overview
 - Uniswap AI repo https://github.com/Uniswap/uniswap-ai
 
