@@ -1,0 +1,14 @@
+{
+  "name": "@0xagentio/demo-agent-task",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@0xagentio/sdk": "file:../../packages/sdk",
+    "@0xagentio/og": "file:../../packages/og"
+  }
+}

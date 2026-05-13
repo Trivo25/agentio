@@ -29,7 +29,7 @@ Agent
 ├── communication
 │   └── Gensyn AXL node / transport adapter
 └── execution adapters
-    └── Uniswap API, 0G Storage, contracts, tools, external APIs
+    └── 0G Storage, contracts, tools, external APIs
 ```
 
 The agent is the runtime process that combines these pieces.

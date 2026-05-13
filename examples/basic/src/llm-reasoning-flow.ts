@@ -63,7 +63,7 @@ const policy = createPolicy({
     {
       type: 'allowed-metadata-value',
       key: 'venue',
-      values: ['uniswap-demo'],
+      values: ['verified-execution-demo'],
       actionTypes: ['request-quote', 'swap'],
     },
   ],
@@ -109,7 +109,7 @@ const quoteRequest = await createProofBackedMessage({
     amount: 250n,
     metadata: {
       assetPair: 'ETH/USDC',
-      venue: 'uniswap-demo',
+      venue: 'verified-execution-demo',
     },
   }),
   proof,
@@ -140,7 +140,7 @@ const reasoning = llmReasoningEngine({
     `Quote id: ${quoteReply.id}.`,
   ].join(' '),
   instructions:
-    'If the quote is acceptable, propose a swap on uniswap-demo for 250 units.',
+    'If the quote is acceptable, propose a swap on verified-execution-demo for 250 units.',
   allowedActionTypes: ['swap'],
 });
 
@@ -164,7 +164,7 @@ const alice = createAgentRuntime({
 
     return {
       success: true,
-      reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${action.type}`,
+      reference: `mock-execution-receipt:${proof.publicInputs.policyHash}:${action.type}`,
       details: {
         executor: bobIdentity.id,
         assetPair: action.metadata?.assetPair,
@@ -235,7 +235,7 @@ function installBobQuoteEndpoint(): void {
       request: message as CorrelatedAgentMessage,
       payload: {
         offeredOutputPerInput: 3,
-        note: 'mock route available through uniswap-demo',
+        note: 'mock route available through verified-execution-demo',
       },
     });
     await bobPeer.send(aliceIdentity.id, reply);
@@ -270,7 +270,7 @@ function decideFromPromptAndQuote(
       amount: '250',
       metadata: {
         assetPair: 'ETH/USDC',
-        venue: 'uniswap-demo',
+        venue: 'verified-execution-demo',
         quoteId: quoteReply.id,
         offeredOutputPerInput,
         reason:

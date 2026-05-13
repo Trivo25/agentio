@@ -1,0 +1,57 @@
+{
+  "title": "Agent Verification Passport",
+  "task": {
+    "id": "agentproof-demo-contract-review",
+    "description": "Review a delegated-agent execution policy and produce a bounded verification receipt.",
+    "inputHash": "sha256:50078e7595dc5b3d4e01725b8b51fa12a3cab04924ac4718e3f972de1ae8f9f4"
+  },
+  "agent": {
+    "id": "agentproof-verifier-agent",
+    "owner": "0xOwnerWalletPreview",
+    "frameworkVersion": "0.1.0"
+  },
+  "verification": {
+    "verdict": "verified",
+    "proofHash": "sha256:64b54639672941d2bd1972e5387db0d83d0581cc006e33cbd8c89ee655eb7721",
+    "traceHash": "sha256:961b24bc538d6b33f481009a8c5f4ad7a95707c1ea5e575175e62ae9441ff21d",
+    "outputHash": "sha256:4c032ee38bb04b8b17ffdbd1ca67c70d433044ff914f8a8a2d701e933fb10ca5",
+    "policyHash": "sha256:1e3aeb01b80cc71b9b5fd95c03160600613d0f665bb631e048c565769a8d0b23"
+  },
+  "storage": {
+    "root": "sha256:fde28532051983dc75364a5e55e488e96aad43ad865fbcc103be927af10e2d22",
+    "uri": "memory-og://agentproof-demo/proof-bundles/agentproof-demo-contract-review.json"
+  },
+  "chain": {
+    "contractAddress": "0x0000000000000000000000000000000000000000",
+    "proofId": "local-preview-1",
+    "transactionHash": "0x058235cbec306f6750bc1eb46613d9cd75f834fa4ded8167a52d0c6b307a0025",
+    "explorerLink": "https://chainscan-galileo.0g.ai/tx/0x058235cbec306f6750bc1eb46613d9cd75f834fa4ded8167a52d0c6b307a0025"
+  },
+  "compute": {
+    "model": "deterministic-local-agent",
+    "provider": "local deterministic runtime",
+    "status": "not using 0G compute"
+  },
+  "proofBundle": {
+    "framework": "AgentProof",
+    "version": "0.1.0",
+    "agent_id": "agentproof-verifier-agent",
+    "owner": "0xOwnerWalletPreview",
+    "task_id": "agentproof-demo-contract-review",
+    "task_description": "Review a delegated-agent execution policy and produce a bounded verification receipt.",
+    "input_hash": "sha256:50078e7595dc5b3d4e01725b8b51fa12a3cab04924ac4718e3f972de1ae8f9f4",
+    "policy_hash": "sha256:1e3aeb01b80cc71b9b5fd95c03160600613d0f665bb631e048c565769a8d0b23",
+    "trace_hash": "sha256:961b24bc538d6b33f481009a8c5f4ad7a95707c1ea5e575175e62ae9441ff21d",
+    "output_hash": "sha256:4c032ee38bb04b8b17ffdbd1ca67c70d433044ff914f8a8a2d701e933fb10ca5",
+    "proof_hash": "sha256:64b54639672941d2bd1972e5387db0d83d0581cc006e33cbd8c89ee655eb7721",
+    "verifier_result": "pass",
+    "model": "deterministic-local-agent",
+    "compute_provider": "local deterministic runtime",
+    "created_at": "2026-05-12T00:00:00.000Z",
+    "storage_root": "sha256:fde28532051983dc75364a5e55e488e96aad43ad865fbcc103be927af10e2d22",
+    "chain_tx": "0x058235cbec306f6750bc1eb46613d9cd75f834fa4ded8167a52d0c6b307a0025",
+    "contract_address": "0x0000000000000000000000000000000000000000",
+    "proof_id": "local-preview-1",
+    "explorer_link": "https://chainscan-galileo.0g.ai/tx/0x058235cbec306f6750bc1eb46613d9cd75f834fa4ded8167a52d0c6b307a0025"
+  }
+}

@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Verification Passport</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --ink: #18202b;
+        --muted: #5a6575;
+        --line: #d9dee7;
+        --panel: #ffffff;
+        --accent: #0b6bcb;
+        --good: #10805b;
+        --warn: #9a5d00;
+        --fail: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .shell {
+        width: min(1180px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 28px 0 36px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: end;
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .brand img {
+        width: 42px;
+        height: 42px;
+        object-fit: contain;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .summary {
+        margin: 7px 0 0;
+        color: var(--muted);
+        max-width: 760px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid #aad8c7;
+        border-radius: 8px;
+        background: #eefaf5;
+        color: var(--good);
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .status[data-state="failed"] {
+        border-color: #f3b5ad;
+        background: #fff2f0;
+        color: var(--fail);
+      }
+
+      .status[data-state="needs_review"] {
+        border-color: #efd18f;
+        background: #fff8e6;
+        color: var(--warn);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 18px;
+        padding-top: 20px;
+      }
+
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px;
+      }
+
+      section h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        letter-spacing: 0;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: minmax(132px, 0.42fr) minmax(0, 1fr);
+        gap: 10px 14px;
+      }
+
+      .label {
+        color: var(--muted);
+      }
+
+      code,
+      .value {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      code {
+        display: inline;
+        padding: 1px 4px;
+        border-radius: 5px;
+        background: #eef1f5;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 13px;
+      }
+
+      .bundle {
+        min-height: 344px;
+        max-height: 520px;
+        overflow: auto;
+        margin: 0;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #101820;
+        color: #e7edf5;
+        font-size: 12px;
+      }
+
+      @media (max-width: 860px) {
+        header,
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 26px;
+        }
+
+        .kv {
+          grid-template-columns: 1fr;
+          gap: 4px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand">
+          <img src="./assets/logo.png" alt="0xAgentio" />
+          <div>
+            <h1>Agent Verification Passport</h1>
+            <p class="summary">
+              A 0G-native framework that verifies agent actions, stores evidence
+              on decentralized storage, and anchors proof receipts on-chain for
+              auditable autonomous execution.
+            </p>
+          </div>
+        </div>
+        <div id="verdict" class="status">Verified</div>
+      </header>
+
+      <main>
+        <div class="stack">
+          <section>
+            <h2>Task</h2>
+            <div class="kv">
+              <div class="label">Task ID</div>
+              <div id="task-id" class="value"></div>
+              <div class="label">Description</div>
+              <div id="task-description" class="value"></div>
+              <div class="label">Input Hash</div>
+              <div><code id="input-hash"></code></div>
+            </div>
+          </section>
+
+          <section>
+            <h2>Agent</h2>
+            <div class="kv">
+              <div class="label">Agent ID</div>
+              <div><code id="agent-id"></code></div>
+              <div class="label">Owner Wallet</div>
+              <div><code id="owner-wallet"></code></div>
+              <div class="label">Framework Version</div>
+              <div id="framework-version" class="value"></div>
+            </div>
+          </section>
+
+          <section>
+            <h2>Verification</h2>
+            <div class="kv">
+              <div class="label">Proof Hash</div>
+              <div><code id="proof-hash"></code></div>
+              <div class="label">Trace Hash</div>
+              <div><code id="trace-hash"></code></div>
+              <div class="label">Output Hash</div>
+              <div><code id="output-hash"></code></div>
+              <div class="label">Policy Hash</div>
+              <div><code id="policy-hash"></code></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section>
+            <h2>0G Storage</h2>
+            <div class="kv">
+              <div class="label">Storage Root</div>
+              <div><code id="storage-root"></code></div>
+              <div class="label">Evidence Bundle</div>
+              <div><code id="storage-uri"></code></div>
+            </div>
+          </section>
+
+          <section>
+            <h2>0G Chain</h2>
+            <div class="kv">
+              <div class="label">Contract</div>
+              <div><code id="contract-address"></code></div>
+              <div class="label">Proof ID</div>
+              <div><code id="proof-id"></code></div>
+              <div class="label">Transaction</div>
+              <div><code id="tx-hash"></code></div>
+              <div class="label">Explorer</div>
+              <div id="explorer-link"></div>
+            </div>
+          </section>
+
+          <section>
+            <h2>Compute</h2>
+            <div class="kv">
+              <div class="label">Model</div>
+              <div id="model" class="value"></div>
+              <div class="label">Provider</div>
+              <div id="compute-provider" class="value"></div>
+              <div class="label">Status</div>
+              <div id="compute-status" class="value"></div>
+            </div>
+          </section>
+
+          <section>
+            <h2>Proof Bundle</h2>
+            <pre id="proof-bundle" class="bundle"></pre>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="./agentproof-passport-data.js"></script>
+    <script>
+      const fallback = {
+        title: "Agent Verification Passport",
+        task: {
+          id: "agentproof-demo-contract-review",
+          description:
+            "Review a delegated-agent execution policy and produce a bounded verification receipt.",
+          inputHash: "sha256:pending-demo-run",
+        },
+        agent: {
+          id: "agentproof-verifier-agent",
+          owner: "0xOwnerWalletPreview",
+          frameworkVersion: "0.1.0",
+        },
+        verification: {
+          verdict: "verified",
+          proofHash: "sha256:pending-demo-run",
+          traceHash: "sha256:pending-demo-run",
+          outputHash: "sha256:pending-demo-run",
+          policyHash: "sha256:pending-demo-run",
+        },
+        storage: {
+          root: "sha256:pending-demo-run",
+          uri: "memory-og://agentproof-demo/proof-bundles/agentproof-demo-contract-review.json",
+        },
+        chain: {
+          contractAddress: "0x0000000000000000000000000000000000000000",
+          proofId: "local-preview-1",
+          transactionHash: "0xpending",
+          explorerLink: "",
+        },
+        compute: {
+          model: "deterministic-local-agent",
+          provider: "local deterministic runtime",
+          status: "not using 0G compute",
+        },
+        proofBundle: {},
+      };
+
+      loadPassport();
+
+      async function loadPassport() {
+        let data = window.AGENTPROOF_PASSPORT_DATA || fallback;
+        if (window.AGENTPROOF_PASSPORT_DATA) {
+          render(data);
+          return;
+        }
+
+        try {
+          const response = await fetch("./agentproof-passport-data.json", {
+            cache: "no-store",
+          });
+          if (response.ok) {
+            data = await response.json();
+          }
+        } catch {}
+
+        render(data);
+      }
+
+      function render(data) {
+        const verdict = data.verification.verdict || "needs_review";
+        text("task-id", data.task.id);
+        text("task-description", data.task.description);
+        text("input-hash", data.task.inputHash);
+        text("agent-id", data.agent.id);
+        text("owner-wallet", data.agent.owner);
+        text("framework-version", data.agent.frameworkVersion);
+        text("proof-hash", data.verification.proofHash);
+        text("trace-hash", data.verification.traceHash || "");
+        text("output-hash", data.verification.outputHash);
+        text("policy-hash", data.verification.policyHash || "");
+        text("storage-root", data.storage.root);
+        text("storage-uri", data.storage.uri || "");
+        text("contract-address", data.chain.contractAddress);
+        text("proof-id", data.chain.proofId || "");
+        text("tx-hash", data.chain.transactionHash);
+        text("model", data.compute.model);
+        text("compute-provider", data.compute.provider);
+        text("compute-status", data.compute.status);
+        text("proof-bundle", JSON.stringify(data.proofBundle, null, 2));
+
+        const verdictNode = document.getElementById("verdict");
+        verdictNode.textContent = titleCase(verdict);
+        verdictNode.dataset.state = verdict === "verified" ? "verified" : verdict;
+
+        const explorer = document.getElementById("explorer-link");
+        explorer.textContent = "";
+        if (data.chain.explorerLink) {
+          const link = document.createElement("a");
+          link.href = data.chain.explorerLink;
+          link.textContent = data.chain.explorerLink;
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          explorer.appendChild(link);
+        }
+      }
+
+      function text(id, value) {
+        document.getElementById(id).textContent = value || "";
+      }
+
+      function titleCase(value) {
+        return value
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+      }
+    </script>
+  </body>
+</html>

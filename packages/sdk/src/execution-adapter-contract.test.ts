@@ -20,7 +20,7 @@ const policy = {
     {
       type: 'allowed-metadata-value' as const,
       key: 'venue',
-      values: ['uniswap-demo'],
+      values: ['verified-execution-demo'],
       actionTypes: ['swap'],
     },
   ],
@@ -44,7 +44,7 @@ const state = {
 const action = {
   type: 'swap',
   amount: 250n,
-  metadata: { venue: 'uniswap-demo', assetPair: 'ETH/USDC' },
+  metadata: { venue: 'verified-execution-demo', assetPair: 'ETH/USDC' },
 };
 
 const proofAdapter = localNoirProofs();
@@ -69,7 +69,7 @@ function testExecutionAdapterContract(name: string, execution: ExecutionAdapter)
 
     assert.equal(result.success, true);
     assert.equal(result.reference, `${'mock-execution'}:${credential.policyHash}:swap`);
-    assert.equal(result.details?.venue, 'uniswap-demo');
+    assert.equal(result.details?.venue, 'verified-execution-demo');
   });
 
   test(`${name} rejects requests whose proof agent does not match the requester`, async () => {

@@ -147,3 +147,25 @@ export {
   type OgKvObjectClientOptions,
 } from './network-client.js';
 export { createOgProgressLogger, formatOgProgressMessage, type OgProgressLoggerOptions, type OgProgressLogLevel } from './progress.js';
+export {
+  createProofBundle,
+  hashForBytes32,
+  hashJson,
+  hashJsonHex,
+  localProofBundleObjectClient,
+  proofBundleKey,
+  serializeProofBundle,
+  uploadProofBundleTo0G,
+  type CreateProofBundleOptions,
+  type ProofBundle,
+  type UploadProofBundleTo0GOptions,
+  type UploadProofBundleTo0GResult,
+  type VerificationVerdict,
+} from './proof-bundle.js';
+export {
+  AGENT_PROOF_REGISTRY_ABI,
+  anchorProofOn0G,
+  createLocalAnchorProofReceipt,
+  type AnchorProofOn0GOptions,
+  type AnchorProofOn0GResult,
+} from './chain-client.js';

@@ -263,7 +263,7 @@ test('parseLlmReasoningDecision parses action metadata and optional reason', () 
       action: {
         type: 'request-quote',
         amount: '10',
-        metadata: { venue: 'uniswap-demo' },
+        metadata: { venue: 'verified-execution-demo' },
       },
       reason: 'need market data',
     }),
@@ -273,5 +273,5 @@ test('parseLlmReasoningDecision parses action metadata and optional reason', () 
   assert.equal(decision.reason, 'need market data');
   assert.equal(decision.action.type, 'request-quote');
   assert.equal(decision.action.amount, 10n);
-  assert.deepEqual(decision.action.metadata, { venue: 'uniswap-demo' });
+  assert.deepEqual(decision.action.metadata, { venue: 'verified-execution-demo' });
 });

@@ -59,7 +59,7 @@ const policy = createPolicy({
     {
       type: 'allowed-metadata-value',
       key: 'venue',
-      values: ['uniswap-demo'],
+      values: ['verified-execution-demo'],
       actionTypes: ['swap'],
     },
   ],
@@ -92,7 +92,7 @@ const reasoning = llmReasoningEngine({
   client: llm,
   goal: 'Incrementally rebalance ETH/USDC until cumulative spend reaches 300.',
   instructions:
-    'Return one swap action at a time with metadata assetPair="ETH/USDC" and venue="uniswap-demo".',
+    'Return one swap action at a time with metadata assetPair="ETH/USDC" and venue="verified-execution-demo".',
   allowedActionTypes: ['swap'],
   guard: ({ decision, context }) =>
     guardRebalanceDecision(decision, context.state.cumulativeSpend),
@@ -125,7 +125,7 @@ const alice = createAgentRuntime({
 
     return {
       success: true,
-      reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${String(action.amount)}`,
+      reference: `mock-execution-receipt:${proof.publicInputs.policyHash}:${String(action.amount)}`,
       details: {
         assetPair: action.metadata?.assetPair,
         venue: action.metadata?.venue,
@@ -181,7 +181,7 @@ function mockProviderResponse(call: number): MockProviderResponse {
         action: {
           type: 'swap',
           amount: 100,
-          metadata: { assetPair: 'ETH/USDC', venue: 'uniswap-demo' },
+          metadata: { assetPair: 'ETH/USDC', venue: 'verified-execution-demo' },
         },
       },
     };
@@ -195,7 +195,7 @@ function mockProviderResponse(call: number): MockProviderResponse {
         action: {
           type: 'swap',
           amount: '100.0',
-          metadata: { assetPair: 'ETH/USDC', venue: 'uniswap-demo' },
+          metadata: { assetPair: 'ETH/USDC', venue: 'verified-execution-demo' },
         },
       },
     };
@@ -210,7 +210,7 @@ function mockProviderResponse(call: number): MockProviderResponse {
         amount: '250',
         metadata: {
           assetPair: 'ETH/USDC',
-          venue: 'uniswap-demo',
+          venue: 'verified-execution-demo',
           modelReason: 'finish the rebalance quickly',
         },
       },
@@ -236,7 +236,7 @@ function guardRebalanceDecision(
       amount,
       metadata: {
         assetPair: 'ETH/USDC',
-        venue: 'uniswap-demo',
+        venue: 'verified-execution-demo',
         reason: 'continue incremental rebalance until target is reached',
       },
     }),

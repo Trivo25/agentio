@@ -50,7 +50,7 @@ const policy = createPolicy({
     {
       type: 'allowed-metadata-value',
       key: 'venue',
-      values: ['uniswap-demo'],
+      values: ['verified-execution-demo'],
       actionTypes: ['swap'],
     },
   ],
@@ -78,7 +78,7 @@ const llm = mockLlmClient(() =>
       amount: '700',
       metadata: {
         assetPair: 'ETH/USDC',
-        venue: 'uniswap-demo',
+        venue: 'verified-execution-demo',
         reason: 'Model wants to fully rebalance in one trade.',
       },
     },
@@ -142,7 +142,7 @@ const alice = createAgentRuntime({
 
     return {
       success: true,
-      reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${action.type}`,
+      reference: `mock-execution-receipt:${proof.publicInputs.policyHash}:${action.type}`,
       details: {
         assetPair: action.metadata?.assetPair,
         amount: action.amount,

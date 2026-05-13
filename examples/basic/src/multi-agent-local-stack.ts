@@ -23,7 +23,7 @@ import {
 /**
  * Demonstrates a small local multi-agent stack.
  *
- * Alice is a delegated portfolio agent. Bob is a Uniswap-shaped executor agent
+ * Alice is a delegated portfolio agent. Bob is a execution-shaped executor agent
  * that can answer quote requests and later verify Alice's proof before mock
  * execution. Carol is an auditor agent that only trusts proof-backed messages.
  */
@@ -57,8 +57,8 @@ const alice = createAgentIdentity({
   publicKey: 'agent-public-key-alice-rebalancer',
 });
 const bob = createAgentIdentity({
-  id: 'agent-bob-uniswap-executor',
-  publicKey: 'agent-public-key-bob-uniswap-executor',
+  id: 'agent-bob-execution-provider',
+  publicKey: 'agent-public-key-bob-execution-provider',
 });
 const carolIdentity = createAgentIdentity({
   id: 'agent-carol-auditor',
@@ -85,7 +85,7 @@ logDetail('Issued credential', `${credential.id} -> ${credential.agentId}`);
 logStep('Defining Alice goal');
 const goal: RebalanceGoal = {
   assetPair: 'ETH/USDC',
-  venue: 'uniswap-demo',
+  venue: 'verified-execution-demo',
   amount: 250n,
   targetOutputPerInput: 2,
   minimumAcceptableOutputPerInput: 2,
@@ -257,7 +257,7 @@ function createRebalancePolicy() {
       {
         type: 'allowed-metadata-value',
         key: 'venue',
-        values: ['uniswap-demo'],
+        values: ['verified-execution-demo'],
         actionTypes: ['request-quote', 'swap'],
       },
     ],
@@ -457,7 +457,7 @@ function createAliceRuntime(
     proof,
     storage,
     // bob is modeled as a verifying executor: he receives alice's request, checks
-    // the proof/public inputs, and only then returns a mock uniswap receipt.
+    // the proof/public inputs, and only then returns a mock execution receipt.
     execution: localVerifyingExecution(
       proof,
       async ({ identity, action, proof }) => {
@@ -476,7 +476,7 @@ function createAliceRuntime(
             'policyHash',
             'actionType',
           ],
-          decision: 'execute-mock-uniswap-order',
+          decision: 'execute-mock-order',
         };
         stats.bobExecutionReviews.push(review);
         logDetail(
@@ -490,7 +490,7 @@ function createAliceRuntime(
 
         return {
           success: true,
-          reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${action.type}`,
+          reference: `mock-execution-receipt:${proof.publicInputs.policyHash}:${action.type}`,
           details: {
             executor: bob.id,
             venue: action.metadata?.venue,

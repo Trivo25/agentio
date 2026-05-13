@@ -1,6 +1,6 @@
 # Basic Examples
 
-Most examples use local or in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or Uniswap adapters are connected. The live adapter examples are explicitly opt-in and write to external systems.
+Most examples use local or in-memory adapters. They are meant to show the SDK shape before real Noir, 0G, Gensyn AXL or domain-specific execution adapters are connected. The live adapter examples are explicitly opt-in and write to external systems.
 
 ## `getting-started.ts`
 
@@ -164,7 +164,7 @@ npm run example:runtime
 
 Milestone 1 local end-to-end demo.
 
-It simulates a principal delegating a constrained treasury rebalance policy to Alice, an autonomous local agent. Alice first proves that she is authorized to request a quote, then asks Bob, a local Uniswap-executor agent, for a correlated quote reply. Bob verifies the quote proof before answering. Alice then reasons over Bob's counter-quote, validates delegation and policy, creates a Noir-shaped proof, and asks Bob to execute. Bob independently verifies Alice's proof before returning a mock execution receipt. Alice stores audit records through 0G-shaped storage and sends a proof-backed result over an AXL-shaped local transport. Carol, a separate auditor/listener agent, uses `carol.onVerifiedMessage(...)` to trust Alice's result and reject spoofed messages without proofs.
+It simulates a principal delegating a constrained task policy to Alice, an autonomous local agent. Alice first proves that she is authorized to request a quote, then asks Bob, a local execution-provider agent, for a correlated quote reply. Bob verifies the quote proof before answering. Alice then reasons over Bob's counter-quote, validates delegation and policy, creates a Noir-shaped proof, and asks Bob to execute. Bob independently verifies Alice's proof before returning a mock execution receipt. Alice stores audit records through 0G-shaped storage and sends a proof-backed result over an AXL-shaped local transport. Carol, a separate auditor/listener agent, uses `carol.onVerifiedMessage(...)` to trust Alice's result and reject spoofed messages without proofs.
 
 Run it with:
 
