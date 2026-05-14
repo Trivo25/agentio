@@ -26,6 +26,9 @@
       "path": "./examples/basic"
     },
     {
+      "path": "./examples/demo-agent-task"
+    },
+    {
       "path": "./examples/axl-local-network"
     }
   ]

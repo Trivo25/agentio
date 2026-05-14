@@ -66,7 +66,7 @@ const policy = createPolicy({
     {
       type: 'allowed-metadata-value',
       key: 'venue',
-      values: ['uniswap-demo'],
+      values: ['verified-execution-demo'],
       actionTypes: ['swap'],
     },
   ],
@@ -98,7 +98,7 @@ const reasoning = llmReasoningEngine({
     'Run an incremental ETH/USDC rebalance until cumulativeSpend reaches 300.',
     'Return one action per decision cycle, not the whole plan.',
     'If cumulativeSpend is already 300 or higher, return {"decision":"skip"}.',
-    'Otherwise propose {"decision":"act","action":{"type":"swap","amount":"100","metadata":{"assetPair":"ETH/USDC","venue":"uniswap-demo"}}}.',
+    'Otherwise propose {"decision":"act","action":{"type":"swap","amount":"100","metadata":{"assetPair":"ETH/USDC","venue":"verified-execution-demo"}}}.',
   ].join(' '),
   instructions:
     'Return strict JSON only. Use decimal strings for amounts. Do not propose actions other than swap.',
@@ -134,7 +134,7 @@ const alice = createAgentRuntime({
 
     return {
       success: true,
-      reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${String(action.amount)}`,
+      reference: `mock-execution-receipt:${proof.publicInputs.policyHash}:${String(action.amount)}`,
       details: {
         assetPair: action.metadata?.assetPair,
         venue: action.metadata?.venue,
@@ -186,7 +186,7 @@ function guardRebalanceDecision(
       amount,
       metadata: {
         assetPair: 'ETH/USDC',
-        venue: 'uniswap-demo',
+        venue: 'verified-execution-demo',
         reason: 'continue incremental rebalance until target is reached',
       },
     }),

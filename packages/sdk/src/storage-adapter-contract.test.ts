@@ -28,11 +28,11 @@ const auditEvent: AuditEvent = {
   action: {
     type: 'swap',
     amount: 250n,
-    metadata: { venue: 'uniswap-demo' },
+    metadata: { venue: 'verified-execution-demo' },
   },
   execution: {
     success: true,
-    reference: 'mock-uniswap-receipt:1',
+    reference: 'mock-execution-receipt:1',
   },
 };
 

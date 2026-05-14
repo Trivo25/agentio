@@ -56,7 +56,7 @@ const policy = createPolicy({
     {
       type: 'allowed-metadata-value',
       key: 'venue',
-      values: ['uniswap-demo'],
+      values: ['verified-execution-demo'],
       actionTypes: ['swap'],
     },
   ],
@@ -88,7 +88,7 @@ const reasoning = llmReasoningEngine({
     'If this meets the minimum 1:2 threshold, propose a swap for 250 units.',
   ].join(' '),
   instructions:
-    'Only propose action type "swap". Use metadata assetPair="ETH/USDC" and venue="uniswap-demo".',
+    'Only propose action type "swap". Use metadata assetPair="ETH/USDC" and venue="verified-execution-demo".',
   allowedActionTypes: ['swap'],
 });
 
@@ -112,7 +112,7 @@ const alice = createAgentRuntime({
 
     return {
       success: true,
-      reference: `mock-uniswap-receipt:${proof.publicInputs.policyHash}:${action.type}`,
+      reference: `mock-execution-receipt:${proof.publicInputs.policyHash}:${action.type}`,
       details: {
         assetPair: action.metadata?.assetPair,
         venue: action.metadata?.venue,

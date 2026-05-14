@@ -148,7 +148,7 @@ packages/
   axl/         # TypeScript AXL HTTP adapter
   sdk/         # Batteries-included developer API
 apps/
-  trade/       # TypeScript agent demo using Uniswap API
+  demo-agent-task/ # TypeScript AgentProof verification passport demo
 examples/
   basic/       # Minimal framework example
 ```

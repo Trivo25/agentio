@@ -14,7 +14,7 @@ const policy = {
     {
       type: 'allowed-metadata-value' as const,
       key: 'venue',
-      values: ['uniswap-demo'],
+      values: ['verified-execution-demo'],
       actionTypes: ['request-quote', 'swap'],
     },
   ],
@@ -44,7 +44,7 @@ function testProofAdapterContract(name: string, proofAdapter: ProofAdapter): voi
     const action = {
       type: 'request-quote',
       amount: 250n,
-      metadata: { venue: 'uniswap-demo' },
+      metadata: { venue: 'verified-execution-demo' },
     };
     const result = await proofAdapter.proveAction({
       credential,
@@ -75,7 +75,7 @@ function testProofAdapterContract(name: string, proofAdapter: ProofAdapter): voi
         action: {
           type: 'request-quote',
           amount: 750n,
-          metadata: { venue: 'uniswap-demo' },
+          metadata: { venue: 'verified-execution-demo' },
         },
         now,
       }),

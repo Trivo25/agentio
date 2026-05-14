@@ -454,7 +454,7 @@
       .track-card.gensyn::before {
         background: linear-gradient(90deg, #27c2b3, #b58dff);
       }
-      .track-card.uniswap::before {
+      .track-card.agentproof::before {
         background: linear-gradient(90deg, #b58dff, #4f7dff);
       }
 
@@ -765,7 +765,7 @@
             View on GitHub
           </a>
           <a class="btn btn-secondary" href="#tracks">Judge entry points</a>
-          <a class="btn btn-secondary" href="uniswap-demo.html">Uniswap demo</a>
+          <a class="btn btn-secondary" href="agentproof-passport.html">AgentProof passport</a>
         </div>
         <div class="quote">
           Identity tells you <em>who</em> an agent is. 0xAgentio answers
@@ -901,16 +901,15 @@
             <a href="https://github.com/0xagentio">SDK &amp; live stack demo</a>
           </div>
 
-          <div class="track-card uniswap">
-            <span class="track-tag">Track · Uniswap</span>
-            <span class="track-name">Proof-gated agentic finance</span>
+          <div class="track-card agentproof">
+            <span class="track-tag">Artifact · AgentProof</span>
+            <span class="track-name">Verification passport for agent actions</span>
             <p>
-              Alice is an autonomous treasury agent. Bob is a Uniswap gateway.
-              Bob only calls <code>/check_approval</code>, <code>/quote</code>,
-              <code>/swap</code> or <code>/order</code> after verifying that
-              Alice's proof-backed request matches her delegated policy.
+              Alice runs a delegated task. The framework verifies the action,
+              stores the proof bundle and emits a passport with the task,
+              verdict, hashes, storage root and receipt metadata.
             </p>
-            <a href="uniswap-demo.html">Open Uniswap demo</a>
+            <a href="agentproof-passport.html">Open AgentProof passport</a>
           </div>
         </div>
       </section>
@@ -975,8 +974,8 @@
 <span class="k">npm</span> run build
 <span class="k">npm</span> run example:getting-started
 
-<span class="c"># Uniswap track demo (judge-safe, no API key required)</span>
-<span class="k">npm</span> run example:uniswap:judge-demo
+<span class="c"># AgentProof passport demo (local, no credentials required)</span>
+<span class="k">npm</span> run example:agentproof
 
 <span class="c"># full live stack — real Noir proving, live 0G KV, real local AXL nodes</span>
 <span class="k">npm</span> run example:live-stack:binary
@@ -985,12 +984,12 @@
 <span class="v">AGENTIO_0G_COMPUTE_API_KEY</span>=<span class="s">"sk-..."</span> <span class="k">npm</span> run example:0g-compute-run-until-complete</pre>
 
         <ul class="checks" style="margin-top: 28px">
-          <li>137 / 140 tests pass (3 skipped because they require live credentials)</li>
+          <li>Tests pass locally; live-network checks remain opt-in behind credentials</li>
           <li>Real Noir proof generation via Barretenberg, with action/policy/state binding</li>
           <li>Live 0G KV state persistence and read-back across runs</li>
           <li>Two real Gensyn AXL node processes exchanging proof-backed messages</li>
           <li>0G Compute Router as a first-class live LLM provider for reasoning</li>
-          <li>Uniswap Trading API: live <code>/check_approval</code> + <code>/quote</code>, swap and UniswapX order behind explicit live flags</li>
+          <li>AgentProof passport: proof bundle, storage root, receipt metadata and judge-facing audit view</li>
         </ul>
       </section>
 
@@ -998,9 +997,9 @@
         <div class="eyebrow">Beyond the demo</div>
         <h2>Domain-agnostic by design.</h2>
         <p class="section-lede">
-          Uniswap is the first concrete demo because the actions are real and
-          financially meaningful. The same shape applies anywhere agents need
-          to prove what they're allowed to do before a counterparty acts on it.
+          AgentProof is the concrete demo because the action is generic and
+          audit-focused. The same shape applies anywhere agents need to prove
+          what they're allowed to do before a counterparty acts on it.
         </p>
         <div class="grid-2">
           <div class="card compact">
@@ -1043,7 +1042,7 @@
         <div class="links">
           <a href="https://github.com/0xagentio">GitHub</a>
           <a href="kv-node.html">0G KV node</a>
-          <a href="uniswap-demo.html">Uniswap demo</a>
+          <a href="agentproof-passport.html">AgentProof passport</a>
         </div>
       </footer>
     </div>
