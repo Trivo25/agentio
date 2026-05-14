@@ -7,31 +7,35 @@
 
 ## One-Liner
 
-A framework for proof-carrying agent coordination - delegate bounded authority, coordinate peer-to-peer and verify actions at the edge, without forcing principals to expose private strategy, budgets or internal authorization.
+Agents should not be trusted because they say they are allowed to act. They should be trusted because they can prove it.
+
+0xAgentio is a framework for proof-carrying agent coordination: delegate bounded authority, coordinate peer-to-peer and verify actions at the edge, without forcing principals to expose private strategy, budgets or internal authorization.
 
 ## The Problem
 
-AI agents are becoming economic actors. Trading, paying for compute or settling API calls. a16z calls this the "Know Your Agent" gap - agents need verifiable credentials before they can participate in any economy. Most approaches to KYA focus on identity: who is this agent, who is the principal behind it, are they compliant? That matters, but it's only half the problem.
+AI agents are moving from chat into action. They trade, call APIs, spend budgets, route compute, share research and coordinate with other agents. But most agent systems still ask counterparties to trust opaque runtime logs, API keys, reputation scores or the operator behind the agent.
 
-The other half is delegation and coordination. There's no way for an agent to prove what it's authorized to do - or for other agents to verify that - without exposing everything about the principal behind it. And when agents need to coordinate with each other, they have no mechanism to establish trust without a central broker, reputation scores that take months to build or exposing private information.
+That breaks down quickly. A receiving service needs to know whether an agent is allowed to perform a specific action, spend a specific amount, use a specific tool or access a specific dataset. Other agents need to verify claims before acting on them. Users need an audit trail that shows what happened after delegation, not just who the agent claimed to be.
 
-Identity tells you who. 0xAgentio answers what, how much and with whom - the operational layer that agents actually need to act autonomously. ZK proofs make it possible to prove all of this without revealing any of it.
+Identity tells you who an agent is. 0xAgentio focuses on the next question: what is this agent allowed to do right now, under what bounds, and can another system verify that before doing work?
 
 ## The Solution
 
 ### The Framework: 0xAgentio
 
-0xAgentio is a framework for verifiable agent coordination, built on two primitives:
+0xAgentio gives agents proof-carrying credentials and a verification flow for bounded execution. A principal defines a policy, delegates authority to an agent, and the agent can later present proof-backed requests that receivers verify before trusting, executing or replying.
+
+The framework is built on two primitives:
 
 **Primitive 1: Provable Delegation**
 
-Agents carry ZK credentials - zero-knowledge proofs that attest to their delegated authority, operational bounds and policy constraints without revealing private inputs. The agent doesn't need to prove _who it is_ to every counterparty - it proves _what it's allowed to do_. A developer imports the SDK, defines a policy and their agent can generate and present proofs. The framework handles:
+Agents carry credentials that attest to delegated authority, operational bounds and policy constraints. The agent does not need to reveal every private detail about its principal to every counterparty; it proves the action is inside the delegated envelope. A developer imports the SDK, defines a policy and their agent can generate and present proofs. The framework handles:
 
 - **Delegation issuance**: A principal defines policy constraints -> signs delegation to agent -> agent holds private credential
-- **Proof generation**: Efficient proofs attesting to delegated authority + budget bounds + policy constraints
+- **Proof generation**: Proofs attesting to delegated authority, budget bounds and policy constraints
 - **Verification**: Off-chain (peer to peer) or on-chain (auto-generated Solidity verifier on any EVM chain)
-- **Onchain registry**: Solidity contracts on 0G Chain for credential commitment, revocation and event logs
-- **Persistent state**: 0G Storage for credential state, cumulative spend tracking and audit/interaction trails
+- **Onchain registry**: Solidity contracts for credential commitment, revocation and event logs
+- **Persistent state**: Pluggable storage for credential state, cumulative spend tracking and audit trails
 
 What the credential proves (without revealing the private inputs):
 
@@ -61,7 +65,7 @@ The framework is domain agnostic. The same delegation + coordination stack appli
 
 - **API access gating**: An agent consumes third-party APIs on behalf of a principal. The credential proves the agent is rate-limited (max N calls/hour) and scoped to specific endpoints, without revealing private delegation details. API providers verify the credential instead of issuing long-lived API keys to anonymous bots.
 
-The common pattern: a principal delegates bounded authority -> the agent proves its bounds in ZK -> the agent discovers and coordinates with verified peers over AXL -> counterparties verify the proof before interacting. 0xAgentio is the layer that makes all of this work without a central authority.
+The common pattern: a principal delegates bounded authority -> the agent proves its bounds -> the agent discovers and coordinates with verified peers -> counterparties verify before interacting. 0xAgentio is the layer that makes this work without a central broker.
 
 ### Build on 0xAgentio
 
@@ -75,11 +79,11 @@ The common pattern: a principal delegates bounded authority -> the agent proves 
          \                    |                      /                  /
           ┌─────────────────────────────────────────────────────────────┐
           │                    0xAgentio Framework                      │
-          │       core · noir · axl · contracts · storage              │
+          │       core · noir · transport · contracts · storage        │
           └─────────────────────────────────────────────────────────────┘
 ```
 
-The framework is agnostic about _what_ the credential contains. For example, a trading application defines a circuit for "my budget is $5K, max $200 per trade." A compute marketplace defines a circuit for "I'm authorized to spend up to $X on GPU jobs." A data marketplace application defines a circuit for "I'm authorized to procure genomics data up to $10K." All three use the same SDK, the same AXL transport, the same onchain verifier, the same storage layer. Different credential types, same coordination infrastructure.
+The framework is agnostic about _what_ the credential contains. For example, a trading application defines a circuit for "my budget is $5K, max $200 per trade." A compute marketplace defines a circuit for "I'm authorized to spend up to $X on GPU jobs." A data marketplace application defines a circuit for "I'm authorized to procure genomics data up to $10K." All three use the same SDK shape, proof model, verifier boundary and storage pattern. Different credential types, same coordination infrastructure.
 
 ### Current Local SDK vs. Final Adapters
 
@@ -88,9 +92,9 @@ The current implementation starts with local adapters so the framework can be de
 | Current local adapter    | Final adapter                                     | Role in the framework                                              |
 | ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------ |
 | `localPolicyProofs()`    | `noirProofs()`                                    | Proves an action satisfies the delegated policy.                   |
-| `localMemoryStorage()`   | `ogStorage()`                                     | Stores agent state, credential state and audit receipts.           |
+| `localMemoryStorage()`   | durable storage adapter                           | Stores agent state, credential state and audit receipts.           |
 | `localTransport()`       | `axlTransport()`                                  | Carries proof-backed peer messages between agents.                 |
-| `localExecution()`       | `uniswapExecution()` or custom execution adapters | Executes authorized actions after validation and proof generation. |
+| `localExecution()`       | custom execution adapters                         | Executes authorized actions after validation and proof generation. |
 | `issueLocalCredential()` | signed credential issuance                        | Binds an agent to a delegated policy.                              |
 
 This lets the SDK flow stay stable while the internals become progressively more real:
@@ -104,11 +108,11 @@ const agent = createTrustedAgent({
   proof: noirProofs(),
   storage: ogStorage(),
   transport: axlTransport(),
-  execution: uniswapExecution(),
+  execution: appExecutionAdapter(),
 });
 ```
 
-For now, the local adapters are not pretending to be secure production implementations. They are scaffolding for the final architecture: prove with Noir, coordinate over AXL, persist on 0G and execute through domain-specific adapters.
+For now, the local adapters are not pretending to be secure production implementations. They are scaffolding for the final architecture: prove with Noir, coordinate over a transport, persist audit state and execute through domain-specific adapters.
 
 ### Quick Start
 
@@ -125,6 +129,18 @@ a delegated policy, sends Bob a proof-backed quote request, Bob verifies before
 replying, Alice reasons over the reply, and Alice's runtime validates, proves,
 stores and executes the final action through a verifying adapter.
 
+### AgentProof Demo
+
+`AgentProof` is a demo layer on top of 0xAgentio. It turns one verified agent action into a shareable verification passport: task, agent id, verdict, proof hash, trace hash, output hash, storage root and receipt metadata.
+
+Run it locally:
+
+```sh
+npm run example:agentproof
+```
+
+Then open `landing/agentproof-passport.html`. The demo is deterministic by default, so it works without credentials. If you provide live storage and chain environment variables, the same flow can replace the local preview receipt with live decentralized evidence and anchoring.
+
 For the full live stack with real Noir, live 0G KV and real local Gensyn AXL
 nodes, use:
 
@@ -133,32 +149,14 @@ npm run example:live-stack
 ```
 
 
-### Uniswap Track Demo
+### Submission-Ready Demo: AgentProof
 
-The Uniswap demo shows 0xAgentio as a proof-gated gateway for agentic finance. Alice is an autonomous treasury agent, Bob is a Uniswap gateway agent, and Bob only prepares or calls Uniswap API work after verifying Alice's proof-backed request.
+The main demo is now AgentProof: one verified agent action, one evidence bundle, one verification passport. It keeps the product generic and shows the framework as reusable infrastructure rather than a finance-specific app.
 
-Run the safe judge walkthrough:
-
-```sh
-npm run example:uniswap:judge-demo
-```
-
-Run the static web UI:
+Run it with:
 
 ```sh
-npm run example:uniswap:web-ui
+npm run example:agentproof
 ```
 
-Enable live Uniswap approval-check and quote calls with:
-
-```sh
-AGENTIO_UNISWAP_API_KEY=your_key \
-AGENTIO_UNISWAP_RUN_LIVE_API=1 \
-npm run example:uniswap:judge-demo
-```
-
-The live mode calls `POST /check_approval` and `POST /quote`. Swap and UniswapX order submission remain disabled unless explicit live flags and signatures are configured. See `docs/UNISWAP-EXAMPLE.md` for the full flow and `FEEDBACK.md` for the required Uniswap builder feedback.
-
-### The Demo App: 0xAgentio-Trade
-
-The first application built on 0xAgentio. A multi-agent DCA trading system where agents autonomously trade on Uniswap within credential-enforced budget envelopes and share Sybil-resistant market signals over AXL. It demonstrates the framework in action - provable delegation, bounded execution and peer-to-peer coordination in a real trading scenario.
+Then open `landing/agentproof-passport.html`.
